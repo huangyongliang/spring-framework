@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,6 @@ import org.springframework.util.ObjectUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Common superclass for expression tests.
@@ -52,7 +49,7 @@ public abstract class AbstractExpressionTests {
 
 	/**
 	 * Evaluate an expression and check that the actual result matches the
-	 * expectedValue and the class of the result matches the expectedClassOfResult.
+	 * expectedValue and the class of the result matches the expectedResultType.
 	 * @param expression the expression to evaluate
 	 * @param expectedValue the expected result for evaluating the expression
 	 * @param expectedResultType the expected class of the evaluation result
@@ -71,19 +68,18 @@ public abstract class AbstractExpressionTests {
 			if (expectedValue == null) {
 				return;  // no point doing other checks
 			}
-			assertNull("Expression returned null value, but expected '" + expectedValue + "'", expectedValue);
+			assertThat(expectedValue).as("Expression returned null value, but expected '" + expectedValue + "'").isNull();
 		}
 
 		Class<?> resultType = value.getClass();
-		assertEquals("Type of the actual result was not as expected.  Expected '" + expectedResultType +
-				"' but result was of type '" + resultType + "'", expectedResultType, resultType);
+		assertThat(resultType).as("Type of the actual result was not as expected.  Expected '" + expectedResultType +
+				"' but result was of type '" + resultType + "'").isEqualTo(expectedResultType);
 
 		if (expectedValue instanceof String) {
-			assertEquals("Did not get expected value for expression '" + expression + "'.", expectedValue,
-					AbstractExpressionTests.stringValueOf(value));
+			assertThat(AbstractExpressionTests.stringValueOf(value)).as("Did not get expected value for expression '" + expression + "'.").isEqualTo(expectedValue);
 		}
 		else {
-			assertEquals("Did not get expected value for expression '" + expression + "'.", expectedValue, value);
+			assertThat(value).as("Did not get expected value for expression '" + expression + "'.").isEqualTo(expectedValue);
 		}
 	}
 
@@ -99,26 +95,26 @@ public abstract class AbstractExpressionTests {
 			if (expectedValue == null) {
 				return;  // no point doing other checks
 			}
-			assertNull("Expression returned null value, but expected '" + expectedValue + "'", expectedValue);
+			assertThat(expectedValue).as("Expression returned null value, but expected '" + expectedValue + "'").isNull();
 		}
 
 		Class<?> resultType = value.getClass();
-		assertEquals("Type of the actual result was not as expected.  Expected '" + expectedResultType +
-				"' but result was of type '" + resultType + "'", expectedResultType, resultType);
-		assertEquals("Did not get expected value for expression '" + expression + "'.", expectedValue, value);
+		assertThat(resultType).as("Type of the actual result was not as expected.  Expected '" + expectedResultType +
+				"' but result was of type '" + resultType + "'").isEqualTo(expectedResultType);
+		assertThat(value).as("Did not get expected value for expression '" + expression + "'.").isEqualTo(expectedValue);
 	}
 
 	/**
 	 * Evaluate an expression and check that the actual result matches the
-	 * expectedValue and the class of the result matches the expectedClassOfResult.
+	 * expectedValue and the class of the result matches the expectedResultType.
 	 * This method can also check if the expression is writable (for example,
 	 * it is a variable or property reference).
 	 * @param expression the expression to evaluate
 	 * @param expectedValue the expected result for evaluating the expression
-	 * @param expectedClassOfResult the expected class of the evaluation result
+	 * @param expectedResultType the expected class of the evaluation result
 	 * @param shouldBeWritable should the parsed expression be writable?
 	 */
-	public void evaluate(String expression, Object expectedValue, Class<?> expectedClassOfResult, boolean shouldBeWritable) {
+	public void evaluate(String expression, Object expectedValue, Class<?> expectedResultType, boolean shouldBeWritable) {
 		Expression expr = parser.parseExpression(expression);
 		assertThat(expr).as("expression").isNotNull();
 		if (DEBUG) {
@@ -129,18 +125,17 @@ public abstract class AbstractExpressionTests {
 			if (expectedValue == null) {
 				return;  // no point doing other checks
 			}
-			assertNull("Expression returned null value, but expected '" + expectedValue + "'", expectedValue);
+			assertThat(expectedValue).as("Expression returned null value, but expected '" + expectedValue + "'").isNull();
 		}
 		Class<? extends Object> resultType = value.getClass();
 		if (expectedValue instanceof String) {
-			assertEquals("Did not get expected value for expression '" + expression + "'.", expectedValue,
-					AbstractExpressionTests.stringValueOf(value));
+			assertThat(AbstractExpressionTests.stringValueOf(value)).as("Did not get expected value for expression '" + expression + "'.").isEqualTo(expectedValue);
 		}
 		else {
-			assertEquals("Did not get expected value for expression '" + expression + "'.", expectedValue, value);
+			assertThat(value).as("Did not get expected value for expression '" + expression + "'.").isEqualTo(expectedValue);
 		}
-		assertTrue("Type of the result was not as expected.  Expected '" + expectedClassOfResult +
-				"' but result was of type '" + resultType + "'", expectedClassOfResult.equals(resultType));
+		assertThat(expectedResultType.equals(resultType)).as("Type of the result was not as expected.  Expected '" + expectedResultType +
+				"' but result was of type '" + resultType + "'").isTrue();
 
 		assertThat(expr.isWritable(context)).as("isWritable").isEqualTo(shouldBeWritable);
 	}

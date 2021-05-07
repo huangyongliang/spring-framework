@@ -22,14 +22,13 @@ import javax.ejb.EJBLocalObject;
 import javax.naming.Context;
 import javax.naming.NamingException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.jndi.JndiTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -63,7 +62,7 @@ public class LocalSlsbInvokerInterceptorTests {
 		JndiTemplate jt = new JndiTemplate() {
 			@Override
 			public Object lookup(String name) throws NamingException {
-				assertTrue(jndiName.equals(name));
+				assertThat(jndiName.equals(name)).isTrue();
 				throw nex;
 			}
 		};
@@ -73,9 +72,9 @@ public class LocalSlsbInvokerInterceptorTests {
 		// default resourceRef=false should cause this to fail, as java:/comp/env will not
 		// automatically be added
 		si.setJndiTemplate(jt);
-		assertThatExceptionOfType(NamingException.class).isThrownBy(
-				si::afterPropertiesSet)
-			.satisfies(ex -> assertThat(ex).isSameAs(nex));
+		assertThatExceptionOfType(NamingException.class)
+			.isThrownBy(si::afterPropertiesSet)
+			.isSameAs(nex);
 	}
 
 	@Test
@@ -93,7 +92,7 @@ public class LocalSlsbInvokerInterceptorTests {
 		pf.addAdvice(si);
 		BusinessMethods target = (BusinessMethods) pf.getProxy();
 
-		assertTrue(target.targetMethod() == retVal);
+		assertThat(target.targetMethod() == retVal).isTrue();
 
 		verify(mockContext).close();
 		verify(ejb).remove();
@@ -114,7 +113,7 @@ public class LocalSlsbInvokerInterceptorTests {
 		pf.addAdvice(si);
 		BusinessMethods target = (BusinessMethods) pf.getProxy();
 
-		assertTrue(target.targetMethod() == retVal);
+		assertThat(target.targetMethod() == retVal).isTrue();
 
 		verify(mockContext).close();
 		verify(ejb).remove();
@@ -133,9 +132,9 @@ public class LocalSlsbInvokerInterceptorTests {
 		pf.addAdvice(si);
 		LocalInterfaceWithBusinessMethods target = (LocalInterfaceWithBusinessMethods) pf.getProxy();
 
-		assertThatExceptionOfType(Exception.class).isThrownBy(
-				target::targetMethod)
-			.satisfies(ex -> assertThat(ex).isSameAs(expected));
+		assertThatExceptionOfType(Exception.class)
+			.isThrownBy(target::targetMethod)
+			.isSameAs(expected);
 
 		verify(mockContext).close();
 	}

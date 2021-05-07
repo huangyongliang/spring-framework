@@ -1,9 +1,7 @@
 import org.gradle.plugins.ide.eclipse.model.ProjectDependency
 import org.gradle.plugins.ide.eclipse.model.SourceFolder
 
-
-apply plugin: "propdeps-eclipse"
-apply plugin: "propdeps-idea"
+apply plugin: "eclipse"
 
 eclipse.jdt {
 	sourceCompatibility = 1.8
@@ -31,12 +29,11 @@ eclipse.classpath.file.whenMerged { classpath ->
 	classpath.entries.removeAll { entry -> (entry.path =~ /(?!.*?repack.*\.jar).*?\/([^\/]+)\/build\/libs\/[^\/]+\.jar/) }
 }
 
-
 // Use separate main/test outputs (prevents WTP from packaging test classes)
 eclipse.classpath.defaultOutputDir = file(project.name+"/bin/eclipse")
 eclipse.classpath.file.beforeMerged { classpath ->
 	classpath.entries.findAll{ it instanceof SourceFolder }.each {
-		if(it.output.startsWith("bin/")) {
+		if (it.output.startsWith("bin/")) {
 			it.output = null
 		}
 	}
@@ -55,6 +52,15 @@ eclipse.classpath.file.whenMerged { classpath ->
 		classpath.entries.remove(it)
 		// append to end of classpath
 		classpath.entries.add(it)
+	}
+}
+
+// Ensure that JMH sources and resources are treated as test classpath entries
+// so that they can see test fixtures.
+// https://github.com/melix/jmh-gradle-plugin/issues/157
+eclipse.classpath.file.whenMerged {
+	entries.findAll { it.path =~ /src\/jmh\/(java|resources)/ }.each {
+		it.entryAttributes['test'] = 'true'
 	}
 }
 
@@ -102,21 +108,3 @@ task eclipseBuildship(type: Copy) {
 tasks["eclipseJdt"].dependsOn(eclipseJdtPrepare)
 tasks["cleanEclipse"].dependsOn(cleanEclipseJdtUi)
 tasks["eclipse"].dependsOn(eclipseSettings, eclipseWstComponent)
-
-
-// Filter 'build' folder
-eclipse.project.file.withXml {
-	def node = it.asNode()
-
-	def filteredResources = node.get("filteredResources")
-	if(filteredResources) {
-		node.remove(filteredResources)
-	}
-	def filterNode = node.appendNode("filteredResources").appendNode("filter")
-	filterNode.appendNode("id", "1359048889071")
-	filterNode.appendNode("name", "")
-	filterNode.appendNode("type", "30")
-	def matcherNode = filterNode.appendNode("matcher")
-	matcherNode.appendNode("id", "org.eclipse.ui.ide.multiFilter")
-	matcherNode.appendNode("arguments", "1.0-projectRelativePath-matches-false-false-build")
-}

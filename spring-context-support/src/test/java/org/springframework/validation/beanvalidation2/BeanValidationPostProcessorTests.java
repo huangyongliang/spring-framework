@@ -20,18 +20,17 @@ import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.beans.testfixture.beans.TestBean;
 import org.springframework.context.annotation.CommonAnnotationBeanPostProcessor;
 import org.springframework.context.support.GenericApplicationContext;
-import org.springframework.tests.sample.beans.TestBean;
 import org.springframework.validation.beanvalidation.BeanValidationPostProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assert.assertNotNull;
 
 /**
  * @author Juergen Hoeller
@@ -44,9 +43,10 @@ public class BeanValidationPostProcessorTests {
 		ac.registerBeanDefinition("bvpp", new RootBeanDefinition(BeanValidationPostProcessor.class));
 		ac.registerBeanDefinition("capp", new RootBeanDefinition(CommonAnnotationBeanPostProcessor.class));
 		ac.registerBeanDefinition("bean", new RootBeanDefinition(NotNullConstrainedBean.class));
-		assertThatExceptionOfType(BeanCreationException.class).isThrownBy(
-				ac::refresh)
-			.satisfies(ex -> assertThat(ex.getRootCause().getMessage()).contains("testBean", "invalid"));
+		assertThatExceptionOfType(BeanCreationException.class)
+			.isThrownBy(ac::refresh)
+			.havingRootCause()
+			.withMessageContainingAll("testBean", "invalid");
 		ac.close();
 	}
 
@@ -82,9 +82,10 @@ public class BeanValidationPostProcessorTests {
 		bd.getPropertyValues().add("testBean", new TestBean());
 		bd.getPropertyValues().add("stringValue", "s");
 		ac.registerBeanDefinition("bean", bd);
-		assertThatExceptionOfType(BeanCreationException.class).isThrownBy(
-				ac::refresh)
-			.satisfies(ex -> assertThat(ex.getRootCause().getMessage()).contains("stringValue", "invalid"));
+		assertThatExceptionOfType(BeanCreationException.class)
+			.isThrownBy(ac::refresh)
+			.havingRootCause()
+			.withMessageContainingAll("stringValue", "invalid");
 		ac.close();
 	}
 
@@ -127,7 +128,7 @@ public class BeanValidationPostProcessorTests {
 
 		@PostConstruct
 		public void init() {
-			assertNotNull("Shouldn't be here after constraint checking", this.testBean);
+			assertThat(this.testBean).as("Shouldn't be here after constraint checking").isNotNull();
 		}
 	}
 
