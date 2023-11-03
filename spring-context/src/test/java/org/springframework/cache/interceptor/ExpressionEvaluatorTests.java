@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,14 +61,14 @@ public class ExpressionEvaluatorTests {
 	@Test
 	public void testMultipleCachingSource() {
 		Collection<CacheOperation> ops = getOps("multipleCaching");
-		assertThat(ops.size()).isEqualTo(2);
+		assertThat(ops).hasSize(2);
 		Iterator<CacheOperation> it = ops.iterator();
 		CacheOperation next = it.next();
-		assertThat(next instanceof CacheableOperation).isTrue();
+		assertThat(next).isInstanceOf(CacheableOperation.class);
 		assertThat(next.getCacheNames().contains("test")).isTrue();
 		assertThat(next.getKey()).isEqualTo("#a");
 		next = it.next();
-		assertThat(next instanceof CacheableOperation).isTrue();
+		assertThat(next).isInstanceOf(CacheableOperation.class);
 		assertThat(next.getCacheNames().contains("test")).isTrue();
 		assertThat(next.getKey()).isEqualTo("#b");
 	}
@@ -121,7 +121,7 @@ public class ExpressionEvaluatorTests {
 		EvaluationContext context = createEvaluationContext(CacheOperationExpressionEvaluator.RESULT_UNAVAILABLE);
 		assertThatExceptionOfType(VariableNotAvailableException.class).isThrownBy(() ->
 				new SpelExpressionParser().parseExpression("#result").getValue(context))
-			.satisfies(ex ->  assertThat(ex.getName()).isEqualTo("result"));
+			.satisfies(ex -> assertThat(ex.getName()).isEqualTo("result"));
 	}
 
 	@Test

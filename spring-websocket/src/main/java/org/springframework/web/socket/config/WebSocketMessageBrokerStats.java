@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
@@ -49,6 +50,7 @@ import org.springframework.web.socket.messaging.SubProtocolWebSocketHandler;
  * the {@link org.springframework.jmx.export.MBeanExporter MBeanExporter}.
  *
  * @author Rossen Stoyanchev
+ * @author Sam Brannen
  * @since 4.1
  */
 public class WebSocketMessageBrokerStats {
@@ -91,13 +93,13 @@ public class WebSocketMessageBrokerStats {
 			return null;
 		}
 		for (SubProtocolHandler handler : this.webSocketHandler.getProtocolHandlers()) {
-			if (handler instanceof StompSubProtocolHandler) {
-				return (StompSubProtocolHandler) handler;
+			if (handler instanceof StompSubProtocolHandler stompHandler) {
+				return stompHandler;
 			}
 		}
 		SubProtocolHandler defaultHandler = this.webSocketHandler.getDefaultProtocolHandler();
-		if (defaultHandler instanceof StompSubProtocolHandler) {
-			return (StompSubProtocolHandler) defaultHandler;
+		if (defaultHandler instanceof StompSubProtocolHandler stompHandler) {
+			return stompHandler;
 		}
 		return null;
 	}
@@ -174,16 +176,14 @@ public class WebSocketMessageBrokerStats {
 	 * Get stats about the executor processing incoming messages from WebSocket clients.
 	 */
 	public String getClientInboundExecutorStatsInfo() {
-		return (this.inboundChannelExecutor != null ?
-				getExecutorStatsInfo(this.inboundChannelExecutor) : "null");
+		return getExecutorStatsInfo(this.inboundChannelExecutor);
 	}
 
 	/**
 	 * Get stats about the executor processing outgoing messages to WebSocket clients.
 	 */
 	public String getClientOutboundExecutorStatsInfo() {
-		return (this.outboundChannelExecutor != null ?
-				getExecutorStatsInfo(this.outboundChannelExecutor) : "null");
+		return getExecutorStatsInfo(this.outboundChannelExecutor);
 	}
 
 	/**
@@ -193,20 +193,34 @@ public class WebSocketMessageBrokerStats {
 		if (this.sockJsTaskScheduler == null) {
 			return "null";
 		}
-		if (this.sockJsTaskScheduler instanceof ThreadPoolTaskScheduler) {
-			return getExecutorStatsInfo(((ThreadPoolTaskScheduler) this.sockJsTaskScheduler)
-					.getScheduledThreadPoolExecutor());
+		if (this.sockJsTaskScheduler instanceof ThreadPoolTaskScheduler threadPoolTaskScheduler) {
+			return getExecutorStatsInfo(threadPoolTaskScheduler.getScheduledThreadPoolExecutor());
 		}
-		else {
-			return "unknown";
-		}
+		return "unknown";
 	}
 
-	private String getExecutorStatsInfo(Executor executor) {
-		executor = executor instanceof ThreadPoolTaskExecutor ?
-				((ThreadPoolTaskExecutor) executor).getThreadPoolExecutor() : executor;
-		String str = executor.toString();
-		return str.substring(str.indexOf("pool"), str.length() - 1);
+	private String getExecutorStatsInfo(@Nullable Executor executor) {
+		if (executor == null) {
+			return "null";
+		}
+
+		if (executor instanceof ThreadPoolTaskExecutor threadPoolTaskScheduler) {
+			executor = threadPoolTaskScheduler.getThreadPoolExecutor();
+		}
+
+		if (executor instanceof ThreadPoolExecutor) {
+			// It is assumed that the implementation of toString() in ThreadPoolExecutor
+			// generates text that ends similar to the following:
+			// pool size = #, active threads = #, queued tasks = #, completed tasks = #]
+			String str = executor.toString();
+			int indexOfPool = str.indexOf("pool");
+			if (indexOfPool != -1) {
+				// (length - 1) omits the trailing "]"
+				return str.substring(indexOfPool, str.length() - 1);
+			}
+		}
+
+		return "unknown";
 	}
 
 	@Override

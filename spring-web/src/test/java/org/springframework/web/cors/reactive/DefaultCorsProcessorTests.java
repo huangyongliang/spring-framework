@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -172,10 +172,22 @@ public class DefaultCorsProcessorTests {
 		this.processor.process(this.conf, exchange);
 
 		ServerHttpResponse response = exchange.getResponse();
-		assertThat(response.getHeaders().containsKey(ACCESS_CONTROL_ALLOW_ORIGIN)).isTrue();
-		assertThat(response.getHeaders().get(VARY)).contains(ORIGIN,
-				ACCESS_CONTROL_REQUEST_METHOD, ACCESS_CONTROL_REQUEST_HEADERS);
 		assertThat((Object) response.getStatusCode()).isNull();
+		assertThat(response.getHeaders().containsKey(ACCESS_CONTROL_ALLOW_ORIGIN)).isTrue();
+	}
+
+	@Test // gh-26892
+	public void actualRequestTrailingSlashOriginMatch() {
+		ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+				.method(HttpMethod.GET, "http://localhost/test.html")
+				.header(HttpHeaders.ORIGIN, "https://domain2.com/"));
+
+		this.conf.addAllowedOrigin("https://domain2.com");
+		this.processor.process(this.conf, exchange);
+
+		ServerHttpResponse response = exchange.getResponse();
+		assertThat((Object) response.getStatusCode()).isNull();
+		assertThat(response.getHeaders().containsKey(ACCESS_CONTROL_ALLOW_ORIGIN)).isTrue();
 	}
 
 	@Test
@@ -190,8 +202,8 @@ public class DefaultCorsProcessorTests {
 		assertThat(response.getHeaders().containsKey(ACCESS_CONTROL_ALLOW_ORIGIN)).isTrue();
 		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_ORIGIN)).isEqualTo("https://domain2.com");
 		assertThat(response.getHeaders().containsKey(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS)).isTrue();
-		assertThat(response.getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS).contains("header1")).isTrue();
-		assertThat(response.getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS).contains("header2")).isTrue();
+		assertThat(response.getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS)).contains("header1");
+		assertThat(response.getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS)).contains("header2");
 		assertThat(response.getHeaders().get(VARY)).contains(ORIGIN,
 				ACCESS_CONTROL_REQUEST_METHOD, ACCESS_CONTROL_REQUEST_HEADERS);
 		assertThat((Object) response.getStatusCode()).isNull();
@@ -368,9 +380,9 @@ public class DefaultCorsProcessorTests {
 		ServerHttpResponse response = exchange.getResponse();
 		assertThat(response.getHeaders().containsKey(ACCESS_CONTROL_ALLOW_ORIGIN)).isTrue();
 		assertThat(response.getHeaders().containsKey(ACCESS_CONTROL_ALLOW_HEADERS)).isTrue();
-		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS).contains("Header1")).isTrue();
-		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS).contains("Header2")).isTrue();
-		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS).contains("Header3")).isFalse();
+		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS)).contains("Header1");
+		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS)).contains("Header2");
+		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS)).doesNotContain("Header3");
 		assertThat(response.getHeaders().get(VARY)).contains(ORIGIN,
 				ACCESS_CONTROL_REQUEST_METHOD, ACCESS_CONTROL_REQUEST_HEADERS);
 		assertThat((Object) response.getStatusCode()).isNull();
@@ -390,9 +402,9 @@ public class DefaultCorsProcessorTests {
 		ServerHttpResponse response = exchange.getResponse();
 		assertThat(response.getHeaders().containsKey(ACCESS_CONTROL_ALLOW_ORIGIN)).isTrue();
 		assertThat(response.getHeaders().containsKey(ACCESS_CONTROL_ALLOW_HEADERS)).isTrue();
-		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS).contains("Header1")).isTrue();
-		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS).contains("Header2")).isTrue();
-		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS).contains("*")).isFalse();
+		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS)).contains("Header1");
+		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS)).contains("Header2");
+		assertThat(response.getHeaders().getFirst(ACCESS_CONTROL_ALLOW_HEADERS)).doesNotContain("*");
 		assertThat(response.getHeaders().get(VARY)).contains(ORIGIN,
 				ACCESS_CONTROL_REQUEST_METHOD, ACCESS_CONTROL_REQUEST_HEADERS);
 		assertThat((Object) response.getStatusCode()).isNull();

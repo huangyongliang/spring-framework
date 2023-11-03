@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+
+import io.r2dbc.spi.Parameter;
 
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.lang.Nullable;
@@ -37,8 +38,7 @@ import org.springframework.util.Assert;
 /**
  * Helper methods for named parameter parsing.
  *
- * <p>Only intended for internal use within Spring's R2DBC
- * framework.
+ * <p>Only intended for internal use within Spring's R2DBC framework.
  *
  * <p>References to the same parameter name are substituted with
  * the same bind marker placeholder if a {@link BindMarkersFactory} uses
@@ -48,6 +48,7 @@ import org.springframework.util.Assert;
  * @author Thomas Risberg
  * @author Juergen Hoeller
  * @author Mark Paluch
+ * @author Anton Naydenov
  * @since 5.3
  */
 abstract class NamedParameterUtils {
@@ -66,7 +67,7 @@ abstract class NamedParameterUtils {
 	 * Set of characters that qualify as parameter separators,
 	 * indicating that a parameter name in an SQL String has ended.
 	 */
-	private static final String PARAMETER_SEPARATORS = "\"':&,;()|=+-*%/\\<>^";
+	private static final String PARAMETER_SEPARATORS = "\"':&,;()|=+-*%/\\<>^]";
 
 	/**
 	 * An index with separator flags per character code.
@@ -158,6 +159,11 @@ abstract class NamedParameterUtils {
 					}
 					if (j - i > 1) {
 						parameter = sql.substring(i + 1, j);
+						if (j < statement.length && statement[j] == ']' && parameter.contains("[")) {
+							// preserve end bracket for index/key
+							j++;
+							parameter = sql.substring(i + 1, j);
+						}
 						namedParameterCount = addNewNamedParameter(
 								namedParameters, namedParameterCount, parameter);
 						totalParameterCount = addNamedParameter(
@@ -291,10 +297,9 @@ abstract class NamedParameterUtils {
 			actualSql.append(originalSql, lastIndex, startIndex);
 			NamedParameters.NamedParameter marker = markerHolder.getOrCreate(paramName);
 			if (paramSource.hasValue(paramName)) {
-				Object value = paramSource.getValue(paramName);
-				if (value instanceof Collection) {
-
-					Iterator<?> entryIter = ((Collection<?>) value).iterator();
+				Parameter parameter = paramSource.getValue(paramName);
+				if (parameter.getValue() instanceof Collection<?> collection) {
+					Iterator<?> entryIter = collection.iterator();
 					int k = 0;
 					int counter = 0;
 					while (entryIter.hasNext()) {
@@ -303,8 +308,7 @@ abstract class NamedParameterUtils {
 						}
 						k++;
 						Object entryItem = entryIter.next();
-						if (entryItem instanceof Object[]) {
-							Object[] expressionList = (Object[]) entryItem;
+						if (entryItem instanceof Object[] expressionList) {
 							actualSql.append('(');
 							for (int m = 0; m < expressionList.length; m++) {
 								if (m > 0) {
@@ -375,6 +379,7 @@ abstract class NamedParameterUtils {
 		private final int endIndex;
 
 		ParameterHolder(String parameterName, int startIndex, int endIndex) {
+			Assert.notNull(parameterName, "Parameter name must not be null");
 			this.parameterName = parameterName;
 			this.startIndex = startIndex;
 			this.endIndex = endIndex;
@@ -393,21 +398,15 @@ abstract class NamedParameterUtils {
 		}
 
 		@Override
-		public boolean equals(Object o) {
-			if (this == o) {
-				return true;
-			}
-			if (!(o instanceof ParameterHolder)) {
-				return false;
-			}
-			ParameterHolder that = (ParameterHolder) o;
-			return this.startIndex == that.startIndex && this.endIndex == that.endIndex
-					&& Objects.equals(this.parameterName, that.parameterName);
+		public boolean equals(@Nullable Object other) {
+			return (this == other || (other instanceof ParameterHolder that &&
+					this.startIndex == that.startIndex && this.endIndex == that.endIndex &&
+					this.parameterName.equals(that.parameterName)));
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(this.parameterName, this.startIndex, this.endIndex);
+			return this.parameterName.hashCode();
 		}
 	}
 
@@ -509,21 +508,19 @@ abstract class NamedParameterUtils {
 			this.parameterSource = parameterSource;
 		}
 
-		@SuppressWarnings("unchecked")
-		public void bind(BindTarget target, String identifier, Object value) {
+		@SuppressWarnings({"rawtypes", "unchecked"})
+		public void bind(BindTarget target, String identifier, Parameter parameter) {
 			List<BindMarker> bindMarkers = getBindMarkers(identifier);
 			if (bindMarkers == null) {
-				target.bind(identifier, value);
+				target.bind(identifier, parameter);
 				return;
 			}
-			if (value instanceof Collection) {
-				Collection<Object> collection = (Collection<Object>) value;
+			if (parameter.getValue() instanceof Collection collection) {
 				Iterator<Object> iterator = collection.iterator();
 				Iterator<BindMarker> markers = bindMarkers.iterator();
 				while (iterator.hasNext()) {
 					Object valueToBind = iterator.next();
-					if (valueToBind instanceof Object[]) {
-						Object[] objects = (Object[]) valueToBind;
+					if (valueToBind instanceof Object[] objects) {
 						for (Object object : objects) {
 							bind(target, markers, object);
 						}
@@ -535,7 +532,7 @@ abstract class NamedParameterUtils {
 			}
 			else {
 				for (BindMarker bindMarker : bindMarkers) {
-					bindMarker.bind(target, value);
+					bindMarker.bind(target, parameter);
 				}
 			}
 		}
@@ -547,14 +544,14 @@ abstract class NamedParameterUtils {
 			markers.next().bind(target, valueToBind);
 		}
 
-		public void bindNull(BindTarget target, String identifier, Class<?> valueType) {
+		public void bindNull(BindTarget target, String identifier, Parameter parameter) {
 			List<BindMarker> bindMarkers = getBindMarkers(identifier);
 			if (bindMarkers == null) {
-				target.bindNull(identifier, valueType);
+				target.bind(identifier, parameter);
 				return;
 			}
 			for (BindMarker bindMarker : bindMarkers) {
-				bindMarker.bindNull(target, valueType);
+				bindMarker.bind(target, parameter);
 			}
 		}
 
@@ -579,12 +576,12 @@ abstract class NamedParameterUtils {
 		@Override
 		public void bindTo(BindTarget target) {
 			for (String namedParameter : this.parameterSource.getParameterNames()) {
-				Object value = this.parameterSource.getValue(namedParameter);
-				if (value == null) {
-					bindNull(target, namedParameter, this.parameterSource.getType(namedParameter));
+				Parameter parameter = this.parameterSource.getValue(namedParameter);
+				if (parameter.getValue() == null) {
+					bindNull(target, namedParameter, parameter);
 				}
 				else {
-					bind(target, namedParameter, value);
+					bind(target, namedParameter, parameter);
 				}
 			}
 		}
