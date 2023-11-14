@@ -55,13 +55,15 @@ import org.springframework.core.annotation.AliasFor;
  * annotation. Otherwise, {@link SqlGroup @SqlGroup} can be used as an explicit
  * container for declaring multiple instances of {@code @Sql}.
  *
- * <p>This annotation may be used as a <em>meta-annotation</em> to create custom
- * <em>composed annotations</em> with attribute overrides.
- *
- * <p>As of Spring Framework 5.3, this annotation will be inherited from an
- * enclosing test class by default. See
+ * <p>This annotation will be inherited from an enclosing test class by default. See
  * {@link org.springframework.test.context.NestedTestConfiguration @NestedTestConfiguration}
- * for details.
+ * for details. This annotation may also be used as a <em>meta-annotation</em> to
+ * create custom <em>composed annotations</em> with attribute overrides.
+ *
+ * <p>If you want to see which SQL scripts are being executed, set the
+ * {@code org.springframework.test.context.jdbc} logging category to {@code DEBUG}.
+ * If you want to see which SQL statements are being executed, set the
+ * {@code org.springframework.jdbc.datasource.init} logging category to {@code DEBUG}.
  *
  * <p>Use of this annotation requires the {@code spring-jdbc} and {@code spring-tx}
  * modules as well as their transitive dependencies to be present on the classpath.

@@ -37,6 +37,7 @@ import org.springframework.util.comparator.Comparators;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 /**
  * Tests for {@link ConcurrentReferenceHashMap}.
@@ -95,26 +96,23 @@ class ConcurrentReferenceHashMapTests {
 
 	@Test
 	void shouldNeedNonNegativeInitialCapacity() {
-		new ConcurrentReferenceHashMap<Integer, String>(0, 1);
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new TestWeakConcurrentCache<Integer, String>(-1, 1))
-			.withMessageContaining("Initial capacity must not be negative");
+		assertThatNoException().isThrownBy(() -> new ConcurrentReferenceHashMap<Integer, String>(0, 1));
+		assertThatIllegalArgumentException().isThrownBy(() -> new ConcurrentReferenceHashMap<Integer, String>(-1, 1))
+				.withMessageContaining("Initial capacity must not be negative");
 	}
 
 	@Test
 	void shouldNeedPositiveLoadFactor() {
-		new ConcurrentReferenceHashMap<Integer, String>(0, 0.1f, 1);
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new TestWeakConcurrentCache<Integer, String>(0, 0.0f, 1))
-			.withMessageContaining("Load factor must be positive");
+		assertThatNoException().isThrownBy(() -> new ConcurrentReferenceHashMap<Integer, String>(0, 0.1f, 1));
+		assertThatIllegalArgumentException().isThrownBy(() -> new ConcurrentReferenceHashMap<Integer, String>(0, 0.0f, 1))
+				.withMessageContaining("Load factor must be positive");
 	}
 
 	@Test
 	void shouldNeedPositiveConcurrencyLevel() {
-		new ConcurrentReferenceHashMap<Integer, String>(1, 1);
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new TestWeakConcurrentCache<Integer, String>(1, 0))
-			.withMessageContaining("Concurrency level must be positive");
+		assertThatNoException().isThrownBy(() -> new ConcurrentReferenceHashMap<Integer, String>(1, 1));
+		assertThatIllegalArgumentException().isThrownBy(() -> new ConcurrentReferenceHashMap<Integer, String>(1, 0))
+				.withMessageContaining("Concurrency level must be positive");
 	}
 
 	@Test
@@ -509,11 +507,6 @@ class ConcurrentReferenceHashMapTests {
 		map.createReferenceManager().createReference(null, 1234, null);
 	}
 
-	private interface ValueFactory<V> {
-
-		V newValue(int k);
-	}
-
 
 	private static class TestWeakConcurrentCache<K, V> extends ConcurrentReferenceHashMap<K, V> {
 
@@ -521,14 +514,8 @@ class ConcurrentReferenceHashMapTests {
 
 		private final LinkedList<MockReference<K, V>> queue = new LinkedList<>();
 
-		private boolean disableTestHooks;
-
 		public TestWeakConcurrentCache() {
 			super();
-		}
-
-		public void setDisableTestHooks(boolean disableTestHooks) {
-			this.disableTestHooks = disableTestHooks;
 		}
 
 		public TestWeakConcurrentCache(int initialCapacity, float loadFactor, int concurrencyLevel) {
@@ -541,9 +528,6 @@ class ConcurrentReferenceHashMapTests {
 
 		@Override
 		protected int getHash(@Nullable Object o) {
-			if (this.disableTestHooks) {
-				return super.getHash(o);
-			}
 			// For testing we want more control of the hash
 			this.supplementalHash = super.getHash(o);
 			return (o != null ? o.hashCode() : 0);
@@ -558,16 +542,10 @@ class ConcurrentReferenceHashMapTests {
 			return new ReferenceManager() {
 				@Override
 				public Reference<K, V> createReference(Entry<K, V> entry, int hash, @Nullable Reference<K, V> next) {
-					if (TestWeakConcurrentCache.this.disableTestHooks) {
-						return super.createReference(entry, hash, next);
-					}
 					return new MockReference<>(entry, hash, next, TestWeakConcurrentCache.this.queue);
 				}
 				@Override
 				public Reference<K, V> pollForPurge() {
-					if (TestWeakConcurrentCache.this.disableTestHooks) {
-						return super.pollForPurge();
-					}
 					return TestWeakConcurrentCache.this.queue.isEmpty() ? null : TestWeakConcurrentCache.this.queue.removeFirst();
 				}
 			};

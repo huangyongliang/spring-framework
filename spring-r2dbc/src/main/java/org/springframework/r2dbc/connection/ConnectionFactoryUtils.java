@@ -16,6 +16,8 @@
 
 package org.springframework.r2dbc.connection;
 
+import java.util.Set;
+
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.R2dbcBadGrammarException;
@@ -68,6 +70,14 @@ public abstract class ConnectionFactoryUtils {
 	 * Order value for ReactiveTransactionSynchronization objects that clean up R2DBC Connections.
 	 */
 	public static final int CONNECTION_SYNCHRONIZATION_ORDER = 1000;
+
+	private static final Set<Integer> DUPLICATE_KEY_ERROR_CODES = Set.of(
+			1,     // Oracle
+			301,   // SAP HANA
+			1062,  // MySQL/MariaDB
+			2601,  // MS SQL Server
+			2627   // MS SQL Server
+		);
 
 
 	/**
@@ -247,16 +257,17 @@ public abstract class ConnectionFactoryUtils {
 	}
 
 	/**
-	 * Check whether the given SQL state (and the associated error code in case
-	 * of a generic SQL state value) indicate a duplicate key exception. See
-	 * {@code org.springframework.jdbc.support.SQLStateSQLExceptionTranslator#indicatesDuplicateKey}.
+	 * Check whether the given SQL state and the associated error code (in case
+	 * of a generic SQL state value) indicate a duplicate key exception:
+	 * either SQL state 23505 as a specific indication, or the generic SQL state
+	 * 23000 with a well-known vendor code.
 	 * @param sqlState the SQL state value
-	 * @param errorCode the error code value
+	 * @param errorCode the error code
+	 * @see org.springframework.jdbc.support.SQLStateSQLExceptionTranslator#indicatesDuplicateKey
 	 */
 	static boolean indicatesDuplicateKey(@Nullable String sqlState, int errorCode) {
 		return ("23505".equals(sqlState) ||
-				("23000".equals(sqlState) &&
-						(errorCode == 1 || errorCode == 1062 || errorCode == 2601 || errorCode == 2627)));
+				("23000".equals(sqlState) && DUPLICATE_KEY_ERROR_CODES.contains(errorCode)));
 	}
 
 	/**
