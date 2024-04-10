@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,8 @@
 package org.springframework.validation.beanvalidation;
 
 import java.lang.reflect.Method;
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import jakarta.validation.Valid;
@@ -43,12 +41,12 @@ import org.springframework.validation.method.ParameterValidationResult;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link MethodValidationAdapter}.
+ * Tests for {@link MethodValidationAdapter}.
  *
  * @author Rossen Stoyanchev
  * @author Sam Brannen
  */
-public class MethodValidationAdapterTests {
+class MethodValidationAdapterTests {
 
 	private static final Person faustino1234 = new Person("Faustino1234", List.of("Working on Spring"));
 
@@ -163,7 +161,7 @@ public class MethodValidationAdapterTests {
 	}
 
 	@Test
-	void validateListArgument() {
+	void validateBeanListArgument() {
 		MyService target = new MyService();
 		Method method = getMethod(target, "addPeople");
 
@@ -198,38 +196,20 @@ public class MethodValidationAdapterTests {
 	}
 
 	@Test
-	void validateSetArgument() {
+	void validateValueListArgument() {
 		MyService target = new MyService();
-		Method method = getMethod(target, "addPeople");
+		Method method = getMethod(target, "addHobbies");
 
-		testArgs(target, method, new Object[] {Set.of(faustino1234, cayetana6789)}, ex -> {
+		testArgs(target, method, new Object[] {List.of("   ")}, ex -> {
 
-			assertThat(ex.getAllValidationResults()).hasSize(2);
+			assertThat(ex.getAllValidationResults()).hasSize(1);
 
-			int paramIndex = 0;
-			String objectName = "people";
-			List<ParameterErrors> results = ex.getBeanResults();
-
-			assertThat(results).satisfiesExactlyInAnyOrder(
-				result -> assertBeanResult(result, paramIndex, objectName, faustino1234, List.of("""
-					Field error in object 'people' on field 'name': rejected value [Faustino1234]; \
-					codes [Size.people.name,Size.name,Size.java.lang.String,Size]; \
-					arguments [org.springframework.context.support.DefaultMessageSourceResolvable: \
-					codes [people.name,name]; arguments []; default message [name],10,1]; \
-					default message [size must be between 1 and 10]""")),
-				result -> assertBeanResult(result, paramIndex, objectName, cayetana6789, List.of("""
-					Field error in object 'people' on field 'name': rejected value [Cayetana6789]; \
-					codes [Size.people.name,Size.name,Size.java.lang.String,Size]; \
-					arguments [org.springframework.context.support.DefaultMessageSourceResolvable: \
-					codes [people.name,name]; arguments []; default message [name],10,1]; \
-					default message [size must be between 1 and 10]""", """
-					Field error in object 'people' on field 'hobbies[0]': rejected value [  ]; \
-					codes [NotBlank.people.hobbies[0],NotBlank.people.hobbies,NotBlank.hobbies[0],\
-					NotBlank.hobbies,NotBlank.java.lang.String,NotBlank]; arguments \
-					[org.springframework.context.support.DefaultMessageSourceResolvable: codes \
-					[people.hobbies[0],hobbies[0]]; arguments []; default message [hobbies[0]]]; \
-					default message [must not be blank]"""))
-			);
+			assertValueResult(ex.getValueResults().get(0), 0, "   ", List.of("""
+				org.springframework.context.support.DefaultMessageSourceResolvable: \
+				codes [NotBlank.myService#addHobbies.hobbies,NotBlank.hobbies,NotBlank.java.util.List,NotBlank]; \
+				arguments [org.springframework.context.support.DefaultMessageSourceResolvable: \
+				codes [myService#addHobbies.hobbies,hobbies]; \
+				arguments []; default message [hobbies]]; default message [must not be blank]"""));
 		});
 	}
 
@@ -285,7 +265,10 @@ public class MethodValidationAdapterTests {
 			throw new UnsupportedOperationException();
 		}
 
-		public void addPeople(@Valid Collection<Person> people) {
+		public void addPeople(@Valid List<Person> people) {
+		}
+
+		public void addHobbies(List<@NotBlank String> hobbies) {
 		}
 
 	}

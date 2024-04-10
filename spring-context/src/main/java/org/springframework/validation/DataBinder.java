@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -682,7 +682,8 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 		}
 	}
 
-	private void assertValidators(Validator... validators) {
+	@SuppressWarnings("NullAway")
+	private void assertValidators(@Nullable Validator... validators) {
 		Object target = getTarget();
 		for (Validator validator : validators) {
 			if (validator != null && (target != null && !validator.supports(target.getClass()))) {
@@ -741,6 +742,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * {@link #setExcludedValidators(Predicate) exclude predicate}.
 	 * @since 6.1
 	 */
+	@SuppressWarnings("NullAway")
 	public List<Validator> getValidatorsToApply() {
 		return (this.excludedValidators != null ?
 				this.validators.stream().filter(validator -> !this.excludedValidators.test(validator)).toList() :
@@ -948,7 +950,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 				Class<?> paramType = paramTypes[i];
 				Object value = valueResolver.resolveValue(paramPath, paramType);
 
-				if (value == null && shouldCreateObject(param)) {
+				if (value == null && shouldConstructArgument(param) && hasValuesFor(paramPath, valueResolver)) {
 					ResolvableType type = ResolvableType.forMethodParameter(param);
 					args[i] = createObject(type, paramPath + ".", valueResolver);
 				}
@@ -1008,17 +1010,34 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 		return (isOptional && !nestedPath.isEmpty() ? Optional.ofNullable(result) : result);
 	}
 
-	private static boolean shouldCreateObject(MethodParameter param) {
+	/**
+	 * Whether to instantiate the constructor argument of the given type,
+	 * matching its own constructor arguments to bind values.
+	 * <p>By default, simple value types, maps, collections, and arrays are
+	 * excluded from nested constructor binding initialization.
+	 * @since 6.1.2
+	 */
+	protected boolean shouldConstructArgument(MethodParameter param) {
 		Class<?> type = param.nestedIfOptional().getNestedParameterType();
 		return !(BeanUtils.isSimpleValueType(type) ||
-				Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type) || type.isArray());
+				Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type) || type.isArray() ||
+				type.getPackageName().startsWith("java."));
+	}
+
+	private boolean hasValuesFor(String paramPath, ValueResolver resolver) {
+		for (String name : resolver.getNames()) {
+			if (name.startsWith(paramPath + ".")) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void validateConstructorArgument(
 			Class<?> constructorClass, String nestedPath, String name, @Nullable Object value) {
 
 		Object[] hints = null;
-		if (this.targetType.getSource() instanceof MethodParameter parameter) {
+		if (this.targetType != null && this.targetType.getSource() instanceof MethodParameter parameter) {
 			for (Annotation ann : parameter.getParameterAnnotations()) {
 				hints = ValidationAnnotationUtils.determineValidationHints(ann);
 				if (hints != null) {
@@ -1151,6 +1170,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * @see #getBindingErrorProcessor
 	 * @see BindingErrorProcessor#processMissingFieldError
 	 */
+	@SuppressWarnings("NullAway")
 	protected void checkRequiredFields(MutablePropertyValues mpvs) {
 		String[] requiredFields = getRequiredFields();
 		if (!ObjectUtils.isEmpty(requiredFields)) {
@@ -1285,7 +1305,6 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * Strategy for {@link #construct constructor binding} to look up the values
 	 * to bind to a given constructor parameter.
 	 */
-	@FunctionalInterface
 	public interface ValueResolver {
 
 		/**
@@ -1297,6 +1316,13 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 		 */
 		@Nullable
 		Object resolveValue(String name, Class<?> type);
+
+		/**
+		 * Return the names of all property values.
+		 * @since 6.1.2
+		 */
+		Set<String> getNames();
+
 	}
 
 

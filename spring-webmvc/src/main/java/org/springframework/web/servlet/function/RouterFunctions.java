@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
  * function.
  *
  * @author Arjen Poutsma
+ * @author Sebastien Deleuze
  * @since 5.2
  */
 public abstract class RouterFunctions {
@@ -129,6 +130,40 @@ public abstract class RouterFunctions {
 	}
 
 	/**
+	 * Route requests that match the given predicate to the given resource.
+	 * For instance
+	 * <pre class="code">
+	 * Resource resource = new ClassPathResource("static/index.html")
+	 * RouterFunction&lt;ServerResponse&gt; resources = RouterFunctions.resource(path("/api/**").negate(), resource);
+	 * </pre>
+	 * @param predicate predicate to match
+	 * @param resource the resources to serve
+	 * @return a router function that routes to a resource
+	 * @since 6.1.4
+	 */
+	public static RouterFunction<ServerResponse> resource(RequestPredicate predicate, Resource resource) {
+		return resources(new PredicateResourceLookupFunction(predicate, resource), (consumerResource, httpHeaders) -> {});
+	}
+
+	/**
+	 * Route requests that match the given predicate to the given resource.
+	 * For instance
+	 * <pre class="code">
+	 * Resource resource = new ClassPathResource("static/index.html")
+	 * RouterFunction&lt;ServerResponse&gt; resources = RouterFunctions.resource(path("/api/**").negate(), resource);
+	 * </pre>
+	 * @param predicate predicate to match
+	 * @param resource the resources to serve
+	 * @param headersConsumer provides access to the HTTP headers for served resources
+	 * @return a router function that routes to a resource
+	 * @since 6.1.4
+	 */
+	public static RouterFunction<ServerResponse> resource(RequestPredicate predicate, Resource resource,
+			BiConsumer<Resource, HttpHeaders> headersConsumer) {
+		return resources(new PredicateResourceLookupFunction(predicate, resource), headersConsumer);
+	}
+
+	/**
 	 * Route requests that match the given pattern to resources relative to the given root location.
 	 * For instance
 	 * <pre class="code">
@@ -138,6 +173,7 @@ public abstract class RouterFunctions {
 	 * @param pattern the pattern to match
 	 * @param location the location directory relative to which resources should be resolved
 	 * @return a router function that routes to resources
+	 * @see org.springframework.web.util.pattern.PathPattern
 	 * @see #resourceLookupFunction(String, Resource)
 	 */
 	public static RouterFunction<ServerResponse> resources(String pattern, Resource location) {
@@ -156,6 +192,7 @@ public abstract class RouterFunctions {
 	 * @param headersConsumer provides access to the HTTP headers for served resources
 	 * @return a router function that routes to resources
 	 * @since 6.1
+	 * @see org.springframework.web.util.pattern.PathPattern
 	 * @see #resourceLookupFunction(String, Resource)
 	 */
 	public static RouterFunction<ServerResponse> resources(String pattern, Resource location,
@@ -177,6 +214,7 @@ public abstract class RouterFunctions {
 	 * @param pattern the pattern to match
 	 * @param location the location directory relative to which resources should be resolved
 	 * @return the default resource lookup function for the given parameters.
+	 * @see org.springframework.web.util.pattern.PathPattern
 	 */
 	public static Function<ServerRequest, Optional<Resource>> resourceLookupFunction(String pattern, Resource location) {
 		return new PathResourceLookupFunction(pattern, location);
@@ -249,6 +287,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code GET} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder GET(String pattern, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -280,6 +319,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code GET} requests that
 		 * match {@code pattern} and the predicate
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 * @see RequestPredicates
 		 */
 		Builder GET(String pattern, RequestPredicate predicate, HandlerFunction<ServerResponse> handlerFunction);
@@ -299,6 +339,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code HEAD} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder HEAD(String pattern, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -322,6 +363,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code HEAD} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder HEAD(String pattern, RequestPredicate predicate, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -340,6 +382,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code POST} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder POST(String pattern, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -371,6 +414,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code POST} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder POST(String pattern, RequestPredicate predicate, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -389,6 +433,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code PUT} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder PUT(String pattern, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -420,6 +465,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code PUT} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder PUT(String pattern, RequestPredicate predicate, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -438,6 +484,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code PATCH} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder PATCH(String pattern, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -469,6 +516,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code PATCH} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder PATCH(String pattern, RequestPredicate predicate, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -487,6 +535,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code DELETE} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder DELETE(String pattern, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -510,6 +559,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code DELETE} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder DELETE(String pattern, RequestPredicate predicate, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -528,6 +578,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code OPTIONS} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder OPTIONS(String pattern, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -551,6 +602,7 @@ public abstract class RouterFunctions {
 		 * @param handlerFunction the handler function to handle all {@code OPTIONS} requests that
 		 * match {@code pattern}
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder OPTIONS(String pattern, RequestPredicate predicate, HandlerFunction<ServerResponse> handlerFunction);
 
@@ -586,6 +638,35 @@ public abstract class RouterFunctions {
 		Builder add(RouterFunction<ServerResponse> routerFunction);
 
 		/**
+		 * Route requests that match the given predicate to the given resource.
+		 * For instance
+		 * <pre class="code">
+		 * Resource resource = new ClassPathResource("static/index.html")
+		 * RouterFunction&lt;ServerResponse&gt; resources = RouterFunctions.resource(path("/api/**").negate(), resource);
+		 * </pre>
+		 * @param predicate predicate to match
+		 * @param resource the resources to serve
+		 * @return a router function that routes to a resource
+		 * @since 6.1.4
+		 */
+		Builder resource(RequestPredicate predicate, Resource resource);
+
+		/**
+		 * Route requests that match the given predicate to the given resource.
+		 * For instance
+		 * <pre class="code">
+		 * Resource resource = new ClassPathResource("static/index.html")
+		 * RouterFunction&lt;ServerResponse&gt; resources = RouterFunctions.resource(path("/api/**").negate(), resource);
+		 * </pre>
+		 * @param predicate predicate to match
+		 * @param resource the resources to serve
+		 * @param headersConsumer provides access to the HTTP headers for served resources
+		 * @return a router function that routes to a resource
+		 * @since 6.1.4
+		 */
+		Builder resource(RequestPredicate predicate, Resource resource, BiConsumer<Resource, HttpHeaders> headersConsumer);
+
+		/**
 		 * Route requests that match the given pattern to resources relative to the given root location.
 		 * For instance
 		 * <pre class="code">
@@ -595,6 +676,7 @@ public abstract class RouterFunctions {
 		 * @param pattern the pattern to match
 		 * @param location the location directory relative to which resources should be resolved
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder resources(String pattern, Resource location);
 
@@ -610,6 +692,7 @@ public abstract class RouterFunctions {
 		 * @param headersConsumer provides access to the HTTP headers for served resources
 		 * @return this builder
 		 * @since 6.1
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder resources(String pattern, Resource location, BiConsumer<Resource, HttpHeaders> headersConsumer);
 
@@ -700,6 +783,7 @@ public abstract class RouterFunctions {
 		 * @param routerFunctionSupplier supplier for the nested router function to delegate to if
 		 * the pattern matches
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder path(String pattern, Supplier<RouterFunction<ServerResponse>> routerFunctionSupplier);
 
@@ -722,6 +806,7 @@ public abstract class RouterFunctions {
 		 * @param builderConsumer consumer for a {@code Builder} that provides the nested router
 		 * function
 		 * @return this builder
+		 * @see org.springframework.web.util.pattern.PathPattern
 		 */
 		Builder path(String pattern, Consumer<Builder> builderConsumer);
 

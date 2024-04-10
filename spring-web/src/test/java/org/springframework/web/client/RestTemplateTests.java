@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.http.MediaType.parseMediaType;
 
 /**
- * Unit tests for {@link RestTemplate}.
+ * Tests for {@link RestTemplate}.
  *
  * @author Arjen Poutsma
  * @author Rossen Stoyanchev
@@ -105,7 +105,6 @@ class RestTemplateTests {
 
 	@Test // gh-29008
 	void defaultMessageConvertersWithKotlinSerialization() {
-		@SuppressWarnings("resource")
 		RestTemplate restTemplate = new RestTemplate();
 		List<HttpMessageConverter<?>> httpMessageConverters = restTemplate.getMessageConverters();
 		assertThat(httpMessageConverters).extracting("class").containsOnlyOnce(
@@ -127,7 +126,7 @@ class RestTemplateTests {
 	@Test
 	void setMessageConvertersPreconditions() {
 		assertThatIllegalArgumentException()
-				.isThrownBy(() -> template.setMessageConverters((List<HttpMessageConverter<?>>) null))
+				.isThrownBy(() -> template.setMessageConverters(null))
 				.withMessage("At least one HttpMessageConverter is required");
 		assertThatIllegalArgumentException()
 				.isThrownBy(() -> template.setMessageConverters(Arrays.asList(null, this.converter)))
@@ -524,9 +523,7 @@ class RestTemplateTests {
 					.map(Entry::getValue)
 					.toList();
 
-			assertThat(accepts).hasSize(1);
-			assertThat(accepts.get(0)).hasSize(1);
-			assertThat(accepts.get(0).get(0)).isEqualTo("application/json");
+			assertThat(accepts).singleElement().isEqualTo(List.of("application/json"));
 		}
 	}
 
@@ -655,7 +652,7 @@ class RestTemplateTests {
 	@SuppressWarnings("rawtypes")
 	void exchangeParameterizedType() throws Exception {
 		GenericHttpMessageConverter converter = mock();
-		template.setMessageConverters(Collections.<HttpMessageConverter<?>>singletonList(converter));
+		template.setMessageConverters(Collections.singletonList(converter));
 		ParameterizedTypeReference<List<Integer>> intList = new ParameterizedTypeReference<>() {};
 		given(converter.canRead(intList.getType(), null, null)).willReturn(true);
 		given(converter.getSupportedMediaTypes(any())).willReturn(Collections.singletonList(MediaType.TEXT_PLAIN));
@@ -766,12 +763,11 @@ class RestTemplateTests {
 		given(request.getHeaders()).willReturn(requestHeaders);
 	}
 
-	@SuppressWarnings({ "deprecation", "removal" })
+	@SuppressWarnings("removal")
 	private void mockResponseStatus(HttpStatus responseStatus) throws Exception {
 		given(request.execute()).willReturn(response);
 		given(errorHandler.hasError(response)).willReturn(responseStatus.isError());
 		given(response.getStatusCode()).willReturn(responseStatus);
-		given(response.getRawStatusCode()).willReturn(responseStatus.value());
 		given(response.getStatusText()).willReturn(responseStatus.getReasonPhrase());
 	}
 

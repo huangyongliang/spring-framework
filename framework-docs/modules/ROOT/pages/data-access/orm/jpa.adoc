@@ -157,7 +157,7 @@ The `LoadTimeWeaver` interface is a Spring-provided class that lets JPA
 `ClassTransformer` instances be plugged in a specific manner, depending on whether the
 environment is a web container or application server. Hooking `ClassTransformers`
 through an
-https://docs.oracle.com/javase/6/docs/api/java/lang/instrument/package-summary.html[agent]
+{java-api}/java.instrument/java/lang/instrument/package-summary.html[agent]
 is typically not efficient. The agents work against the entire virtual machine and
 inspect every class that is loaded, which is usually undesirable in a production
 server environment.
@@ -268,9 +268,16 @@ The actual JPA provider bootstrapping is handed off to the specified executor an
 running in parallel, to the application bootstrap thread. The exposed `EntityManagerFactory`
 proxy can be injected into other application components and is even able to respond to
 `EntityManagerFactoryInfo` configuration inspection. However, once the actual JPA provider
-is being accessed by other components (for example, calling `createEntityManager`), those calls
-block until the background bootstrapping has completed. In particular, when you use
+is being accessed by other components (for example, calling `createEntityManager`), those
+calls block until the background bootstrapping has completed. In particular, when you use
 Spring Data JPA, make sure to set up deferred bootstrapping for its repositories as well.
+
+As of 6.2, JPA initialization is enforced before context refresh completion, waiting for
+asynchronous bootstrapping to complete by then. This makes the availability of the fully
+initialized database infrastructure predictable and allows for custom post-initialization
+logic in `ContextRefreshedEvent` listeners etc. Putting such application-level database
+initialization into `@PostConstruct` methods or the like is not recommended; this is
+better placed in `Lifecycle.start` (if applicable) or a `ContextRefreshedEvent` listener.
 
 
 [[orm-jpa-dao]]
@@ -284,9 +291,9 @@ to a newly created `EntityManager` per operation, in effect making its usage thr
 
 It is possible to write code against the plain JPA without any Spring dependencies, by
 using an injected `EntityManagerFactory` or `EntityManager`. Spring can understand the
-`@PersistenceUnit` and `@PersistenceContext` annotations both at the field and the method level
-if a `PersistenceAnnotationBeanPostProcessor` is enabled. The following example shows a plain
-JPA DAO implementation that uses the `@PersistenceUnit` annotation:
+`@PersistenceUnit` and `@PersistenceContext` annotations both at the field and the method
+level if a `PersistenceAnnotationBeanPostProcessor` is enabled. The following example
+shows a plain JPA DAO implementation that uses the `@PersistenceUnit` annotation:
 
 [tabs]
 ======
@@ -506,13 +513,20 @@ if you have not already done so, to get more detailed coverage of Spring's decla
 The recommended strategy for JPA is local transactions through JPA's native transaction
 support. Spring's `JpaTransactionManager` provides many capabilities known from local
 JDBC transactions (such as transaction-specific isolation levels and resource-level
-read-only optimizations) against any regular JDBC connection pool (no XA requirement).
+read-only optimizations) against any regular JDBC connection pool, without requiring
+a JTA transaction coordinator and XA-capable resources.
 
 Spring JPA also lets a configured `JpaTransactionManager` expose a JPA transaction
 to JDBC access code that accesses the same `DataSource`, provided that the registered
-`JpaDialect` supports retrieval of the underlying JDBC `Connection`.
-Spring provides dialects for the EclipseLink and Hibernate JPA implementations.
-See the xref:data-access/orm/jpa.adoc#orm-jpa-dialect[next section] for details on the `JpaDialect` mechanism.
+`JpaDialect` supports retrieval of the underlying JDBC `Connection`. Spring provides
+dialects for the EclipseLink and Hibernate JPA implementations. See the
+xref:data-access/orm/jpa.adoc#orm-jpa-dialect[next section] for details on `JpaDialect`.
+
+For JTA-style lazy retrieval of actual resource connections, Spring provides a
+corresponding `DataSource` proxy class for the target connection pool: see
+{spring-framework-api}/jdbc/datasource/LazyConnectionDataSourceProxy.html[`LazyConnectionDataSourceProxy`].
+This is particularly useful for JPA read-only transactions which can often
+be processed from a local cache rather than hitting the database.
 
 
 [[orm-jpa-dialect]]
@@ -541,8 +555,8 @@ way of auto-configuring an `EntityManagerFactory` setup for Hibernate or Eclipse
 respectively. Note that those provider adapters are primarily designed for use with
 Spring-driven transaction management (that is, for use with `JpaTransactionManager`).
 
-See the {api-spring-framework}/orm/jpa/JpaDialect.html[`JpaDialect`] and
-{api-spring-framework}/orm/jpa/JpaVendorAdapter.html[`JpaVendorAdapter`] javadoc for
+See the {spring-framework-api}/orm/jpa/JpaDialect.html[`JpaDialect`] and
+{spring-framework-api}/orm/jpa/JpaVendorAdapter.html[`JpaVendorAdapter`] javadoc for
 more details of its operations and how they are used within Spring's JPA support.
 
 

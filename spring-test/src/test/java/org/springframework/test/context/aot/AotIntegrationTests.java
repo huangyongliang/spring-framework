@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -135,7 +135,7 @@ class AotIntegrationTests extends AbstractAotTests {
 				// We only include test classes named *Tests so that we don't pick up
 				// internal TestCase classes that aren't really tests.
 				.filter(clazz -> clazz.getSimpleName().endsWith("Tests"))
-				// We don't yet have a way to abort a TestNG test mid-flight, and @EJB is not supported in AOT.
+				// TestNG EJB tests use @PersistenceContext which is not yet supported in tests in AOT mode.
 				.filter(clazz -> !clazz.getPackageName().contains("testng.transaction.ejb"))
 				.toList();
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,20 +54,20 @@ import org.springframework.util.Assert;
 abstract class NamedParameterUtils {
 
 	/**
-	 * Set of characters that qualify as comment or quotes starting characters.
+	 * Set of characters that qualify as comment or quote starting characters.
 	 */
-	private static final String[] START_SKIP = new String[] {"'", "\"", "--", "/*"};
+	private static final String[] START_SKIP = {"'", "\"", "--", "/*", "`"};
 
 	/**
-	 * Set of characters that at are the corresponding comment or quotes ending characters.
+	 * Set of characters that are the corresponding comment or quote ending characters.
 	 */
-	private static final String[] STOP_SKIP = new String[] {"'", "\"", "\n", "*/"};
+	private static final String[] STOP_SKIP = {"'", "\"", "\n", "*/", "`"};
 
 	/**
 	 * Set of characters that qualify as parameter separators,
 	 * indicating that a parameter name in an SQL String has ended.
 	 */
-	private static final String PARAMETER_SEPARATORS = "\"':&,;()|=+-*%/\\<>^]";
+	private static final String PARAMETER_SEPARATORS = "\"':&,;()|=+-*%/\\<>^";
 
 	/**
 	 * An index with separator flags per character code.
@@ -83,12 +83,12 @@ abstract class NamedParameterUtils {
 
 
 	// -------------------------------------------------------------------------
-	// Core methods used by NamedParameterSupport.
+	// Core methods used by NamedParameterExpander
 	// -------------------------------------------------------------------------
 
 	/**
 	 * Parse the SQL statement and locate any placeholders or named parameters.
-	 * Named parameters are substituted for a R2DBC placeholder.
+	 * Named parameters are substituted for an R2DBC placeholder.
 	 * @param sql the SQL statement
 	 * @return the parsed statement, represented as {@link ParsedSql} instance
 	 */
@@ -154,16 +154,25 @@ abstract class NamedParameterUtils {
 					j++;
 				}
 				else {
-					while (j < statement.length && !isParameterSeparator(statement[j])) {
+					boolean paramWithSquareBrackets = false;
+					while (j < statement.length) {
+						c = statement[j];
+						if (isParameterSeparator(c)) {
+							break;
+						}
+						if (c == '[') {
+							paramWithSquareBrackets = true;
+						}
+						else if (c == ']') {
+							if (!paramWithSquareBrackets) {
+								break;
+							}
+							paramWithSquareBrackets = false;
+						}
 						j++;
 					}
 					if (j - i > 1) {
 						parameter = sql.substring(i + 1, j);
-						if (j < statement.length && statement[j] == ']' && parameter.contains("[")) {
-							// preserve end bracket for index/key
-							j++;
-							parameter = sql.substring(i + 1, j);
-						}
 						namedParameterCount = addNewNamedParameter(
 								namedParameters, namedParameterCount, parameter);
 						totalParameterCount = addNamedParameter(
@@ -261,14 +270,15 @@ abstract class NamedParameterUtils {
 
 	/**
 	 * Parse the SQL statement and locate any placeholders or named parameters. Named
-	 * parameters are substituted for a R2DBC placeholder, and any select list is expanded
+	 * parameters are substituted for an R2DBC placeholder, and any select list is expanded
 	 * to the required number of placeholders. Select lists may contain an array of objects,
 	 * and in that case the placeholders will be grouped and enclosed with parentheses.
 	 * This allows for the use of "expression lists" in the SQL statement like:
 	 * {@code select id, name, state from table where (name, age) in (('John', 35), ('Ann', 50))}
-	 * <p>The parameter values passed in are used to determine the number of placeholders to
-	 * be used for a select list. Select lists should be limited to 100 or fewer elements.
-	 * A larger number of elements is not guaranteed to be supported by the database and
+	 * <p>The parameter values passed in are used to determine the number of
+	 * placeholders to be used for a select list. Select lists should not be empty
+	 * and should be limited to 100 or fewer elements. An empty list or a larger
+	 * number of elements is not guaranteed to be supported by the database and
 	 * is strictly vendor-dependent.
 	 * @param parsedSql the parsed representation of the SQL statement
 	 * @param bindMarkersFactory the bind marker factory.
@@ -299,15 +309,13 @@ abstract class NamedParameterUtils {
 			if (paramSource.hasValue(paramName)) {
 				Parameter parameter = paramSource.getValue(paramName);
 				if (parameter.getValue() instanceof Collection<?> collection) {
-					Iterator<?> entryIter = collection.iterator();
 					int k = 0;
 					int counter = 0;
-					while (entryIter.hasNext()) {
+					for (Object entryItem : collection) {
 						if (k > 0) {
 							actualSql.append(", ");
 						}
 						k++;
-						Object entryItem = entryIter.next();
 						if (entryItem instanceof Object[] expressionList) {
 							actualSql.append('(');
 							for (int m = 0; m < expressionList.length; m++) {
@@ -354,8 +362,11 @@ abstract class NamedParameterUtils {
 
 	/**
 	 * Parse the SQL statement and locate any placeholders or named parameters.
-	 * Named parameters are substituted for a native placeholder and any
+	 * <p>Named parameters are substituted for a native placeholder and any
 	 * select list is expanded to the required number of placeholders.
+	 * <p>This is a shortcut version of
+	 * {@link #parseSqlStatement(String)} in combination with
+	 * {@link #substituteNamedParameters(ParsedSql, BindMarkersFactory, BindParameterSource)}.
 	 * @param sql the SQL statement
 	 * @param bindMarkersFactory the bind marker factory
 	 * @param paramSource the source for named parameters

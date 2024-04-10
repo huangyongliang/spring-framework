@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
 /**
- * Unit tests for {@link MockHttpServletResponse}.
+ * Tests for {@link MockHttpServletResponse}.
  *
  * @author Juergen Hoeller
  * @author Rick Evans
@@ -201,7 +201,7 @@ class MockHttpServletResponseTests {
 		response.setCharacterEncoding("UTF-8");
 		assertThat(response.getContentType()).isEqualTo("test/plain;charset=UTF-8");
 		assertThat(response.getHeader(CONTENT_TYPE)).isEqualTo("test/plain;charset=UTF-8");
-		response.setCharacterEncoding(null);
+		response.setCharacterEncoding((String) null);
 		assertThat(response.getContentType()).isEqualTo("test/plain");
 		assertThat(response.getHeader(CONTENT_TYPE)).isEqualTo("test/plain");
 		assertThat(response.getCharacterEncoding()).isEqualTo(WebUtils.DEFAULT_CHARACTER_ENCODING);
@@ -259,13 +259,11 @@ class MockHttpServletResponseTests {
 	}
 
 	@Test
-	void httpHeaderNameCasingIsPreserved() throws Exception {
+	void httpHeaderNameCasingIsPreserved() {
 		final String headerName = "Header1";
 		response.addHeader(headerName, "value1");
 		Collection<String> responseHeaders = response.getHeaderNames();
-		assertThat(responseHeaders).isNotNull();
-		assertThat(responseHeaders).hasSize(1);
-		assertThat(responseHeaders.iterator().next()).as("HTTP header casing not being preserved").isEqualTo(headerName);
+		assertThat(responseHeaders).containsExactly(headerName);
 	}
 
 	@Test
@@ -400,8 +398,8 @@ class MockHttpServletResponseTests {
 	void addDateHeader() {
 		response.addDateHeader(LAST_MODIFIED, 1437472800000L);
 		response.addDateHeader(LAST_MODIFIED, 1437472801000L);
-		assertThat(response.getHeaders(LAST_MODIFIED).get(0)).isEqualTo("Tue, 21 Jul 2015 10:00:00 GMT");
-		assertThat(response.getHeaders(LAST_MODIFIED).get(1)).isEqualTo("Tue, 21 Jul 2015 10:00:01 GMT");
+		assertThat(response.getHeaders(LAST_MODIFIED)).containsExactly(
+				"Tue, 21 Jul 2015 10:00:00 GMT", "Tue, 21 Jul 2015 10:00:01 GMT");
 	}
 
 	@Test

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ import static org.springframework.http.MediaType.TEXT_PLAIN;
 import static org.springframework.http.MediaType.TEXT_XML;
 
 /**
- * Unit tests for {@link EncoderHttpMessageWriter}.
+ * Tests for {@link EncoderHttpMessageWriter}.
  *
  * @author Rossen Stoyanchev
  * @author Brian Clozel
@@ -188,7 +188,7 @@ class EncoderHttpMessageWriterTests {
 	void isStreamingMediaType() throws InvocationTargetException, IllegalAccessException {
 		configureEncoder(TEXT_HTML);
 		MediaType streamingMediaType = new MediaType(TEXT_PLAIN, Collections.singletonMap("streaming", "true"));
-		given(this.encoder.getStreamingMediaTypes()).willReturn(Arrays.asList(streamingMediaType));
+		given(this.encoder.getStreamingMediaTypes()).willReturn(List.of(streamingMediaType));
 
 		HttpMessageWriter<String> writer = new EncoderHttpMessageWriter<>(this.encoder);
 		Method method = ReflectionUtils.findMethod(writer.getClass(), "isStreamingMediaType", MediaType.class);

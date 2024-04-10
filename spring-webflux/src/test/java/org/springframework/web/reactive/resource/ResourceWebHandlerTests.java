@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 /**
- * Unit tests for {@link ResourceWebHandler}.
+ * Tests for {@link ResourceWebHandler}.
  *
  * @author Rossen Stoyanchev
  * @author Sam Brannen
@@ -135,7 +135,7 @@ class ResourceWebHandlerTests {
 		}
 
 		@Test
-		void servesHtmlResources() throws Exception {
+		void servesHtmlResources() {
 			MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get(""));
 			setPathWithinHandlerMapping(exchange, "foo.html");
 			setBestMachingPattern(exchange, "/**");
@@ -204,7 +204,7 @@ class ResourceWebHandlerTests {
 
 		@ParameterizedTest
 		@MethodSource("httpMethods")
-		void resourceNotFound(HttpMethod method) throws Exception {
+		void resourceNotFound(HttpMethod method) {
 			MockServerHttpRequest request = MockServerHttpRequest.method(method, "").build();
 			MockServerWebExchange exchange = MockServerWebExchange.from(request);
 			setPathWithinHandlerMapping(exchange, "not-there.css");
@@ -495,7 +495,7 @@ class ResourceWebHandlerTests {
 			setBestMachingPattern(exchange, "/**");
 			this.handler.handle(exchange).block(TIMEOUT);
 
-			assertThat((Object) exchange.getResponse().getStatusCode()).isNull();
+			assertThat(exchange.getResponse().getStatusCode()).isNull();
 			assertResponseBody(exchange, "h1 { color:red; }");
 		}
 
@@ -522,7 +522,7 @@ class ResourceWebHandlerTests {
 			setPathWithinHandlerMapping(exchange, "foo.css");
 			setBestMachingPattern(exchange, "/**");
 			this.handler.handle(exchange).block(TIMEOUT);
-			assertThat((Object) exchange.getResponse().getStatusCode()).isNull();
+			assertThat(exchange.getResponse().getStatusCode()).isNull();
 			assertResponseBody(exchange, "h1 { color:red; }");
 		}
 
@@ -579,7 +579,7 @@ class ResourceWebHandlerTests {
 		private ResourceWebHandler handler;
 
 		@BeforeEach
-		void setup() throws Exception {
+		void setup() {
 			this.handler = new ResourceWebHandler();
 			this.handler.setLocations(List.of(testResource, testAlternatePathResource, webjarsResource));
 		}
@@ -690,23 +690,23 @@ class ResourceWebHandlerTests {
 			Resource location = new ClassPathResource("test/", getClass());
 			this.handler.setLocations(List.of(location));
 
-			testResolvePathWithTraversal(method, "../testsecret/secret.txt", location);
-			testResolvePathWithTraversal(method, "test/../../testsecret/secret.txt", location);
-			testResolvePathWithTraversal(method, ":/../../testsecret/secret.txt", location);
+			testResolvePathWithTraversal(method, "../testsecret/secret.txt");
+			testResolvePathWithTraversal(method, "test/../../testsecret/secret.txt");
+			testResolvePathWithTraversal(method, ":/../../testsecret/secret.txt");
 
 			location = new UrlResource(getClass().getResource("./test/"));
 			this.handler.setLocations(List.of(location));
 			Resource secretResource = new UrlResource(getClass().getResource("testsecret/secret.txt"));
 			String secretPath = secretResource.getURL().getPath();
 
-			testResolvePathWithTraversal(method, "file:" + secretPath, location);
-			testResolvePathWithTraversal(method, "/file:" + secretPath, location);
-			testResolvePathWithTraversal(method, "url:" + secretPath, location);
-			testResolvePathWithTraversal(method, "/url:" + secretPath, location);
-			testResolvePathWithTraversal(method, "////../.." + secretPath, location);
-			testResolvePathWithTraversal(method, "/%2E%2E/testsecret/secret.txt", location);
-			testResolvePathWithTraversal(method, "%2F%2F%2E%2E%2F%2Ftestsecret/secret.txt", location);
-			testResolvePathWithTraversal(method, "url:" + secretPath, location);
+			testResolvePathWithTraversal(method, "file:" + secretPath);
+			testResolvePathWithTraversal(method, "/file:" + secretPath);
+			testResolvePathWithTraversal(method, "url:" + secretPath);
+			testResolvePathWithTraversal(method, "/url:" + secretPath);
+			testResolvePathWithTraversal(method, "////../.." + secretPath);
+			testResolvePathWithTraversal(method, "/%2E%2E/testsecret/secret.txt");
+			testResolvePathWithTraversal(method, "%2F%2F%2E%2E%2F%2Ftestsecret/secret.txt");
+			testResolvePathWithTraversal(method, "url:" + secretPath);
 
 			// The following tests fail with a MalformedURLException on Windows
 			// testResolvePathWithTraversal(location, "/" + secretPath);
@@ -717,7 +717,7 @@ class ResourceWebHandlerTests {
 			return Arrays.stream(HttpMethod.values());
 		}
 
-		private void testResolvePathWithTraversal(HttpMethod httpMethod, String requestPath, Resource location) {
+		private void testResolvePathWithTraversal(HttpMethod httpMethod, String requestPath) {
 			ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.method(httpMethod, ""));
 			setPathWithinHandlerMapping(exchange, requestPath);
 			setBestMachingPattern(exchange, "/**");

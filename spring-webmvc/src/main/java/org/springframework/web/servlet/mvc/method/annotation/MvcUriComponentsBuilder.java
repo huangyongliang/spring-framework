@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.cglib.core.SpringNamingPolicy;
 import org.springframework.cglib.proxy.Callback;
 import org.springframework.cglib.proxy.Enhancer;
@@ -52,6 +53,7 @@ import org.springframework.util.PathMatcher;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.ReflectionUtils.MethodFilter;
 import org.springframework.util.StringUtils;
+import org.springframework.util.SystemPropertyUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.request.RequestAttributes;
@@ -582,14 +584,7 @@ public class MvcUriComponentsBuilder {
 		if (mapping == null) {
 			return "";
 		}
-		String[] paths = mapping.path();
-		if (ObjectUtils.isEmpty(paths) || !StringUtils.hasLength(paths[0])) {
-			return "";
-		}
-		if (paths.length > 1 && logger.isTraceEnabled()) {
-			logger.trace("Using first of multiple paths on " + controllerType.getName());
-		}
-		return paths[0];
+		return getPathMapping(mapping, controllerType.getName());
 	}
 
 	private static String getMethodMapping(Method method) {
@@ -598,14 +593,18 @@ public class MvcUriComponentsBuilder {
 		if (requestMapping == null) {
 			throw new IllegalArgumentException("No @RequestMapping on: " + method.toGenericString());
 		}
+		return getPathMapping(requestMapping, method.toGenericString());
+	}
+
+	private static String getPathMapping(RequestMapping requestMapping, String source) {
 		String[] paths = requestMapping.path();
 		if (ObjectUtils.isEmpty(paths) || !StringUtils.hasLength(paths[0])) {
 			return "";
 		}
 		if (paths.length > 1 && logger.isTraceEnabled()) {
-			logger.trace("Using first of multiple paths on " + method.toGenericString());
+			logger.trace("Using first of multiple paths on " + source);
 		}
-		return paths[0];
+		return resolveEmbeddedValue(paths[0]);
 	}
 
 	private static Method getMethod(Class<?> controllerType, final String methodName, final Object... args) {
@@ -661,6 +660,20 @@ public class MvcUriComponentsBuilder {
 			}
 		}
 		return defaultUriComponentsContributor;
+	}
+
+	private static String resolveEmbeddedValue(String value) {
+		if (value.contains(SystemPropertyUtils.PLACEHOLDER_PREFIX)) {
+			WebApplicationContext webApplicationContext = getWebApplicationContext();
+			if (webApplicationContext != null
+					&& webApplicationContext.getAutowireCapableBeanFactory() instanceof ConfigurableBeanFactory cbf) {
+				String resolvedEmbeddedValue = cbf.resolveEmbeddedValue(value);
+				if (resolvedEmbeddedValue != null) {
+					return resolvedEmbeddedValue;
+				}
+			}
+		}
+		return value;
 	}
 
 	@Nullable
@@ -721,23 +734,31 @@ public class MvcUriComponentsBuilder {
 		@Nullable
 		public Object intercept(@Nullable Object obj, Method method, Object[] args, @Nullable MethodProxy proxy) {
 			switch (method.getName()) {
-				case "getControllerType": return this.controllerType;
-				case "getControllerMethod": return this.controllerMethod;
-				case "getArgumentValues": return this.argumentValues;
-			}
-			if (ReflectionUtils.isObjectMethod(method)) {
-				return ReflectionUtils.invokeMethod(method, obj, args);
-			}
-			else {
-				this.controllerMethod = method;
-				this.argumentValues = args;
-				Class<?> returnType = method.getReturnType();
-				try {
-					return (returnType == void.class ? null : returnType.cast(initProxy(returnType, this)));
+				case "getControllerType" -> {
+					return this.controllerType;
 				}
-				catch (Throwable ex) {
-					throw new IllegalStateException(
-							"Failed to create proxy for controller method return type: " + method, ex);
+				case "getControllerMethod" -> {
+					return this.controllerMethod;
+				}
+				case "getArgumentValues" -> {
+					return this.argumentValues;
+				}
+				default -> {
+					if (ReflectionUtils.isObjectMethod(method)) {
+						return ReflectionUtils.invokeMethod(method, obj, args);
+					}
+					else {
+						this.controllerMethod = method;
+						this.argumentValues = args;
+						Class<?> returnType = method.getReturnType();
+						try {
+							return (returnType == void.class ? null : returnType.cast(initProxy(returnType, this)));
+						}
+						catch (Throwable ex) {
+							throw new IllegalStateException(
+									"Failed to create proxy for controller method return type: " + method, ex);
+						}
+					}
 				}
 			}
 		}

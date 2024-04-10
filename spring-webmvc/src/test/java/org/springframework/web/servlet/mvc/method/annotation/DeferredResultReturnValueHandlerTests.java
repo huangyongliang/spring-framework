@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,11 +36,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.testfixture.method.ResolvableMethod.on;
 
 /**
- * Unit tests for {@link DeferredResultMethodReturnValueHandler}.
+ * Tests for {@link DeferredResultMethodReturnValueHandler}.
  *
  * @author Rossen Stoyanchev
  */
-public class DeferredResultReturnValueHandlerTests {
+class DeferredResultReturnValueHandlerTests {
 
 	private DeferredResultMethodReturnValueHandler handler;
 
@@ -50,7 +50,7 @@ public class DeferredResultReturnValueHandlerTests {
 
 
 	@BeforeEach
-	public void setup() throws Exception {
+	void setup() throws Exception {
 		this.handler = new DeferredResultMethodReturnValueHandler();
 		this.request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -76,12 +76,12 @@ public class DeferredResultReturnValueHandlerTests {
 	}
 
 	@Test
-	public void doesNotSupportReturnType() throws Exception {
+	void doesNotSupportReturnType() {
 		assertThat(this.handler.supportsReturnType(on(TestController.class).resolveReturnType(String.class))).isFalse();
 	}
 
 	@Test
-	public void deferredResult() throws Exception {
+	void deferredResult() throws Exception {
 		DeferredResult<String> result = new DeferredResult<>();
 		IllegalStateException ex = new IllegalStateException();
 		testHandle(result, DeferredResult.class, () -> result.setErrorResult(ex), ex);
@@ -97,13 +97,13 @@ public class DeferredResultReturnValueHandlerTests {
 	}
 
 	@Test
-	public void completableFuture() throws Exception {
+	void completableFuture() throws Exception {
 		CompletableFuture<String> future = new CompletableFuture<>();
 		testHandle(future, CompletableFuture.class, () -> future.complete("foo"), "foo");
 	}
 
 	@Test
-	public void deferredResultWithError() throws Exception {
+	void deferredResultWithError() throws Exception {
 		DeferredResult<String> result = new DeferredResult<>();
 		testHandle(result, DeferredResult.class, () -> result.setResult("foo"), "foo");
 	}
@@ -119,7 +119,7 @@ public class DeferredResultReturnValueHandlerTests {
 	}
 
 	@Test
-	public void completableFutureWithError() throws Exception {
+	void completableFutureWithError() throws Exception {
 		CompletableFuture<String> future = new CompletableFuture<>();
 		IllegalStateException ex = new IllegalStateException();
 		testHandle(future, CompletableFuture.class, () -> future.completeExceptionally(ex), ex);

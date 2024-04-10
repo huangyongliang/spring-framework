@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import a.ClassHavingNestedClass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ import org.springframework.tests.sample.objects.TestObject;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link ClassUtils}.
+ * Tests for {@link ClassUtils}.
  *
  * @author Colin Sampaleanu
  * @author Juergen Hoeller
@@ -86,8 +87,11 @@ class ClassUtilsTests {
 	void forNameWithNestedType() throws ClassNotFoundException {
 		assertThat(ClassUtils.forName("org.springframework.util.ClassUtilsTests$NestedClass", classLoader)).isEqualTo(NestedClass.class);
 		assertThat(ClassUtils.forName("org.springframework.util.ClassUtilsTests.NestedClass", classLoader)).isEqualTo(NestedClass.class);
-		assertThat(ClassUtils.forName("a.ClassHavingNestedClass$NestedClass", classLoader)).isEqualTo(a.ClassHavingNestedClass.NestedClass.class);
-		assertThat(ClassUtils.forName("a.ClassHavingNestedClass.NestedClass", classLoader)).isEqualTo(a.ClassHavingNestedClass.NestedClass.class);
+
+		// Precondition: package name must have length == 1.
+		assertThat(ClassHavingNestedClass.class.getPackageName().length()).isEqualTo(1);
+		assertThat(ClassUtils.forName("a.ClassHavingNestedClass$NestedClass", classLoader)).isEqualTo(ClassHavingNestedClass.NestedClass.class);
+		assertThat(ClassUtils.forName("a.ClassHavingNestedClass.NestedClass", classLoader)).isEqualTo(ClassHavingNestedClass.NestedClass.class);
 	}
 
 	@Test
@@ -450,10 +454,11 @@ class ClassUtilsTests {
 	}
 
 	@Test
+	@SuppressWarnings("Convert2Lambda")
 	void isNotLambda() {
 		assertIsNotLambda(new EnigmaSupplier());
 
-		assertIsNotLambda(new Supplier<String>() {
+		assertIsNotLambda(new Supplier<>() {
 			@Override
 			public String get() {
 				return "anonymous inner class";
@@ -624,6 +629,7 @@ class ClassUtilsTests {
 
 		}
 
+		@Override
 		public void packageAccessiblePrint() {
 
 		}

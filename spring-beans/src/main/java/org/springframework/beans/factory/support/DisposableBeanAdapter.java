@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -272,7 +272,7 @@ class DisposableBeanAdapter implements DisposableBean, Runnable, Serializable {
 			if (destroyMethod != null) {
 				return destroyMethod;
 			}
-			for (Class<?> beanInterface : beanClass.getInterfaces()) {
+			for (Class<?> beanInterface : ClassUtils.getAllInterfacesForClass(beanClass)) {
 				destroyMethod = findDestroyMethod(beanInterface, methodName);
 				if (destroyMethod != null) {
 					return destroyMethod;
@@ -342,7 +342,7 @@ class DisposableBeanAdapter implements DisposableBean, Runnable, Serializable {
 		}
 	}
 
-	void logDestroyMethodException(Method destroyMethod, Throwable ex) {
+	void logDestroyMethodException(Method destroyMethod, @Nullable Throwable ex) {
 		if (logger.isWarnEnabled()) {
 			String msg = "Custom destroy method '" + destroyMethod.getName() + "' on bean with name '" +
 					this.beanName + "' propagated an exception";

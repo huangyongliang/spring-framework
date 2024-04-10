@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -315,6 +315,8 @@ public abstract class AbstractPollingMessageListenerContainer extends AbstractMe
 			}
 			Message message = receiveMessage(consumerToUse);
 			if (message != null) {
+				boolean exposeResource = (!transactional && isExposeListenerSession() &&
+						!TransactionSynchronizationManager.hasResource(obtainConnectionFactory()));
 				Observation observation = createObservation(message).start();
 				Observation.Scope scope = observation.openScope();
 				if (logger.isDebugEnabled()) {
@@ -322,14 +324,12 @@ public abstract class AbstractPollingMessageListenerContainer extends AbstractMe
 							consumerToUse + "] of " + (transactional ? "transactional " : "") + "session [" +
 							sessionToUse + "]");
 				}
-				messageReceived(invoker, sessionToUse);
-				boolean exposeResource = (!transactional && isExposeListenerSession() &&
-						!TransactionSynchronizationManager.hasResource(obtainConnectionFactory()));
-				if (exposeResource) {
-					TransactionSynchronizationManager.bindResource(
-							obtainConnectionFactory(), new LocallyExposedJmsResourceHolder(sessionToUse));
-				}
 				try {
+					messageReceived(invoker, sessionToUse);
+					if (exposeResource) {
+						TransactionSynchronizationManager.bindResource(
+								obtainConnectionFactory(), new LocallyExposedJmsResourceHolder(sessionToUse));
+					}
 					doExecuteListener(sessionToUse, message);
 				}
 				catch (Throwable ex) {
@@ -339,7 +339,12 @@ public abstract class AbstractPollingMessageListenerContainer extends AbstractMe
 						}
 						status.setRollbackOnly();
 					}
-					handleListenerException(ex);
+					try {
+						handleListenerException(ex);
+					}
+					catch (Throwable throwable) {
+						observation.error(throwable);
+					}
 					// Rethrow JMSException to indicate an infrastructure problem
 					// that may have to trigger recovery...
 					if (ex instanceof JMSException jmsException) {

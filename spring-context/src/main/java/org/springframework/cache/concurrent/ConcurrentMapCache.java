@@ -160,7 +160,8 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 	@Nullable
 	public CompletableFuture<?> retrieve(Object key) {
 		Object value = lookup(key);
-		return (value != null ? CompletableFuture.completedFuture(fromStoreValue(value)) : null);
+		return (value != null ? CompletableFuture.completedFuture(
+				isAllowNullValues() ? toValueWrapper(value) : fromStoreValue(value)) : null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -222,6 +223,7 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 	}
 
 	@Override
+	@Nullable
 	protected Object fromStoreValue(@Nullable Object storeValue) {
 		if (storeValue != null && this.serialization != null) {
 			try {

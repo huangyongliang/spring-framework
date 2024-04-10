@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,11 @@ import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
@@ -150,7 +148,7 @@ public class ScheduledAnnotationBeanPostProcessor
 	@Nullable
 	private TaskSchedulerRouter localScheduler;
 
-	private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
+	private final Set<Class<?>> nonAnnotatedClasses = ConcurrentHashMap.newKeySet(64);
 
 	private final Map<Object, Set<ScheduledTask>> scheduledTasks = new IdentityHashMap<>(16);
 
@@ -429,14 +427,14 @@ public class ScheduledAnnotationBeanPostProcessor
 					Assert.isTrue(initialDelay.isNegative(), "'initialDelay' not supported for cron triggers");
 					processedSchedule = true;
 					if (!Scheduled.CRON_DISABLED.equals(cron)) {
-						TimeZone timeZone;
+						CronTrigger trigger;
 						if (StringUtils.hasText(zone)) {
-							timeZone = StringUtils.parseTimeZoneString(zone);
+							trigger = new CronTrigger(cron, StringUtils.parseTimeZoneString(zone));
 						}
 						else {
-							timeZone = TimeZone.getDefault();
+							trigger = new CronTrigger(cron);
 						}
-						tasks.add(this.registrar.scheduleCronTask(new CronTask(runnable, new CronTrigger(cron, timeZone))));
+						tasks.add(this.registrar.scheduleCronTask(new CronTask(runnable, trigger)));
 					}
 				}
 			}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.Contract;
 import org.springframework.lang.Nullable;
 
 /**
@@ -122,6 +123,7 @@ public abstract class StringUtils {
 	 * @see #hasLength(String)
 	 * @see #hasText(CharSequence)
 	 */
+	@Contract("null -> false")
 	public static boolean hasLength(@Nullable CharSequence str) {
 		return (str != null && str.length() > 0);
 	}
@@ -135,6 +137,7 @@ public abstract class StringUtils {
 	 * @see #hasLength(CharSequence)
 	 * @see #hasText(String)
 	 */
+	@Contract("null -> false")
 	public static boolean hasLength(@Nullable String str) {
 		return (str != null && !str.isEmpty());
 	}
@@ -158,6 +161,7 @@ public abstract class StringUtils {
 	 * @see #hasLength(CharSequence)
 	 * @see Character#isWhitespace
 	 */
+	@Contract("null -> false")
 	public static boolean hasText(@Nullable CharSequence str) {
 		if (str == null) {
 			return false;
@@ -188,6 +192,7 @@ public abstract class StringUtils {
 	 * @see #hasLength(String)
 	 * @see Character#isWhitespace
 	 */
+	@Contract("null -> false")
 	public static boolean hasText(@Nullable String str) {
 		return (str != null && !str.isBlank());
 	}
@@ -791,6 +796,7 @@ public abstract class StringUtils {
 	 * and {@code "0"} through {@code "9"} stay the same.</li>
 	 * <li>Special characters {@code "-"}, {@code "_"}, {@code "."}, and {@code "*"} stay the same.</li>
 	 * <li>A sequence "{@code %<i>xy</i>}" is interpreted as a hexadecimal representation of the character.</li>
+	 * <li>For all other characters (including those already decoded), the output is undefined.</li>
 	 * </ul>
 	 * @param source the encoded String
 	 * @param charset the character set
@@ -876,7 +882,7 @@ public abstract class StringUtils {
 	@SuppressWarnings("deprecation")  // for Locale constructors on JDK 19
 	@Nullable
 	public static Locale parseLocaleString(String localeString) {
-		if (localeString.equals("")) {
+		if (localeString.isEmpty()) {
 			return null;
 		}
 

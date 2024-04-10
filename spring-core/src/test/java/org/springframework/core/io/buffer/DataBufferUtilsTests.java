@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -168,7 +168,7 @@ class DataBufferUtilsTests extends AbstractDataBufferAllocatingTests {
 	}
 
 	@ParameterizedDataBufferAllocatingTest
-	void readAsynchronousFileChannelError(DataBufferFactory bufferFactory) throws Exception {
+	void readAsynchronousFileChannelError(DataBufferFactory bufferFactory) {
 		super.bufferFactory = bufferFactory;
 
 		AsynchronousFileChannel channel = mock();
@@ -237,7 +237,7 @@ class DataBufferUtilsTests extends AbstractDataBufferAllocatingTests {
 	}
 
 	@ParameterizedDataBufferAllocatingTest
-	void readResource(DataBufferFactory bufferFactory) throws Exception {
+	void readResource(DataBufferFactory bufferFactory) {
 		super.bufferFactory = bufferFactory;
 
 		Flux<DataBuffer> flux = DataBufferUtils.read(this.resource, super.bufferFactory, 3);
@@ -246,7 +246,7 @@ class DataBufferUtilsTests extends AbstractDataBufferAllocatingTests {
 	}
 
 	@ParameterizedDataBufferAllocatingTest
-	void readResourcePosition(DataBufferFactory bufferFactory) throws Exception {
+	void readResourcePosition(DataBufferFactory bufferFactory) {
 		super.bufferFactory = bufferFactory;
 
 		Flux<DataBuffer> flux = DataBufferUtils.read(this.resource, 9, super.bufferFactory, 3);
@@ -268,7 +268,7 @@ class DataBufferUtilsTests extends AbstractDataBufferAllocatingTests {
 	}
 
 	@ParameterizedDataBufferAllocatingTest
-	void readResourcePositionAndTakeUntil(DataBufferFactory bufferFactory) throws Exception {
+	void readResourcePositionAndTakeUntil(DataBufferFactory bufferFactory) {
 		super.bufferFactory = bufferFactory;
 
 		Resource resource = new ClassPathResource("DataBufferUtilsTests.txt", getClass());
@@ -285,7 +285,7 @@ class DataBufferUtilsTests extends AbstractDataBufferAllocatingTests {
 	}
 
 	@ParameterizedDataBufferAllocatingTest
-	void readByteArrayResourcePositionAndTakeUntil(DataBufferFactory bufferFactory) throws Exception {
+	void readByteArrayResourcePositionAndTakeUntil(DataBufferFactory bufferFactory) {
 		super.bufferFactory = bufferFactory;
 
 		Resource resource = new ByteArrayResource("foobarbazqux" .getBytes());
@@ -468,7 +468,6 @@ class DataBufferUtilsTests extends AbstractDataBufferAllocatingTests {
 	}
 
 	@ParameterizedDataBufferAllocatingTest
-	@SuppressWarnings("unchecked")
 	void writeAsynchronousFileChannelErrorInWrite(DataBufferFactory bufferFactory) throws Exception {
 		super.bufferFactory = bufferFactory;
 

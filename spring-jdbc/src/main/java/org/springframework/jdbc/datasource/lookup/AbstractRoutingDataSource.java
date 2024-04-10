@@ -17,7 +17,9 @@
 package org.springframework.jdbc.datasource.lookup;
 
 import java.sql.Connection;
+import java.sql.ConnectionBuilder;
 import java.sql.SQLException;
+import java.sql.ShardingKeyBuilder;
 import java.util.Collections;
 import java.util.Map;
 
@@ -132,6 +134,7 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 	 * @see #getResolvedDataSources()
 	 * @see #getResolvedDefaultDataSource()
 	 */
+	@SuppressWarnings("NullAway")
 	public void initialize() {
 		if (this.targetDataSources == null) {
 			throw new IllegalArgumentException("Property 'targetDataSources' is required");
@@ -217,6 +220,16 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 	}
 
 	@Override
+	public ConnectionBuilder createConnectionBuilder() throws SQLException {
+		return determineTargetDataSource().createConnectionBuilder();
+	}
+
+	@Override
+	public ShardingKeyBuilder createShardingKeyBuilder() throws SQLException {
+		return determineTargetDataSource().createShardingKeyBuilder();
+	}
+
+	@Override
 	@SuppressWarnings("unchecked")
 	public <T> T unwrap(Class<T> iface) throws SQLException {
 		if (iface.isInstance(this)) {
@@ -229,6 +242,7 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
 		return (iface.isInstance(this) || determineTargetDataSource().isWrapperFor(iface));
 	}
+
 
 	/**
 	 * Retrieve the current target DataSource. Determines the

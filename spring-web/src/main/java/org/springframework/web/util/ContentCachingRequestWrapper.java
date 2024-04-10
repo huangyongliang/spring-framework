@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ import org.springframework.util.FastByteArrayOutputStream;
  */
 public class ContentCachingRequestWrapper extends HttpServletRequestWrapper {
 
-	private final FastByteArrayOutputStream cachedContent = new FastByteArrayOutputStream();
+	private final FastByteArrayOutputStream cachedContent;
 
 	@Nullable
 	private final Integer contentCacheLimit;
@@ -74,6 +74,8 @@ public class ContentCachingRequestWrapper extends HttpServletRequestWrapper {
 	 */
 	public ContentCachingRequestWrapper(HttpServletRequest request) {
 		super(request);
+		int contentLength = request.getContentLength();
+		this.cachedContent = (contentLength > 0) ? new FastByteArrayOutputStream(contentLength) : new FastByteArrayOutputStream();
 		this.contentCacheLimit = null;
 	}
 
@@ -86,6 +88,8 @@ public class ContentCachingRequestWrapper extends HttpServletRequestWrapper {
 	 */
 	public ContentCachingRequestWrapper(HttpServletRequest request, int contentCacheLimit) {
 		super(request);
+		int contentLength = request.getContentLength();
+		this.cachedContent = (contentLength > 0) ? new FastByteArrayOutputStream(contentLength) : new FastByteArrayOutputStream();
 		this.contentCacheLimit = contentCacheLimit;
 	}
 
@@ -205,7 +209,7 @@ public class ContentCachingRequestWrapper extends HttpServletRequestWrapper {
 	 * @see #getContentAsByteArray()
 	 */
 	public String getContentAsString() {
-		return new String(this.cachedContent.toByteArray(), Charset.forName(getCharacterEncoding()));
+		return this.cachedContent.toString(Charset.forName(getCharacterEncoding()));
 	}
 
 	/**

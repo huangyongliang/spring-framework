@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -277,6 +277,7 @@ public class RootBeanDefinition extends AbstractBeanDefinition {
 
 
 	@Override
+	@Nullable
 	public String getParentName() {
 		return null;
 	}
@@ -401,8 +402,8 @@ public class RootBeanDefinition extends AbstractBeanDefinition {
 		if (attribute instanceof Constructor<?> constructor) {
 			return new Constructor<?>[] {constructor};
 		}
-		if (attribute instanceof Constructor<?>[]) {
-			return (Constructor<?>[]) attribute;
+		if (attribute instanceof Constructor<?>[] constructors) {
+			return constructors;
 		}
 		throw new IllegalArgumentException("Invalid value type for attribute '" +
 				PREFERRED_CONSTRUCTORS_ATTRIBUTE + "': " + attribute.getClass().getName());
@@ -638,7 +639,7 @@ public class RootBeanDefinition extends AbstractBeanDefinition {
 		}
 	}
 
-	private static boolean hasAnyExternallyManagedMethod(Set<String> candidates, String methodName) {
+	private static boolean hasAnyExternallyManagedMethod(@Nullable Set<String> candidates, String methodName) {
 		if (candidates != null) {
 			for (String candidate : candidates) {
 				int indexOfDot = candidate.lastIndexOf('.');

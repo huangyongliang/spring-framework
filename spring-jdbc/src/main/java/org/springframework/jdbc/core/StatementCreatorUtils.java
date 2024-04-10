@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,11 +81,12 @@ public abstract class StatementCreatorUtils {
 	public static final String IGNORE_GETPARAMETERTYPE_PROPERTY_NAME = "spring.jdbc.getParameterType.ignore";
 
 
-	static boolean shouldIgnoreGetParameterType = SpringProperties.getFlag(IGNORE_GETPARAMETERTYPE_PROPERTY_NAME);
-
 	private static final Log logger = LogFactory.getLog(StatementCreatorUtils.class);
 
 	private static final Map<Class<?>, Integer> javaTypeToSqlTypeMap = new HashMap<>(64);
+
+	@Nullable
+	static Boolean shouldIgnoreGetParameterType;
 
 	static {
 		javaTypeToSqlTypeMap.put(boolean.class, Types.BOOLEAN);
@@ -114,6 +115,11 @@ public abstract class StatementCreatorUtils {
 		javaTypeToSqlTypeMap.put(java.sql.Timestamp.class, Types.TIMESTAMP);
 		javaTypeToSqlTypeMap.put(Blob.class, Types.BLOB);
 		javaTypeToSqlTypeMap.put(Clob.class, Types.CLOB);
+
+		String flag = SpringProperties.getProperty(IGNORE_GETPARAMETERTYPE_PROPERTY_NAME);
+		if (flag != null) {
+			shouldIgnoreGetParameterType = Boolean.valueOf(flag);
+		}
 	}
 
 
@@ -250,9 +256,26 @@ public abstract class StatementCreatorUtils {
 			throws SQLException {
 
 		if (sqlType == SqlTypeValue.TYPE_UNKNOWN || (sqlType == Types.OTHER && typeName == null)) {
+			boolean callGetParameterType = false;
 			boolean useSetObject = false;
 			Integer sqlTypeToUse = null;
-			if (!shouldIgnoreGetParameterType) {
+			if (shouldIgnoreGetParameterType != null) {
+				callGetParameterType = !shouldIgnoreGetParameterType;
+			}
+			else {
+				String jdbcDriverName = ps.getConnection().getMetaData().getDriverName();
+				if (jdbcDriverName.startsWith("PostgreSQL")) {
+					sqlTypeToUse = Types.NULL;
+				}
+				else if (jdbcDriverName.startsWith("Microsoft") && jdbcDriverName.contains("SQL Server")) {
+					sqlTypeToUse = Types.NULL;
+					useSetObject = true;
+				}
+				else {
+					callGetParameterType = true;
+				}
+			}
+			if (callGetParameterType) {
 				try {
 					sqlTypeToUse = ps.getParameterMetaData().getParameterType(paramIndex);
 				}
@@ -413,7 +436,10 @@ public abstract class StatementCreatorUtils {
 		}
 		else if (sqlType == SqlTypeValue.TYPE_UNKNOWN || (sqlType == Types.OTHER &&
 				"Oracle".equals(ps.getConnection().getMetaData().getDatabaseProductName()))) {
-			if (isStringValue(inValue.getClass())) {
+			if (inValue instanceof byte[] bytes) {
+				ps.setBytes(paramIndex, bytes);
+			}
+			else if (isStringValue(inValue.getClass())) {
 				ps.setString(paramIndex, inValue.toString());
 			}
 			else if (isDateValue(inValue.getClass())) {

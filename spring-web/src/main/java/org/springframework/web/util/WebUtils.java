@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -264,7 +264,7 @@ public abstract class WebUtils {
 		Assert.notNull(servletContext, "ServletContext must not be null");
 		String param = servletContext.getInitParameter(WEB_APP_ROOT_KEY_PARAM);
 		String key = (param != null ? param : DEFAULT_WEB_APP_ROOT_KEY);
-		System.getProperties().remove(key);
+		System.clearProperty(key);
 	}
 
 	/**
@@ -540,7 +540,7 @@ public abstract class WebUtils {
 	 * @param name the name of the attribute
 	 * @param value the suggested value of the attribute
 	 */
-	private static void exposeRequestAttributeIfNotPresent(ServletRequest request, String name, Object value) {
+	private static void exposeRequestAttributeIfNotPresent(ServletRequest request, String name, @Nullable Object value) {
 		if (request.getAttribute(name) == null) {
 			request.setAttribute(name, value);
 		}

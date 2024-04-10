@@ -225,7 +225,7 @@ Also, be particularly careful with `BeanPostProcessor` and `BeanFactoryPostProce
 through `@Bean`. Those should usually be declared as `static @Bean` methods, not triggering the
 instantiation of their containing configuration class. Otherwise, `@Autowired` and `@Value` may not
 work on the configuration class itself, since it is possible to create it as a bean instance earlier than
-{api-spring-framework}/beans/factory/annotation/AutowiredAnnotationBeanPostProcessor.html[`AutowiredAnnotationBeanPostProcessor`].
+{spring-framework-api}/beans/factory/annotation/AutowiredAnnotationBeanPostProcessor.html[`AutowiredAnnotationBeanPostProcessor`].
 ====
 
 The following example shows how one bean can be autowired to another bean:
@@ -338,7 +338,7 @@ modularity, but determining exactly where the autowired bean definitions are dec
 still somewhat ambiguous. For example, as a developer looking at `ServiceConfig`, how do
 you know exactly where the `@Autowired AccountRepository` bean is declared? It is not
 explicit in the code, and this may be just fine. Remember that the
-https://spring.io/tools[Spring Tools for Eclipse] provides tooling that
+{spring-site-tools}[Spring Tools for Eclipse] provides tooling that
 can render graphs showing how everything is wired, which may be all you need. Also,
 your Java IDE can easily find all declarations and uses of the `AccountRepository` type
 and quickly show you the location of `@Bean` methods that return that type.
@@ -503,10 +503,47 @@ way, navigating `@Configuration` classes and their dependencies becomes no diffe
 than the usual process of navigating interface-based code.
 --
 
-TIP: If you want to influence the startup creation order of certain beans, consider
-declaring some of them as `@Lazy` (for creation on first access instead of on startup)
-or as `@DependsOn` certain other beans (making sure that specific other beans are
-created before the current bean, beyond what the latter's direct dependencies imply).
+
+[[beans-java-startup]]
+== Influencing the Startup of `@Bean`-defined Singletons
+
+If you want to influence the startup creation order of certain singleton beans, consider
+declaring some of them as `@Lazy` for creation on first access instead of on startup.
+
+`@DependsOn` forces certain other beans to be initialized first, making sure that
+the specified beans are created before the current bean, beyond what the latter's
+direct dependencies imply.
+
+[[beans-java-startup-background]]
+=== Background Initialization
+
+As of 6.2, there is a background initialization option: `@Bean(bootstrap=BACKGROUND)`
+allows for singling out specific beans for background initialization, covering the
+entire bean creation step for each such bean on context startup.
+
+Dependent beans with non-lazy injection points automatically wait for the bean instance
+to be completed. All regular background initializations are forced to complete at the end
+of context startup. Only beans additionally marked as `@Lazy` are allowed to be completed
+later (up until the first actual access).
+
+Background initialization typically goes together with `@Lazy` (or `ObjectProvider`)
+injection points in dependent beans. Otherwise, the main bootstrap thread is going to
+block when an actual background-initialized bean instance needs to be injected early.
+
+This form of concurrent startup applies to individual beans: if such a bean depends on
+other beans, they need to have been initialized already, either simply through being
+declared earlier or through `@DependsOn` which enforces initialization in the main
+bootstrap thread before background initialization for the affected bean is triggered.
+
+[NOTE]
+====
+A `bootstrapExecutor` bean of type `Executor` must be declared for background
+bootstrapping to be actually active. Otherwise, the background markers will be ignored at
+runtime.
+
+The bootstrap executor may be a bounded executor just for startup purposes or a shared
+thread pool which serves for other purposes as well.
+====
 
 
 [[beans-java-conditional]]
@@ -519,7 +556,7 @@ profile has been enabled in the Spring `Environment` (see xref:core/beans/enviro
 for details).
 
 The `@Profile` annotation is actually implemented by using a much more flexible annotation
-called {api-spring-framework}/context/annotation/Conditional.html[`@Conditional`].
+called {spring-framework-api}/context/annotation/Conditional.html[`@Conditional`].
 The `@Conditional` annotation indicates specific
 `org.springframework.context.annotation.Condition` implementations that should be
 consulted before a `@Bean` is registered.
@@ -570,7 +607,7 @@ Kotlin::
 ----
 ======
 
-See the {api-spring-framework}/context/annotation/Conditional.html[`@Conditional`]
+See the {spring-framework-api}/context/annotation/Conditional.html[`@Conditional`]
 javadoc for more detail.
 
 

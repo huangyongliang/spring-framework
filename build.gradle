@@ -2,19 +2,22 @@ plugins {
 	id 'io.freefair.aspectj' version '8.4' apply false
 	// kotlinVersion is managed in gradle.properties
 	id 'org.jetbrains.kotlin.plugin.serialization' version "${kotlinVersion}" apply false
-	id 'org.jetbrains.dokka' version '1.8.20'
+	id 'org.jetbrains.dokka' version '1.9.20'
 	id 'org.unbroken-dome.xjc' version '2.0.0' apply false
-	id 'com.github.ben-manes.versions' version '0.49.0'
+	id 'com.github.ben-manes.versions' version '0.51.0'
 	id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
 	id 'de.undercouch.download' version '5.4.0'
 	id 'me.champeau.jmh' version '0.7.2' apply false
 	id 'me.champeau.mrjar' version '0.1.1'
+	id "net.ltgt.errorprone" version "3.1.0" apply false
 }
 
 ext {
 	moduleProjects = subprojects.findAll { it.name.startsWith("spring-") }
 	javaProjects = subprojects.findAll { !it.name.startsWith("framework-") }
 }
+
+description = "Spring Framework"
 
 configure(allprojects) { project ->
 	apply plugin: "org.springframework.build.localdev"
@@ -88,7 +91,6 @@ configure([rootProject] + javaProjects) { project ->
 			"https://docs.oracle.com/en/java/javase/17/docs/api/",
 			"https://jakarta.ee/specifications/platform/9/apidocs/",
 			"https://docs.oracle.com/cd/E13222_01/wls/docs90/javadocs/",  // CommonJ and weblogic.* packages
-			"https://www.ibm.com/docs/api/v1/content/SSEQTP_8.5.5/com.ibm.websphere.javadoc.doc/web/apidocs/", // com.ibm.*
 			"https://docs.jboss.org/jbossas/javadoc/4.0.5/connector/", // org.jboss.resource.*
 			"https://docs.jboss.org/hibernate/orm/5.6/javadocs/",
 			"https://eclipse.dev/aspectj/doc/released/aspectj5rt-api",
@@ -102,7 +104,7 @@ configure([rootProject] + javaProjects) { project ->
 			// TODO Uncomment link to JUnit 5 docs once we execute Gradle with Java 18+.
 			// See https://github.com/spring-projects/spring-framework/issues/27497
 			//
-			// "https://junit.org/junit5/docs/5.10.1/api/",
+			// "https://junit.org/junit5/docs/5.10.2/api/",
 			"https://www.reactive-streams.org/reactive-streams-1.0.3-javadoc/",
 			//"https://javadoc.io/static/io.rsocket/rsocket-core/1.1.1/",
 			"https://r2dbc.io/spec/1.0.0.RELEASE/api/",
@@ -115,9 +117,4 @@ configure([rootProject] + javaProjects) { project ->
 
 configure(moduleProjects) { project ->
 	apply from: "${rootDir}/gradle/spring-module.gradle"
-}
-
-configure(rootProject) {
-	description = "Spring Framework"
-	apply plugin: 'org.springframework.build.api-diff'
 }

@@ -48,9 +48,10 @@ import org.springframework.util.ObjectUtils;
  * A {@link CaffeineSpec}-compliant expression value can also be applied
  * via the {@link #setCacheSpecification "cacheSpecification"} bean property.
  *
- * <p>Supports the {@link Cache#retrieve(Object)} and
+ * <p>Supports the asynchronous {@link Cache#retrieve(Object)} and
  * {@link Cache#retrieve(Object, Supplier)} operations through Caffeine's
- * {@link AsyncCache}, when configured via {@link #setAsyncCacheMode}.
+ * {@link AsyncCache}, when configured via {@link #setAsyncCacheMode},
+ * with early-determined cache misses.
  *
  * <p>Requires Caffeine 3.0 or higher, as of Spring Framework 6.1.
  *
@@ -198,10 +199,22 @@ public class CaffeineCacheManager implements CacheManager {
 	 * <p>By default, this cache manager builds regular native Caffeine caches.
 	 * To switch to async caches which can also be used through the synchronous API
 	 * but come with support for {@code Cache#retrieve}, set this flag to {@code true}.
+	 * <p>Note that while null values in the cache are tolerated in async cache mode,
+	 * the recommendation is to disallow null values through
+	 * {@link #setAllowNullValues setAllowNullValues(false)}. This makes the semantics
+	 * of CompletableFuture-based access simpler and optimizes retrieval performance
+	 * since a Caffeine-provided CompletableFuture handle does not have to get wrapped.
+	 * <p>If you come here for the adaptation of reactive types such as a Reactor
+	 * {@code Mono} or {@code Flux} onto asynchronous caching, we recommend the standard
+	 * arrangement for caching the produced values asynchronously in 6.1 through enabling
+	 * this Caffeine mode. If this is not immediately possible/desirable for existing
+	 * apps, you may set the system property "spring.cache.reactivestreams.ignore=true"
+	 * to restore 6.0 behavior where reactive handles are treated as regular values.
 	 * @since 6.1
 	 * @see Caffeine#buildAsync()
 	 * @see Cache#retrieve(Object)
 	 * @see Cache#retrieve(Object, Supplier)
+	 * @see org.springframework.cache.interceptor.CacheAspectSupport#IGNORE_REACTIVESTREAMS_PROPERTY_NAME
 	 */
 	public void setAsyncCacheMode(boolean asyncCacheMode) {
 		if (this.asyncCacheMode != asyncCacheMode) {

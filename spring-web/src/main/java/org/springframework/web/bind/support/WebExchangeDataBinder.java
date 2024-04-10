@@ -18,11 +18,13 @@ package org.springframework.web.bind.support;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.MutablePropertyValues;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.codec.multipart.FormFieldPart;
 import org.springframework.http.codec.multipart.Part;
 import org.springframework.lang.Nullable;
@@ -85,6 +87,12 @@ public class WebExchangeDataBinder extends WebDataBinder {
 		return getValuesToBind(exchange)
 				.doOnNext(map -> construct(new MapValueResolver(map)))
 				.then();
+	}
+
+	@Override
+	protected boolean shouldConstructArgument(MethodParameter param) {
+		Class<?> type = param.nestedIfOptional().getNestedParameterType();
+		return (super.shouldConstructArgument(param) && !Part.class.isAssignableFrom(type));
 	}
 
 	/**
@@ -154,8 +162,14 @@ public class WebExchangeDataBinder extends WebDataBinder {
 	private record MapValueResolver(Map<String, Object> map) implements ValueResolver {
 
 		@Override
+		@Nullable
 		public Object resolveValue(String name, Class<?> type) {
 			return this.map.get(name);
+		}
+
+		@Override
+		public Set<String> getNames() {
+			return this.map.keySet();
 		}
 	}
 

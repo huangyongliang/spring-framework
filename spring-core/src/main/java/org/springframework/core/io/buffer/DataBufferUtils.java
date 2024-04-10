@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -54,6 +53,7 @@ import reactor.util.context.Context;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Utility class for working with {@link DataBuffer DataBuffers}.
@@ -69,7 +69,6 @@ public abstract class DataBufferUtils {
 	private static final Consumer<DataBuffer> RELEASE_CONSUMER = DataBufferUtils::release;
 
 	private static final int DEFAULT_CHUNK_SIZE = 1024;
-
 
 
 	//---------------------------------------------------------------------
@@ -382,7 +381,7 @@ public abstract class DataBufferUtils {
 
 	private static Set<OpenOption> checkWriteOptions(OpenOption[] options) {
 		int length = options.length;
-		Set<OpenOption> result = new HashSet<>(length + 3);
+		Set<OpenOption> result = CollectionUtils.newHashSet(length > 0 ? length : 2);
 		if (length == 0) {
 			result.add(StandardOpenOption.CREATE);
 			result.add(StandardOpenOption.TRUNCATE_EXISTING);
@@ -1083,7 +1082,7 @@ public abstract class DataBufferUtils {
 			attachment.iterator().close();
 			DataBuffer dataBuffer = attachment.dataBuffer();
 
-			if (this.state.get().equals(State.DISPOSED)) {
+			if (this.state.get() == State.DISPOSED) {
 				release(dataBuffer);
 				closeChannel(this.channel);
 				return;
@@ -1114,13 +1113,13 @@ public abstract class DataBufferUtils {
 		}
 
 		@Override
-		public void failed(Throwable exc, Attachment attachment) {
+		public void failed(Throwable ex, Attachment attachment) {
 			attachment.iterator().close();
 			release(attachment.dataBuffer());
 
 			closeChannel(this.channel);
 			this.state.set(State.DISPOSED);
-			this.sink.error(exc);
+			this.sink.error(ex);
 		}
 
 		private enum State {
@@ -1179,7 +1178,6 @@ public abstract class DataBufferUtils {
 		public Context currentContext() {
 			return Context.of(this.sink.contextView());
 		}
-
 	}
 
 
@@ -1274,13 +1272,13 @@ public abstract class DataBufferUtils {
 		}
 
 		@Override
-		public void failed(Throwable exc, Attachment attachment) {
+		public void failed(Throwable ex, Attachment attachment) {
 			attachment.iterator().close();
 
 			this.sink.next(attachment.dataBuffer());
 			this.writing.set(false);
 
-			this.sink.error(exc);
+			this.sink.error(ex);
 		}
 
 		@Override
@@ -1289,9 +1287,6 @@ public abstract class DataBufferUtils {
 		}
 
 		private record Attachment(ByteBuffer byteBuffer, DataBuffer dataBuffer, DataBuffer.ByteBufferIterator iterator) {}
-
-
 	}
-
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ class WebClientObservationTests {
 		ClientRequest clientRequest = verifyAndGetRequest();
 
 		assertThatHttpObservation().hasLowCardinalityKeyValue("outcome", "SUCCESS")
-				.hasLowCardinalityKeyValue("uri", "/resource/{id}");
+				.hasLowCardinalityKeyValue("uri", "/base/resource/{id}");
 		assertThat(clientRequest.headers()).containsEntry("foo", Collections.singletonList("bar"));
 	}
 
@@ -110,7 +110,8 @@ class WebClientObservationTests {
 		StepVerifier.create(client.get().uri("/path").retrieve().bodyToMono(Void.class))
 				.expectError(IllegalStateException.class)
 				.verify(Duration.ofSeconds(5));
-		assertThatHttpObservation().hasLowCardinalityKeyValue("exception", "IllegalStateException")
+		assertThatHttpObservation().hasError()
+				.hasLowCardinalityKeyValue("exception", "IllegalStateException")
 				.hasLowCardinalityKeyValue("status", "CLIENT_ERROR");
 	}
 
@@ -135,17 +136,12 @@ class WebClientObservationTests {
 
 	@Test
 	void setsCurrentObservationInReactorContext() {
-		ExchangeFilterFunction assertionFilter = new ExchangeFilterFunction() {
-			@Override
-			public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction chain) {
-				return chain.exchange(request).contextWrite(context -> {
-					Observation currentObservation = context.get(ObservationThreadLocalAccessor.KEY);
-					assertThat(currentObservation).isNotNull();
-					assertThat(currentObservation.getContext()).isInstanceOf(ClientRequestObservationContext.class);
-					return context;
-				});
-			}
-		};
+		ExchangeFilterFunction assertionFilter = (request, chain) -> chain.exchange(request).contextWrite(context -> {
+			Observation currentObservation = context.get(ObservationThreadLocalAccessor.KEY);
+			assertThat(currentObservation).isNotNull();
+			assertThat(currentObservation.getContext()).isInstanceOf(ClientRequestObservationContext.class);
+			return context;
+		});
 		this.builder.filter(assertionFilter).build().get().uri("/resource/{id}", 42)
 				.retrieve().bodyToMono(Void.class)
 				.block(Duration.ofSeconds(10));
@@ -160,7 +156,7 @@ class WebClientObservationTests {
 		StepVerifier.create(responseMono)
 				.expectError(IllegalStateException.class)
 				.verify(Duration.ofSeconds(5));
-		assertThatHttpObservation()
+		assertThatHttpObservation().hasError()
 				.hasLowCardinalityKeyValue("exception", "IllegalStateException")
 				.hasLowCardinalityKeyValue("status", "200");
 	}
@@ -191,7 +187,7 @@ class WebClientObservationTests {
 
 	static class MockClientHeaders implements ClientResponse.Headers {
 
-		private HttpHeaders headers = new HttpHeaders();
+		private final HttpHeaders headers = new HttpHeaders();
 
 		@Override
 		public OptionalLong contentLength() {

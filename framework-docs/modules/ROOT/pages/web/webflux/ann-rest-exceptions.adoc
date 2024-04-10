@@ -5,7 +5,7 @@
 
 A common requirement for REST services is to include details in the body of error
 responses. The Spring Framework supports the "Problem Details for HTTP APIs"
-specification, https://www.rfc-editor.org/rfc/rfc7807.html[RFC 7807].
+specification, {rfc-site}/rfc7807.html[RFC 7807].
 
 The following are the main abstractions for this support:
 
@@ -43,6 +43,10 @@ xref:web/webflux/controller/ann-advice.adoc[@ControllerAdvice] in Spring configu
 has an `@ExceptionHandler` method that handles any `ErrorResponse` exception, which
 includes all built-in web exceptions. You can add more exception handling methods, and
 use a protected method to map any exception to a `ProblemDetail`.
+
+You can register `ErrorResponse` interceptors through the
+xref:web/webflux/config.adoc[WebFlux Config] with a `WebFluxConfigurer`. Use that to intercept
+any RFC 7807 response and take some action.
 
 
 

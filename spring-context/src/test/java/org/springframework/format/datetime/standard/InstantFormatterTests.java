@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import static java.time.ZoneId.systemDefault;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link InstantFormatter}.
+ * Tests for {@link InstantFormatter}.
  *
  * @author Andrei Nevedomskii
  * @author Sam Brannen
@@ -83,11 +83,9 @@ class InstantFormatterTests {
 	@ParameterizedTest
 	@ArgumentsSource(RandomEpochMillisProvider.class)
 	void should_parse_into_an_Instant_from_epoch_milli(Instant input) throws ParseException {
-		Instant expected = input;
-
 		Instant actual = instantFormatter.parse(Long.toString(input.toEpochMilli()), null);
 
-		assertThat(actual).isEqualTo(expected);
+		assertThat(actual).isEqualTo(input);
 	}
 
 	private static class RandomInstantProvider implements ArgumentsProvider {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -485,7 +485,7 @@ final class HierarchicalUriComponents extends UriComponents {
 			if (this.host != null) {
 				uriBuilder.append(this.host);
 			}
-			if (getPort() != -1) {
+			if (StringUtils.hasText(this.port) && !this.port.equals("-1")) {
 				uriBuilder.append(':').append(this.port);
 			}
 		}
@@ -1077,6 +1077,7 @@ final class HierarchicalUriComponents extends UriComponents {
 		}
 
 		@Override
+		@Nullable
 		public Object getValue(@Nullable String name) {
 			Object value = this.delegate.getValue(name);
 			if (ObjectUtils.isArray(value)) {

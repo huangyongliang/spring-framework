@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,13 +30,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.testfixture.http.server.reactive.bootstrap.AbstractHttpHandlerIntegrationTests;
 import org.springframework.web.testfixture.http.server.reactive.bootstrap.HttpServer;
+import org.springframework.web.testfixture.http.server.reactive.bootstrap.UndertowHttpServer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * @author Rossen Stoyanchev
+ * @author Sebastien Deleuze
  */
-public class CookieIntegrationTests extends AbstractHttpHandlerIntegrationTests {
+class CookieIntegrationTests extends AbstractHttpHandlerIntegrationTests {
 
 	private final CookieHandler cookieHandler = new CookieHandler();
 
@@ -53,20 +56,13 @@ public class CookieIntegrationTests extends AbstractHttpHandlerIntegrationTests 
 
 		URI url = URI.create("http://localhost:" + port);
 		String header = "SID=31d4d96e407aad42; lang=en-US";
-		@SuppressWarnings("resource")
 		ResponseEntity<Void> response = new RestTemplate().exchange(
 				RequestEntity.get(url).header("Cookie", header).build(), Void.class);
 
 		Map<String, List<HttpCookie>> requestCookies = this.cookieHandler.requestCookies;
 		assertThat(requestCookies).hasSize(2);
-
-		List<HttpCookie> list = requestCookies.get("SID");
-		assertThat(list).hasSize(1);
-		assertThat(list.iterator().next().getValue()).isEqualTo("31d4d96e407aad42");
-
-		list = requestCookies.get("lang");
-		assertThat(list).hasSize(1);
-		assertThat(list.iterator().next().getValue()).isEqualTo("en-US");
+		assertThat(requestCookies.get("SID")).extracting(HttpCookie::getValue).containsExactly("31d4d96e407aad42");
+		assertThat(requestCookies.get("lang")).extracting(HttpCookie::getValue).containsExactly("en-US");
 
 		List<String> headerValues = response.getHeaders().get("Set-Cookie");
 		assertThat(headerValues).hasSize(2);
@@ -81,6 +77,23 @@ public class CookieIntegrationTests extends AbstractHttpHandlerIntegrationTests 
 				.containsExactlyInAnyOrder("path=/", "domain=example.com");
 	}
 
+	@ParameterizedHttpServerTest
+	public void cookiesWithSameNameTest(HttpServer httpServer) throws Exception {
+		assumeFalse(httpServer instanceof UndertowHttpServer, "Bug in Undertow in Cookies with same name handling");
+
+		startServer(httpServer);
+
+		URI url = new URI("http://localhost:" + port);
+		String header = "SID=31d4d96e407aad42; lang=en-US; lang=zh-CN";
+		new RestTemplate().exchange(
+				RequestEntity.get(url).header("Cookie", header).build(), Void.class);
+
+		Map<String, List<HttpCookie>> requestCookies = this.cookieHandler.requestCookies;
+		assertThat(requestCookies).hasSize(2);
+		assertThat(requestCookies.get("SID")).extracting(HttpCookie::getValue).containsExactly("31d4d96e407aad42");
+		assertThat(requestCookies.get("lang")).extracting(HttpCookie::getValue).containsExactly("en-US", "zh-CN");
+	}
+
 	// No client side HttpCookie support yet
 	private List<String> splitCookie(String value) {
 		List<String> list = new ArrayList<>();
@@ -91,7 +104,7 @@ public class CookieIntegrationTests extends AbstractHttpHandlerIntegrationTests 
 	}
 
 
-	private class CookieHandler implements HttpHandler {
+	private static class CookieHandler implements HttpHandler {
 
 		private Map<String, List<HttpCookie>> requestCookies;
 

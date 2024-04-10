@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -332,6 +332,10 @@ public class DependencyDescriptor extends InjectionPoint implements Serializable
 			public boolean fallbackMatchAllowed() {
 				return true;
 			}
+			@Override
+			public boolean usesStandardBeanLookup() {
+				return true;
+			}
 		};
 	}
 
@@ -375,6 +379,31 @@ public class DependencyDescriptor extends InjectionPoint implements Serializable
 		}
 	}
 
+	/**
+	 * Determine whether this dependency supports lazy resolution,
+	 * e.g. through extra proxying. The default is {@code true}.
+	 * @since 6.1.2
+	 * @see org.springframework.beans.factory.support.AutowireCandidateResolver#getLazyResolutionProxyIfNecessary
+	 */
+	public boolean supportsLazyResolution() {
+		return true;
+	}
+
+	/**
+	 * Determine whether this descriptor uses a standard bean lookup
+	 * in {@link #resolveCandidate(String, Class, BeanFactory)} and
+	 * therefore qualifies for factory-level shortcut resolution.
+	 * <p>By default, the {@code DependencyDescriptor} class itself
+	 * uses a standard bean lookup but subclasses may override this.
+	 * If a subclass overrides other methods but preserves a standard
+	 * bean lookup, it may override this method to return {@code true}.
+	 * @since 6.2
+	 * @see #resolveCandidate(String, Class, BeanFactory)
+	 */
+	public boolean usesStandardBeanLookup() {
+		return (getClass() == DependencyDescriptor.class);
+	}
+
 
 	@Override
 	public boolean equals(@Nullable Object other) {
@@ -384,9 +413,9 @@ public class DependencyDescriptor extends InjectionPoint implements Serializable
 		if (!super.equals(other)) {
 			return false;
 		}
-		DependencyDescriptor otherDesc = (DependencyDescriptor) other;
-		return (this.required == otherDesc.required && this.eager == otherDesc.eager &&
-				this.nestingLevel == otherDesc.nestingLevel && this.containingClass == otherDesc.containingClass);
+		return (other instanceof DependencyDescriptor otherDesc && this.required == otherDesc.required &&
+				this.eager == otherDesc.eager && this.nestingLevel == otherDesc.nestingLevel &&
+				this.containingClass == otherDesc.containingClass);
 	}
 
 	@Override

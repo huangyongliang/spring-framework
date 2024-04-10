@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,18 @@ import org.springframework.util.CollectionUtils;
 public class DefaultCorsProcessor implements CorsProcessor {
 
 	private static final Log logger = LogFactory.getLog(DefaultCorsProcessor.class);
+
+	/**
+	 * The {@code Access-Control-Request-Private-Network} request header field name.
+	 * @see <a href="https://wicg.github.io/private-network-access/">Private Network Access specification</a>
+	 */
+	static final String ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK = "Access-Control-Request-Private-Network";
+
+	/**
+	 * The {@code Access-Control-Allow-Private-Network} response header field name.
+	 * @see <a href="https://wicg.github.io/private-network-access/">Private Network Access specification</a>
+	 */
+	static final String ACCESS_CONTROL_ALLOW_PRIVATE_NETWORK = "Access-Control-Allow-Private-Network";
 
 
 	@Override
@@ -143,7 +155,7 @@ public class DefaultCorsProcessor implements CorsProcessor {
 			responseHeaders.setAccessControlAllowMethods(allowMethods);
 		}
 
-		if (preFlightRequest && !allowHeaders.isEmpty()) {
+		if (preFlightRequest && !CollectionUtils.isEmpty(allowHeaders)) {
 			responseHeaders.setAccessControlAllowHeaders(allowHeaders);
 		}
 
@@ -153,6 +165,11 @@ public class DefaultCorsProcessor implements CorsProcessor {
 
 		if (Boolean.TRUE.equals(config.getAllowCredentials())) {
 			responseHeaders.setAccessControlAllowCredentials(true);
+		}
+
+		if (Boolean.TRUE.equals(config.getAllowPrivateNetwork()) &&
+				Boolean.parseBoolean(request.getHeaders().getFirst(ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK))) {
+			responseHeaders.set(ACCESS_CONTROL_ALLOW_PRIVATE_NETWORK, Boolean.toString(true));
 		}
 
 		if (preFlightRequest && config.getMaxAge() != null) {

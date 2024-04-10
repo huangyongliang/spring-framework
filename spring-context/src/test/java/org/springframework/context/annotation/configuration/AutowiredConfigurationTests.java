@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ class AutowiredConfigurationTests {
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
 				OptionalAutowiredMethodConfig.class);
 
-		assertThat(context.getBeansOfType(Colour.class).isEmpty()).isTrue();
+		assertThat(context.getBeansOfType(Colour.class)).isEmpty();
 		assertThat(context.getBean(TestBean.class).getName()).isEmpty();
 		context.close();
 	}
@@ -187,10 +187,10 @@ class AutowiredConfigurationTests {
 		System.clearProperty("myProp");
 
 		TestBean testBean = context.getBean("testBean", TestBean.class);
-		assertThat((Object) testBean.getName()).isNull();
+		assertThat(testBean.getName()).isNull();
 
 		testBean = context.getBean("testBean2", TestBean.class);
-		assertThat((Object) testBean.getName()).isNull();
+		assertThat(testBean.getName()).isNull();
 
 		System.setProperty("myProp", "foo");
 
@@ -203,10 +203,10 @@ class AutowiredConfigurationTests {
 		System.clearProperty("myProp");
 
 		testBean = context.getBean("testBean", TestBean.class);
-		assertThat((Object) testBean.getName()).isNull();
+		assertThat(testBean.getName()).isNull();
 
 		testBean = context.getBean("testBean2", TestBean.class);
-		assertThat((Object) testBean.getName()).isNull();
+		assertThat(testBean.getName()).isNull();
 	}
 
 	@Test
@@ -277,11 +277,11 @@ class AutowiredConfigurationTests {
 
 		@Bean
 		public TestBean testBean(Optional<Colour> colour, Optional<List<Colour>> colours) {
-			if (!colour.isPresent() && !colours.isPresent()) {
+			if (colour.isEmpty() && colours.isEmpty()) {
 				return new TestBean("");
 			}
 			else {
-				return new TestBean(colour.get().toString() + "-" + colours.get().get(0).toString());
+				return new TestBean(colour.get() + "-" + colours.get().get(0).toString());
 			}
 		}
 	}

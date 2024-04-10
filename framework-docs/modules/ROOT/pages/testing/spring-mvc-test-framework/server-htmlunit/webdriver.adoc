@@ -166,7 +166,7 @@ following sections to make this pattern much easier to implement.
 == MockMvc and WebDriver Setup
 
 To use Selenium WebDriver with the Spring MVC Test framework, make sure that your project
-includes a test dependency on `org.seleniumhq.selenium:selenium-htmlunit-driver`.
+includes a test dependency on `org.seleniumhq.selenium:selenium-htmlunit3-driver`.
 
 We can easily create a Selenium WebDriver that integrates with MockMvc by using the
 `MockMvcHtmlUnitDriverBuilder` as the following example shows:
@@ -362,7 +362,7 @@ annotation to look up our submit button with a `css` selector (*input[type=submi
 --
 
 Finally, we can verify that a new message was created successfully. The following
-assertions use the https://assertj.github.io/doc/[AssertJ] assertion library:
+assertions use the {assertj-docs}[AssertJ] assertion library:
 
 --
 [tabs]
@@ -562,7 +562,7 @@ Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
 ----
-	// Not possible in Kotlin until https://youtrack.jetbrains.com/issue/KT-22208 is fixed
+	// Not possible in Kotlin until {kotlin-issues}/KT-22208 is fixed
 ----
 ======
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,11 +35,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.testfixture.http.server.reactive.MockServerHttpRequest.get;
 
 /**
- * Unit tests for {@link ModelMethodArgumentResolver}.
+ * Tests for {@link ModelMethodArgumentResolver}.
  *
  * @author Rossen Stoyanchev
  */
-public class ModelMethodArgumentResolverTests {
+class ModelMethodArgumentResolverTests {
 
 	private final ModelMethodArgumentResolver resolver =
 			new ModelMethodArgumentResolver(ReactiveAdapterRegistry.getSharedInstance());
@@ -50,7 +50,7 @@ public class ModelMethodArgumentResolverTests {
 
 
 	@Test
-	public void supportsParameter() {
+	void supportsParameter() {
 		assertThat(this.resolver.supportsParameter(this.resolvable.arg(Model.class))).isTrue();
 		assertThat(this.resolver.supportsParameter(this.resolvable.arg(ModelMap.class))).isTrue();
 		assertThat(this.resolver.supportsParameter(
@@ -62,7 +62,7 @@ public class ModelMethodArgumentResolverTests {
 	}
 
 	@Test
-	public void resolveArgument() {
+	void resolveArgument() {
 		testResolveArgument(this.resolvable.arg(Model.class));
 		testResolveArgument(this.resolvable.annotNotPresent().arg(Map.class, String.class, Object.class));
 		testResolveArgument(this.resolvable.arg(ModelMap.class));

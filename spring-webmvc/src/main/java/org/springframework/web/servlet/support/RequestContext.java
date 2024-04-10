@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -474,7 +474,7 @@ public class RequestContext {
 	 * Is default HTML escaping active? Falls back to {@code false} in case of no explicit default given.
 	 */
 	public boolean isDefaultHtmlEscape() {
-		return (this.defaultHtmlEscape != null && this.defaultHtmlEscape.booleanValue());
+		return (this.defaultHtmlEscape != null && this.defaultHtmlEscape);
 	}
 
 	/**
@@ -493,7 +493,7 @@ public class RequestContext {
 	 * @since 4.1.2
 	 */
 	public boolean isResponseEncodedHtmlEscape() {
-		return (this.responseEncodedHtmlEscape == null || this.responseEncodedHtmlEscape.booleanValue());
+		return (this.responseEncodedHtmlEscape == null || this.responseEncodedHtmlEscape);
 	}
 
 	/**

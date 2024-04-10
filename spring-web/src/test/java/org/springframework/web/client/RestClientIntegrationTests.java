@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -166,7 +166,7 @@ class RestClientIntegrationTests {
 		ValueContainer<Pojo> result = this.restClient.get()
 				.uri("/json").accept(MediaType.APPLICATION_JSON)
 				.retrieve()
-				.body(new ParameterizedTypeReference<ValueContainer<Pojo>>() {});
+				.body(new ParameterizedTypeReference<>() {});
 
 		assertThat(result.getContainerValue()).isNotNull();
 		Pojo pojo = result.getContainerValue();
@@ -191,7 +191,7 @@ class RestClientIntegrationTests {
 		ValueContainer<List<Pojo>> result = this.restClient.get()
 				.uri("/json").accept(MediaType.APPLICATION_JSON)
 				.retrieve()
-				.body(new ParameterizedTypeReference<ValueContainer<List<Pojo>>>() {});
+				.body(new ParameterizedTypeReference<>() {});
 
 		assertThat(result.containerValue).isNotNull();
 		assertThat(result.containerValue).containsExactly(new Pojo("foofoo", "barbar"));
@@ -344,6 +344,22 @@ class RestClientIntegrationTests {
 				.uri("/null")
 				.retrieve()
 				.body(Map.class);
+
+		assertThat(result).isNull();
+	}
+
+	@ParameterizedRestClientTest
+	void retrieveJsonEmpty(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response
+				.setResponseCode(200)
+				.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE));
+
+		Pojo result = this.restClient.get()
+				.uri("/null")
+				.retrieve()
+				.body(Pojo.class);
 
 		assertThat(result).isNull();
 	}
@@ -576,6 +592,27 @@ class RestClientIntegrationTests {
 	}
 
 	@ParameterizedRestClientTest
+	void statusHandlerIOException(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setResponseCode(500)
+				.setHeader("Content-Type", "text/plain").setBody("Internal Server error"));
+
+		assertThatExceptionOfType(RestClientException.class).isThrownBy(() ->
+				this.restClient.get()
+						.uri("/greeting")
+						.retrieve()
+						.onStatus(HttpStatusCode::is5xxServerError, (request, response) -> {
+							throw new IOException("500 error!");
+						})
+						.body(String.class)
+		).withCauseInstanceOf(IOException.class);
+
+		expectRequestCount(1);
+		expectRequest(request -> assertThat(request.getPath()).isEqualTo("/greeting"));
+	}
+
+	@ParameterizedRestClientTest
 	void statusHandlerParameterizedTypeReference(ClientHttpRequestFactory requestFactory) {
 		startServer(requestFactory);
 
@@ -658,6 +695,55 @@ class RestClientIntegrationTests {
 		expectRequest(request -> {
 			assertThat(request.getHeader("X-Test-Header")).isEqualTo("testvalue");
 			assertThat(request.getPath()).isEqualTo("/greeting");
+		});
+	}
+
+	@ParameterizedRestClientTest
+	void exchangeForJson(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response
+				.setHeader("Content-Type", "application/json")
+				.setBody("{\"bar\":\"barbar\",\"foo\":\"foofoo\"}"));
+
+		Pojo result = this.restClient.get()
+				.uri("/pojo")
+				.accept(MediaType.APPLICATION_JSON)
+				.exchange((request, response) -> response.bodyTo(Pojo.class));
+
+		assertThat(result.getFoo()).isEqualTo("foofoo");
+		assertThat(result.getBar()).isEqualTo("barbar");
+
+		expectRequestCount(1);
+		expectRequest(request -> {
+			assertThat(request.getPath()).isEqualTo("/pojo");
+			assertThat(request.getHeader(HttpHeaders.ACCEPT)).isEqualTo("application/json");
+		});
+	}
+
+	@ParameterizedRestClientTest
+	void exchangeForJsonArray(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response
+				.setHeader("Content-Type", "application/json")
+				.setBody("[{\"bar\":\"bar1\",\"foo\":\"foo1\"},{\"bar\":\"bar2\",\"foo\":\"foo2\"}]"));
+
+		List<Pojo> result = this.restClient.get()
+				.uri("/pojo")
+				.accept(MediaType.APPLICATION_JSON)
+				.exchange((request, response) -> response.bodyTo(new ParameterizedTypeReference<>() {}));
+
+		assertThat(result).hasSize(2);
+		assertThat(result.get(0).getFoo()).isEqualTo("foo1");
+		assertThat(result.get(0).getBar()).isEqualTo("bar1");
+		assertThat(result.get(1).getFoo()).isEqualTo("foo2");
+		assertThat(result.get(1).getBar()).isEqualTo("bar2");
+
+		expectRequestCount(1);
+		expectRequest(request -> {
+			assertThat(request.getPath()).isEqualTo("/pojo");
+			assertThat(request.getHeader(HttpHeaders.ACCEPT)).isEqualTo("application/json");
 		});
 	}
 
@@ -768,6 +854,73 @@ class RestClientIntegrationTests {
 		assertThat(result).isEqualTo("Hello Spring!");
 
 		expectRequestCount(2);
+	}
+
+	@ParameterizedRestClientTest
+	void defaultHeaders(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setHeader("Content-Type", "text/plain")
+				.setBody("Hello Spring!"));
+
+		RestClient headersClient = this.restClient.mutate()
+				.defaultHeaders(headers -> headers.add("foo", "bar"))
+				.build();
+
+		String result = headersClient.get()
+				.uri("/greeting")
+				.retrieve()
+				.body(String.class);
+
+		assertThat(result).isEqualTo("Hello Spring!");
+
+		expectRequestCount(1);
+		expectRequest(request -> assertThat(request.getHeader("foo")).isEqualTo("bar"));
+	}
+
+	@ParameterizedRestClientTest
+	void defaultRequest(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setHeader("Content-Type", "text/plain")
+				.setBody("Hello Spring!"));
+
+		RestClient headersClient = this.restClient.mutate()
+				.defaultRequest(request -> request.header("foo", "bar"))
+				.build();
+
+		String result = headersClient.get()
+				.uri("/greeting")
+				.retrieve()
+				.body(String.class);
+
+		assertThat(result).isEqualTo("Hello Spring!");
+
+		expectRequestCount(1);
+		expectRequest(request -> assertThat(request.getHeader("foo")).isEqualTo("bar"));
+	}
+
+	@ParameterizedRestClientTest
+	void defaultRequestOverride(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setHeader("Content-Type", "text/plain")
+				.setBody("Hello Spring!"));
+
+		RestClient headersClient = this.restClient.mutate()
+				.defaultRequest(request -> request.accept(MediaType.APPLICATION_JSON))
+				.build();
+
+		String result = headersClient.get()
+				.uri("/greeting")
+				.accept(MediaType.TEXT_PLAIN)
+				.retrieve()
+				.body(String.class);
+
+		assertThat(result).isEqualTo("Hello Spring!");
+
+		expectRequestCount(1);
+		expectRequest(request -> assertThat(request.getHeader("Accept")).isEqualTo(MediaType.TEXT_PLAIN_VALUE));
 	}
 
 

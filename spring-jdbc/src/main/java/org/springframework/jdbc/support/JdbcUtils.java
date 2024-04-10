@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -219,7 +219,7 @@ public abstract class JdbcUtils {
 				return NumberUtils.convertNumberToTargetClass(number, Integer.class);
 			}
 			else {
-				// e.g. on Postgres: getObject returns a PGObject but we need a String
+				// e.g. on Postgres: getObject returns a PGObject, but we need a String
 				return rs.getString(index);
 			}
 		}
@@ -229,32 +229,27 @@ public abstract class JdbcUtils {
 			try {
 				return rs.getObject(index, requiredType);
 			}
-			catch (AbstractMethodError err) {
-				logger.debug("JDBC driver does not implement JDBC 4.1 'getObject(int, Class)' method", err);
-			}
-			catch (SQLFeatureNotSupportedException ex) {
+			catch (SQLFeatureNotSupportedException | AbstractMethodError ex) {
 				logger.debug("JDBC driver does not support JDBC 4.1 'getObject(int, Class)' method", ex);
 			}
 			catch (SQLException ex) {
-				logger.debug("JDBC driver has limited support for JDBC 4.1 'getObject(int, Class)' method", ex);
+				if (logger.isDebugEnabled()) {
+					logger.debug("JDBC driver has limited support for 'getObject(int, Class)' with column type: " +
+							requiredType.getName(), ex);
+				}
 			}
 
 			// Corresponding SQL types for JSR-310 / Joda-Time types, left up
 			// to the caller to convert them (e.g. through a ConversionService).
 			String typeName = requiredType.getSimpleName();
-			if ("LocalDate".equals(typeName)) {
-				return rs.getDate(index);
-			}
-			else if ("LocalTime".equals(typeName)) {
-				return rs.getTime(index);
-			}
-			else if ("LocalDateTime".equals(typeName)) {
-				return rs.getTimestamp(index);
-			}
-
-			// Fall back to getObject without type specification, again
-			// left up to the caller to convert the value if necessary.
-			return getResultSetValue(rs, index);
+			return switch (typeName) {
+				case "LocalDate" -> rs.getDate(index);
+				case "LocalTime" -> rs.getTime(index);
+				case "LocalDateTime" -> rs.getTimestamp(index);
+				// Fall back to getObject without type specification, again
+				// left up to the caller to convert the value if necessary.
+				default -> getResultSetValue(rs, index);
+			};
 		}
 
 		// Perform was-null check if necessary (for results that the JDBC driver returns as primitives).

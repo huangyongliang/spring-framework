@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ import static org.mockito.Mockito.mock;
  * </ul>
  * @author Rossen Stoyanchev
  */
-public class MethodValidationTests {
+class MethodValidationTests {
 
 	private static final Person mockPerson = mock(Person.class);
 
@@ -101,7 +101,7 @@ public class MethodValidationTests {
 		this.request.setMethod("POST");
 		this.request.setContentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE);
 		this.request.addHeader("Accept", "text/plain");
-		this.request.setAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, new HashMap<String, String>(0));
+		this.request.setAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, new HashMap<>(0));
 	}
 
 	private static RequestMappingHandlerAdapter initHandlerAdapter(Validator validator) {
@@ -301,7 +301,7 @@ public class MethodValidationTests {
 	@SuppressWarnings("unchecked")
 	private static <T> HandlerMethod handlerMethod(T controller, Consumer<T> mockCallConsumer) {
 		Method method = ResolvableMethod.on((Class<T>) controller.getClass()).mockCall(mockCallConsumer).method();
-		return new HandlerMethod(controller, method);
+		return new HandlerMethod(controller, method).createWithValidateFlags();
 	}
 
 	@SuppressWarnings("SameParameterValue")

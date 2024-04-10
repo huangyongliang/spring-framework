@@ -383,6 +383,7 @@ final class DefaultDatabaseClient implements DatabaseClient {
 			return fetch().rowsUpdated().then();
 		}
 
+		@SuppressWarnings("NullAway")
 		private ResultFunction getResultFunction(Supplier<String> sqlSupplier) {
 			BiFunction<Connection, String, Statement> statementFunction = (connection, sql) -> {
 				if (logger.isDebugEnabled()) {
@@ -519,27 +520,24 @@ final class DefaultDatabaseClient implements DatabaseClient {
 		@Override
 		@Nullable
 		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-			switch (method.getName()) {
-				case "equals":
-					// Only consider equal when proxies are identical.
-					return proxy == args[0];
-				case "hashCode":
-					// Use hashCode of PersistenceManager proxy.
-					return System.identityHashCode(proxy);
-				case "unwrap":
-					return this.target;
-				case "close":
-					// Handle close method: suppress, not valid.
-					return Mono.error(new UnsupportedOperationException("Close is not supported!"));
-			}
-
-			// Invoke method on target Connection.
-			try {
-				return method.invoke(this.target, args);
-			}
-			catch (InvocationTargetException ex) {
-				throw ex.getTargetException();
-			}
+			return switch (method.getName()) {
+				// Only consider equal when proxies are identical.
+				case "equals" -> proxy == args[0];
+				// Use hashCode of Connection proxy.
+				case "hashCode" -> System.identityHashCode(proxy);
+				case "unwrap" -> this.target;
+				// Handle close method: suppress, not valid.
+				case "close" -> Mono.error(new UnsupportedOperationException("Close is not supported!"));
+				default -> {
+					try {
+						// Invoke method on target Connection.
+						yield method.invoke(this.target, args);
+					}
+					catch (InvocationTargetException ex) {
+						throw ex.getTargetException();
+					}
+				}
+			};
 		}
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,6 @@ import jakarta.persistence.PersistenceException;
 import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.ValidationMode;
 import jakarta.persistence.spi.PersistenceUnitInfo;
-import jakarta.validation.NoProviderFoundException;
-import jakarta.validation.Validation;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -50,7 +48,6 @@ import org.springframework.jdbc.datasource.lookup.DataSourceLookup;
 import org.springframework.jdbc.datasource.lookup.JndiDataSourceLookup;
 import org.springframework.jdbc.datasource.lookup.MapDataSourceLookup;
 import org.springframework.lang.Nullable;
-import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.ResourceUtils;
 
@@ -103,9 +100,6 @@ public class DefaultPersistenceUnitManager
 	public static final String ORIGINAL_DEFAULT_PERSISTENCE_UNIT_NAME = "default";
 
 
-	private static final boolean beanValidationPresent = ClassUtils.isPresent(
-			"jakarta.validation.Validation", DefaultPersistenceUnitManager.class.getClassLoader());
-
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private String[] persistenceXmlLocations = new String[] {DEFAULT_PERSISTENCE_XML_LOCATION};
@@ -121,6 +115,9 @@ public class DefaultPersistenceUnitManager
 
 	@Nullable
 	private String[] packagesToScan;
+
+	@Nullable
+	private ManagedClassNameFilter managedClassNameFilter;
 
 	@Nullable
 	private String[] mappingResources;
@@ -229,12 +226,23 @@ public class DefaultPersistenceUnitManager
 	 * resource for the default unit if the mapping file is not co-located with a
 	 * {@code persistence.xml} file (in which case we assume it is only meant to be
 	 * used with the persistence units defined there, like in standard JPA).
+	 * @see #setManagedClassNameFilter(ManagedClassNameFilter)
 	 * @see #setManagedTypes(PersistenceManagedTypes)
 	 * @see #setDefaultPersistenceUnitName
 	 * @see #setMappingResources
 	 */
 	public void setPackagesToScan(String... packagesToScan) {
 		this.packagesToScan = packagesToScan;
+	}
+
+	/**
+	 * Set the {@link ManagedClassNameFilter} to apply on entity classes discovered
+	 * using {@linkplain #setPackagesToScan(String...) classpath scanning}.
+	 * @param managedClassNameFilter a predicate to filter entity classes
+	 * @since 6.1.4
+	 */
+	public void setManagedClassNameFilter(ManagedClassNameFilter managedClassNameFilter) {
+		this.managedClassNameFilter = managedClassNameFilter;
 	}
 
 	/**
@@ -444,6 +452,7 @@ public class DefaultPersistenceUnitManager
 	 * @see #obtainDefaultPersistenceUnitInfo()
 	 * @see #obtainPersistenceUnitInfo(String)
 	 */
+	@SuppressWarnings("NullAway")
 	public void preparePersistenceUnitInfos() {
 		this.persistenceUnitInfoNames.clear();
 		this.persistenceUnitInfos.clear();
@@ -465,15 +474,10 @@ public class DefaultPersistenceUnitManager
 			if (this.sharedCacheMode != null) {
 				pui.setSharedCacheMode(this.sharedCacheMode);
 			}
-
-			// Override validation mode or pre-resolve provider detection
+			// Setting validationMode != ValidationMode.AUTO will ignore bean validation
+			// during schema generation, see https://hibernate.atlassian.net/browse/HHH-12287
 			if (this.validationMode != null) {
 				pui.setValidationMode(this.validationMode);
-			}
-			else if (pui.getValidationMode() == ValidationMode.AUTO) {
-				pui.setValidationMode(
-						beanValidationPresent && BeanValidationDelegate.isValidationProviderPresent() ?
-						ValidationMode.CALLBACK : ValidationMode.NONE);
 			}
 
 			// Initialize persistence unit ClassLoader
@@ -546,8 +550,9 @@ public class DefaultPersistenceUnitManager
 			applyManagedTypes(scannedUnit, this.managedTypes);
 		}
 		else if (this.packagesToScan != null) {
-			applyManagedTypes(scannedUnit, new PersistenceManagedTypesScanner(
-					this.resourcePatternResolver).scan(this.packagesToScan));
+			PersistenceManagedTypesScanner scanner = new PersistenceManagedTypesScanner(
+					this.resourcePatternResolver, this.managedClassNameFilter);
+			applyManagedTypes(scannedUnit, scanner.scan(this.packagesToScan));
 		}
 
 		if (this.mappingResources != null) {
@@ -708,23 +713,6 @@ public class DefaultPersistenceUnitManager
 			}
 		}
 		return pui;
-	}
-
-
-	/**
-	 * Inner class to avoid a hard dependency on the Bean Validation API at runtime.
-	 */
-	private static class BeanValidationDelegate {
-
-		static boolean isValidationProviderPresent() {
-			try {
-				Validation.byDefaultProvider().configure();
-				return true;
-			}
-			catch (NoProviderFoundException ex) {
-				return false;
-			}
-		}
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,9 +76,9 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 
 	private static final String HTTP_PATTERN = "(?i)(http|https):";
 
-	private static final String USERINFO_PATTERN = "([^@\\[/?#]*)";
+	private static final String USERINFO_PATTERN = "([^/?#]*)";
 
-	private static final String HOST_IPV4_PATTERN = "[^\\[/?#:]*";
+	private static final String HOST_IPV4_PATTERN = "[^/?#:]*";
 
 	private static final String HOST_IPV6_PATTERN = "\\[[\\p{XDigit}:.]*[%\\p{Alnum}]*]";
 
@@ -243,9 +243,7 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 				builder.schemeSpecificPart(ssp);
 			}
 			else {
-				if (StringUtils.hasLength(scheme) && scheme.startsWith("http") && !StringUtils.hasLength(host)) {
-					throw new IllegalArgumentException("[" + uri + "] is not a valid HTTP URL");
-				}
+				checkSchemeAndHost(uri, scheme, host);
 				builder.userInfo(userInfo);
 				builder.host(host);
 				if (StringUtils.hasLength(port)) {
@@ -287,9 +285,7 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 			builder.scheme(scheme != null ? scheme.toLowerCase() : null);
 			builder.userInfo(matcher.group(4));
 			String host = matcher.group(5);
-			if (StringUtils.hasLength(scheme) && !StringUtils.hasLength(host)) {
-				throw new IllegalArgumentException("[" + httpUrl + "] is not a valid HTTP URL");
-			}
+			checkSchemeAndHost(httpUrl, scheme, host);
 			builder.host(host);
 			String port = matcher.group(7);
 			if (StringUtils.hasLength(port)) {
@@ -305,6 +301,15 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 		}
 		else {
 			throw new IllegalArgumentException("[" + httpUrl + "] is not a valid HTTP URL");
+		}
+	}
+
+	private static void checkSchemeAndHost(String uri, @Nullable String scheme, @Nullable String host) {
+		if (StringUtils.hasLength(scheme) && scheme.startsWith("http") && !StringUtils.hasLength(host)) {
+			throw new IllegalArgumentException("[" + uri + "] is not a valid HTTP URL");
+		}
+		if (StringUtils.hasLength(host) && host.startsWith("[") && !host.endsWith("]")) {
+			throw new IllegalArgumentException("Invalid IPV6 host in [" + uri + "]");
 		}
 	}
 
@@ -363,6 +368,7 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 			if (StringUtils.hasLength(port)) {
 				builder.port(port);
 			}
+			checkSchemeAndHost(origin, scheme, host);
 			return builder;
 		}
 		else {
@@ -500,8 +506,10 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 	 * @since 4.1
 	 * @see UriComponents#toUriString()
 	 */
+	@Override
 	public String toUriString() {
-		return (this.uriVariables.isEmpty() ? build().encode().toUriString() :
+		return (this.uriVariables.isEmpty() ?
+				build().encode().toUriString() :
 				buildInternal(EncodingHint.ENCODE_TEMPLATE).toUriString());
 	}
 
@@ -669,7 +677,7 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 	}
 
 	@Override
-	public UriComponentsBuilder queryParam(String name, Object... values) {
+	public UriComponentsBuilder queryParam(String name, @Nullable Object... values) {
 		Assert.notNull(name, "Name must not be null");
 		if (!ObjectUtils.isEmpty(values)) {
 			for (Object value : values) {
@@ -919,6 +927,7 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 		}
 
 		@Override
+		@Nullable
 		public PathComponent build() {
 			if (this.path.length() == 0) {
 				return null;
@@ -969,6 +978,7 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 		}
 
 		@Override
+		@Nullable
 		public PathComponent build() {
 			return (this.pathSegments.isEmpty() ? null :
 					new HierarchicalUriComponents.PathSegmentComponent(this.pathSegments));

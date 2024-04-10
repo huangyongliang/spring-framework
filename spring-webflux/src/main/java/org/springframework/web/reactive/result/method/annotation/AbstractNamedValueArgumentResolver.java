@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package org.springframework.web.reactive.result.method.annotation;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import kotlin.reflect.KFunction;
@@ -26,6 +26,7 @@ import kotlin.reflect.KParameter;
 import kotlin.reflect.jvm.ReflectJvmMapping;
 import reactor.core.publisher.Mono;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.ConversionNotSupportedException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.beans.factory.config.BeanExpressionContext;
@@ -36,6 +37,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.lang.Nullable;
 import org.springframework.ui.Model;
+import org.springframework.util.Assert;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.ValueConstants;
 import org.springframework.web.reactive.BindingContext;
@@ -118,7 +120,7 @@ public abstract class AbstractNamedValueArgumentResolver extends HandlerMethodAr
 					return Mono.justOrEmpty(arg);
 				})
 				.switchIfEmpty(getDefaultValue(
-						namedValueInfo, parameter, bindingContext, model, exchange));
+						namedValueInfo, resolvedName.toString(), parameter, bindingContext, model, exchange));
 	}
 
 	/**
@@ -152,9 +154,10 @@ public abstract class AbstractNamedValueArgumentResolver extends HandlerMethodAr
 		if (info.name.isEmpty()) {
 			name = parameter.getParameterName();
 			if (name == null) {
-				throw new IllegalArgumentException(
-						"Name for argument of type [" + parameter.getNestedParameterType().getName() +
-						"] not specified, and parameter name information not found in class file either.");
+				throw new IllegalArgumentException("""
+						Name for argument of type [%s] not specified, and parameter name information not \
+						available via reflection. Ensure that the compiler uses the '-parameters' flag."""
+							.formatted(parameter.getNestedParameterType().getName()));
 			}
 		}
 		String defaultValue = (ValueConstants.DEFAULT_NONE.equals(info.defaultValue) ? null : info.defaultValue);
@@ -196,8 +199,15 @@ public abstract class AbstractNamedValueArgumentResolver extends HandlerMethodAr
 			BindingContext bindingContext, ServerWebExchange exchange) {
 
 		WebDataBinder binder = bindingContext.createDataBinder(exchange, namedValueInfo.name);
+		Class<?> parameterType = parameter.getParameterType();
+		if (KotlinDetector.isKotlinPresent() && KotlinDetector.isInlineClass(parameterType)) {
+			Constructor<?> ctor = BeanUtils.findPrimaryConstructor(parameterType);
+			if (ctor != null) {
+				parameterType = ctor.getParameterTypes()[0];
+			}
+		}
 		try {
-			value = binder.convertIfNecessary(value, parameter.getParameterType(), parameter);
+			value = binder.convertIfNecessary(value, parameterType, parameter);
 		}
 		catch (ConversionNotSupportedException ex) {
 			throw new ServerErrorException("Conversion not supported.", parameter, ex);
@@ -212,7 +222,7 @@ public abstract class AbstractNamedValueArgumentResolver extends HandlerMethodAr
 	/**
 	 * Resolve the default value, if any.
 	 */
-	private Mono<Object> getDefaultValue(NamedValueInfo namedValueInfo, MethodParameter parameter,
+	private Mono<Object> getDefaultValue(NamedValueInfo namedValueInfo, String resolvedName, MethodParameter parameter,
 			BindingContext bindingContext, Model model, ServerWebExchange exchange) {
 
 		return Mono.fromSupplier(() -> {
@@ -224,10 +234,10 @@ public abstract class AbstractNamedValueArgumentResolver extends HandlerMethodAr
 				value = resolveEmbeddedValuesAndExpressions(namedValueInfo.defaultValue);
 			}
 			else if (namedValueInfo.required && !parameter.isOptional()) {
-				handleMissingValue(namedValueInfo.name, parameter, exchange);
+				handleMissingValue(resolvedName, parameter, exchange);
 			}
 			if (!hasDefaultValue) {
-				value = handleNullValue(namedValueInfo.name, value, parameter.getNestedParameterType());
+				value = handleNullValue(resolvedName, value, parameter.getNestedParameterType());
 			}
 			if (value != null || !hasDefaultValue) {
 				value = applyConversion(value, namedValueInfo, parameter, bindingContext, exchange);
@@ -271,7 +281,7 @@ public abstract class AbstractNamedValueArgumentResolver extends HandlerMethodAr
 	@Nullable
 	private Object handleNullValue(String name, @Nullable Object value, Class<?> paramType) {
 		if (value == null) {
-			if (Boolean.TYPE.equals(paramType)) {
+			if (paramType == boolean.class) {
 				return Boolean.FALSE;
 			}
 			else if (paramType.isPrimitive()) {
@@ -328,7 +338,8 @@ public abstract class AbstractNamedValueArgumentResolver extends HandlerMethodAr
 		 * or an optional parameter (with a default value in the Kotlin declaration).
 		 */
 		public static boolean hasDefaultValue(MethodParameter parameter) {
-			Method method = Objects.requireNonNull(parameter.getMethod());
+			Method method = parameter.getMethod();
+			Assert.notNull(method, () -> "Retrieved null method from MethodParameter: " + parameter);
 			KFunction<?> function = ReflectJvmMapping.getKotlinFunction(method);
 			if (function != null) {
 				int index = 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,7 +128,7 @@ public interface RestClient {
 
 	/**
 	 * Return a builder to create a new {@code RestClient} whose settings are
-	 * replicated from the current {@code RestClient}.
+	 * replicated from this {@code RestClient}.
 	 */
 	Builder mutate();
 
@@ -155,16 +155,17 @@ public interface RestClient {
 	}
 
 	/**
-	 * Create a new {@code RestClient} based on the configuration of the
-	 * given {@code RestTemplate}. The returned builder is configured with the
-	 * template's
+	 * Create a new {@code RestClient} based on the configuration of the given
+	 * {@code RestTemplate}.
+	 * <p>The returned builder is configured with the following attributes of
+	 * the template.
 	 * <ul>
-	 * <li>{@link RestTemplate#getRequestFactory() ClientHttpRequestFactory},</li>
-	 * <li>{@link RestTemplate#getMessageConverters() HttpMessageConverters},</li>
-	 * <li>{@link RestTemplate#getInterceptors() ClientHttpRequestInterceptors},</li>
-	 * <li>{@link RestTemplate#getClientHttpRequestInitializers() ClientHttpRequestInitializers},</li>
-	 * <li>{@link RestTemplate#getUriTemplateHandler() UriBuilderFactory}, and</li>
-	 * <li>{@linkplain RestTemplate#getErrorHandler() error handler}.</li>
+	 * <li>{@link RestTemplate#getRequestFactory() ClientHttpRequestFactory}</li>
+	 * <li>{@link RestTemplate#getMessageConverters() HttpMessageConverters}</li>
+	 * <li>{@link RestTemplate#getInterceptors() ClientHttpRequestInterceptors}</li>
+	 * <li>{@link RestTemplate#getClientHttpRequestInitializers() ClientHttpRequestInitializers}</li>
+	 * <li>{@link RestTemplate#getUriTemplateHandler() UriBuilderFactory}</li>
+	 * <li>{@linkplain RestTemplate#getErrorHandler() error handler}</li>
 	 * </ul>
 	 * @param restTemplate the rest template to base the returned client's
 	 * configuration on
@@ -184,15 +185,16 @@ public interface RestClient {
 
 	/**
 	 * Obtain a {@code RestClient} builder based on the configuration of the
-	 * given {@code RestTemplate}. The returned builder is configured with the
-	 * template's
+	 * given {@code RestTemplate}.
+	 * <p>The returned builder is configured with the following attributes of
+	 * the template.
 	 * <ul>
-	 * <li>{@link RestTemplate#getRequestFactory() ClientHttpRequestFactory},</li>
-	 * <li>{@link RestTemplate#getMessageConverters() HttpMessageConverters},</li>
-	 * <li>{@link RestTemplate#getInterceptors() ClientHttpRequestInterceptors},</li>
-	 * <li>{@link RestTemplate#getClientHttpRequestInitializers() ClientHttpRequestInitializers},</li>
-	 * <li>{@link RestTemplate#getUriTemplateHandler() UriBuilderFactory}, and</li>
-	 * <li>{@linkplain RestTemplate#getErrorHandler() error handler}.</li>
+	 * <li>{@link RestTemplate#getRequestFactory() ClientHttpRequestFactory}</li>
+	 * <li>{@link RestTemplate#getMessageConverters() HttpMessageConverters}</li>
+	 * <li>{@link RestTemplate#getInterceptors() ClientHttpRequestInterceptors}</li>
+	 * <li>{@link RestTemplate#getClientHttpRequestInitializers() ClientHttpRequestInitializers}</li>
+	 * <li>{@link RestTemplate#getUriTemplateHandler() UriBuilderFactory}</li>
+	 * <li>{@linkplain RestTemplate#getErrorHandler() error handler}</li>
 	 * </ul>
 	 * @param restTemplate the rest template to base the returned builder's
 	 * configuration on
@@ -468,8 +470,6 @@ public interface RestClient {
 
 		/**
 		 * Set the value of the {@code If-Modified-Since} header.
-		 * <p>The date should be specified as the number of milliseconds since
-		 * January 1, 1970 GMT.
 		 * @param ifModifiedSince the new value of the header
 		 * @return this builder
 		 */
@@ -497,22 +497,6 @@ public interface RestClient {
 		 * @return this builder
 		 */
 		S headers(Consumer<HttpHeaders> headersConsumer);
-
-		/**
-		 * Set the attribute with the given name to the given value.
-		 * @param name the name of the attribute to add
-		 * @param value the value of the attribute to add
-		 * @return this builder
-		 */
-		S attribute(String name, Object value);
-
-		/**
-		 * Provides access to every attribute declared so far with the
-		 * possibility to add, replace, or remove values.
-		 * @param attributesConsumer the consumer to provide access to
-		 * @return this builder
-		 */
-		S attributes(Consumer<Map<String, Object>> attributesConsumer);
 
 		/**
 		 * Callback for access to the {@link ClientHttpRequest} that in turn
@@ -623,7 +607,33 @@ public interface RestClient {
 			 * @return the exchanged type
 			 * @throws IOException in case of I/O errors
 			 */
-			T exchange(HttpRequest clientRequest, ClientHttpResponse clientResponse) throws IOException;
+			T exchange(HttpRequest clientRequest, ConvertibleClientHttpResponse clientResponse) throws IOException;
+		}
+
+
+		/**
+		 * Extension of {@link ClientHttpResponse} that can convert the body.
+		 */
+		interface ConvertibleClientHttpResponse extends ClientHttpResponse {
+
+			/**
+			 * Extract the response body as an object of the given type.
+			 * @param bodyType the type of return value
+			 * @param <T> the body type
+			 * @return the body, or {@code null} if no response body was available
+			 */
+			@Nullable
+			<T> T bodyTo(Class<T> bodyType);
+
+			/**
+			 * Extract the response body as an object of the given type.
+			 * @param bodyType the type of return value
+			 * @param <T> the body type
+			 * @return the body, or {@code null} if no response body was available
+			 */
+			@Nullable
+			<T> T bodyTo(ParameterizedTypeReference<T> bodyType);
+
 		}
 	}
 
@@ -663,26 +673,26 @@ public interface RestClient {
 		 *     .retrieve()
 		 *     .toBodilessEntity();
 		 * </pre>
-		 * @param body the body of the response
-		 * @return the built response
+		 * @param body the body of the request
+		 * @return this builder
 		 */
 		RequestBodySpec body(Object body);
 
 		/**
-		 * Set the body of the response to the given {@code Object}.
+		 * Set the body of the request to the given {@code Object}.
 		 * The parameter {@code bodyType} is used to capture the generic type.
-		 * @param body the body of the response
+		 * @param body the body of the request
 		 * @param bodyType the type of the body, used to capture the generic type
-		 * @return the built response
+		 * @return this builder
 		 */
 		<T> RequestBodySpec body(T body, ParameterizedTypeReference<T> bodyType);
 
 		/**
-		 * Set the body of the response to the given function that writes to
+		 * Set the body of the request to the given function that writes to
 		 * an {@link OutputStream}.
 		 * @param body a function that takes an {@code OutputStream} and can
 		 * throw an {@code IOException}
-		 * @return the built response
+		 * @return this builder
 		 */
 		RequestBodySpec body(StreamingHttpOutputMessage.Body body);
 	}
@@ -697,6 +707,11 @@ public interface RestClient {
 		 * Provide a function to map specific error status codes to an error handler.
 		 * <p>By default, if there are no matching status handlers, responses with
 		 * status codes &gt;= 400 wil throw a {@link RestClientResponseException}.
+		 * <p>Note that {@link IOException IOExceptions},
+		 * {@link java.io.UncheckedIOException UncheckedIOExceptions}, and
+		 * {@link org.springframework.http.converter.HttpMessageNotReadableException HttpMessageNotReadableExceptions}
+		 * thrown from {@code errorHandler} will be wrapped in a
+		 * {@link RestClientException}.
 		 * @param statusPredicate to match responses with
 		 * @param errorHandler handler that typically, though not necessarily,
 		 * throws an exception
@@ -709,6 +724,11 @@ public interface RestClient {
 		 * Provide a function to map specific error status codes to an error handler.
 		 * <p>By default, if there are no matching status handlers, responses with
 		 * status codes &gt;= 400 wil throw a {@link RestClientResponseException}.
+		 * <p>Note that {@link IOException IOExceptions},
+		 * {@link java.io.UncheckedIOException UncheckedIOExceptions}, and
+		 * {@link org.springframework.http.converter.HttpMessageNotReadableException HttpMessageNotReadableExceptions}
+		 * thrown from {@code errorHandler} will be wrapped in a
+		 * {@link RestClientException}.
 		 * @param errorHandler the error handler
 		 * @return this builder
 		 */

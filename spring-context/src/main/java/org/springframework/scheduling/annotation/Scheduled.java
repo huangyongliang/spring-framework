@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -117,9 +117,9 @@ public @interface Scheduled {
 
 	/**
 	 * A time zone for which the cron expression will be resolved. By default, this
-	 * attribute is the empty String (i.e. the server's local time zone will be used).
+	 * attribute is the empty String (i.e. the scheduler's time zone will be used).
 	 * @return a zone id accepted by {@link java.util.TimeZone#getTimeZone(String)},
-	 * or an empty String to indicate the server's default time zone
+	 * or an empty String to indicate the scheduler's default time zone
 	 * @since 4.0
 	 * @see org.springframework.scheduling.support.CronTrigger#CronTrigger(String, java.util.TimeZone)
 	 * @see java.util.TimeZone
@@ -131,6 +131,9 @@ public @interface Scheduled {
 	 * last invocation and the start of the next.
 	 * <p>The time unit is milliseconds by default but can be overridden via
 	 * {@link #timeUnit}.
+	 * <p><b>NOTE: With virtual threads, fixed rates and cron triggers are recommended
+	 * over fixed delays.</b> Fixed-delay tasks operate on a single scheduler thread
+	 * with {@link org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler}.
 	 * @return the delay
 	 */
 	long fixedDelay() default -1;
@@ -142,6 +145,9 @@ public @interface Scheduled {
 	 * {@link #timeUnit}.
 	 * <p>This attribute variant supports Spring-style "${...}" placeholders
 	 * as well as SpEL expressions.
+	 * <p><b>NOTE: With virtual threads, fixed rates and cron triggers are recommended
+	 * over fixed delays.</b> Fixed-delay tasks operate on a single scheduler thread
+	 * with {@link org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler}.
 	 * @return the delay as a String value &mdash; for example, a placeholder
 	 * or a {@link java.time.Duration#parse java.time.Duration} compliant value
 	 * @since 3.2.2

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package org.springframework.jdbc.core.metadata;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,17 +63,11 @@ public class TableMetaDataContext {
 	@Nullable
 	private String schemaName;
 
-	// List of columns objects to be used in this context
-	private List<String> tableColumns = new ArrayList<>();
-
 	// Should we access insert parameter meta-data info or not
 	private boolean accessTableColumnMetaData = true;
 
 	// Should we override default for including synonyms for meta-data lookups
 	private boolean overrideIncludeSynonymsDefault = false;
-
-	// Are we using generated key columns?
-	private boolean generatedKeyColumnsUsed = false;
 
 	// Are we quoting identifiers?
 	private boolean quoteIdentifiers = false;
@@ -82,6 +75,12 @@ public class TableMetaDataContext {
 	// The provider of table meta-data
 	@Nullable
 	private TableMetaDataProvider metaDataProvider;
+
+	// List of columns objects to be used in this context
+	private List<String> tableColumns = new ArrayList<>();
+
+	// Are we using generated key columns
+	private boolean generatedKeyColumnsUsed = false;
 
 
 	/**
@@ -215,7 +214,7 @@ public class TableMetaDataContext {
 		if (!declaredColumns.isEmpty()) {
 			return new ArrayList<>(declaredColumns);
 		}
-		Set<String> keys = new LinkedHashSet<>(generatedKeyNames.length);
+		Set<String> keys = CollectionUtils.newLinkedHashSet(generatedKeyNames.length);
 		for (String key : generatedKeyNames) {
 			keys.add(key.toUpperCase());
 		}
@@ -296,40 +295,32 @@ public class TableMetaDataContext {
 	 * @return the insert string to be used
 	 */
 	public String createInsertString(String... generatedKeyNames) {
-		Set<String> keys = new LinkedHashSet<>(generatedKeyNames.length);
+		Set<String> keys = CollectionUtils.newLinkedHashSet(generatedKeyNames.length);
 		for (String key : generatedKeyNames) {
 			keys.add(key.toUpperCase());
 		}
 
 		String identifierQuoteString = (isQuoteIdentifiers() ?
 				obtainMetaDataProvider().getIdentifierQuoteString() : null);
-		boolean quoting = StringUtils.hasText(identifierQuoteString);
+		QuoteHandler quoteHandler = new QuoteHandler(identifierQuoteString);
 
 		StringBuilder insertStatement = new StringBuilder();
 		insertStatement.append("INSERT INTO ");
 
+		String catalogName = getCatalogName();
+		if (catalogName != null) {
+			quoteHandler.appendTo(insertStatement, catalogName);
+			insertStatement.append('.');
+		}
+
 		String schemaName = getSchemaName();
 		if (schemaName != null) {
-			if (quoting) {
-				insertStatement.append(identifierQuoteString);
-				insertStatement.append(schemaName);
-				insertStatement.append(identifierQuoteString);
-			}
-			else {
-				insertStatement.append(schemaName);
-			}
+			quoteHandler.appendTo(insertStatement, schemaName);
 			insertStatement.append('.');
 		}
 
 		String tableName = getTableName();
-		if (quoting) {
-			insertStatement.append(identifierQuoteString);
-			insertStatement.append(tableName);
-			insertStatement.append(identifierQuoteString);
-		}
-		else {
-			insertStatement.append(tableName);
-		}
+		quoteHandler.appendTo(insertStatement, tableName);
 
 		insertStatement.append(" (");
 		int columnCount = 0;
@@ -339,14 +330,7 @@ public class TableMetaDataContext {
 				if (columnCount > 1) {
 					insertStatement.append(", ");
 				}
-				if (quoting) {
-					insertStatement.append(identifierQuoteString);
-					insertStatement.append(columnName);
-					insertStatement.append(identifierQuoteString);
-				}
-				else {
-					insertStatement.append(columnName);
-				}
+				quoteHandler.appendTo(insertStatement, columnName);
 			}
 		}
 		insertStatement.append(") VALUES(");
@@ -358,8 +342,8 @@ public class TableMetaDataContext {
 				}
 			}
 			else {
-				String message = "Unable to locate columns for table '" + tableName
-						+ "' so an insert statement can't be generated.";
+				String message = "Unable to locate columns for table '" + tableName +
+						"' so an insert statement can't be generated.";
 				if (isAccessTableColumnMetaData()) {
 					message += " Consider specifying explicit column names -- for example, via SimpleJdbcInsert#usingColumns().";
 				}
@@ -438,6 +422,30 @@ public class TableMetaDataContext {
 	 */
 	public boolean isGeneratedKeysColumnNameArraySupported() {
 		return obtainMetaDataProvider().isGeneratedKeysColumnNameArraySupported();
+	}
+
+
+	private static final class QuoteHandler {
+
+		@Nullable
+		private final String identifierQuoteString;
+
+		private final boolean quoting;
+
+		public QuoteHandler(@Nullable String identifierQuoteString) {
+			this.identifierQuoteString = identifierQuoteString;
+			this.quoting = StringUtils.hasText(identifierQuoteString);
+		}
+
+		public void appendTo(StringBuilder stringBuilder, @Nullable String item) {
+			if (this.quoting) {
+				stringBuilder.append(this.identifierQuoteString)
+						.append(item).append(this.identifierQuoteString);
+			}
+			else {
+				stringBuilder.append(item);
+			}
+		}
 	}
 
 }

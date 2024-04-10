@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Locale;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.context.support.WebApplicationObjectSupport;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.method.annotation.ModelMethodProcessor;
@@ -64,6 +66,9 @@ import org.springframework.web.testfixture.servlet.MockHttpServletRequest;
 import org.springframework.web.testfixture.servlet.MockHttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.LIST;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 /**
  * Test fixture with {@link ExceptionHandlerExceptionResolver}.
@@ -75,7 +80,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rodolphe Lecocq
  */
 @SuppressWarnings("unused")
-public class ExceptionHandlerExceptionResolverTests {
+class ExceptionHandlerExceptionResolverTests {
 
 	private static int DEFAULT_RESOLVER_COUNT;
 
@@ -89,7 +94,7 @@ public class ExceptionHandlerExceptionResolverTests {
 
 
 	@BeforeAll
-	public static void setupOnce() {
+	static void setupOnce() {
 		ExceptionHandlerExceptionResolver resolver = new ExceptionHandlerExceptionResolver();
 		resolver.afterPropertiesSet();
 		DEFAULT_RESOLVER_COUNT = resolver.getArgumentResolvers().getResolvers().size();
@@ -97,7 +102,7 @@ public class ExceptionHandlerExceptionResolverTests {
 	}
 
 	@BeforeEach
-	public void setup() throws Exception {
+	void setup() throws Exception {
 		this.resolver = new ExceptionHandlerExceptionResolver();
 		this.resolver.setWarnLogCategory(this.resolver.getClass().getName());
 		this.request = new MockHttpServletRequest("GET", "/");
@@ -120,7 +125,7 @@ public class ExceptionHandlerExceptionResolverTests {
 		this.resolver.setCustomArgumentResolvers(Collections.singletonList(argumentResolver));
 		this.resolver.afterPropertiesSet();
 
-		assertThat(this.resolver.getArgumentResolvers().getResolvers().contains(argumentResolver)).isTrue();
+		assertThat(this.resolver.getArgumentResolvers().getResolvers()).contains(argumentResolver);
 		assertMethodProcessorCount(DEFAULT_RESOLVER_COUNT + 1, DEFAULT_HANDLER_COUNT);
 	}
 
@@ -139,16 +144,16 @@ public class ExceptionHandlerExceptionResolverTests {
 		this.resolver.setCustomReturnValueHandlers(Collections.singletonList(handler));
 		this.resolver.afterPropertiesSet();
 
-		assertThat(this.resolver.getReturnValueHandlers().getHandlers().contains(handler)).isTrue();
+		assertThat(this.resolver.getReturnValueHandlers().getHandlers()).contains(handler);
 		assertMethodProcessorCount(DEFAULT_RESOLVER_COUNT, DEFAULT_HANDLER_COUNT + 1);
 	}
 
 	@Test
 	void setResponseBodyAdvice() {
 		this.resolver.setResponseBodyAdvice(Collections.singletonList(new JsonViewResponseBodyAdvice()));
-		assertThat(this.resolver).extracting("responseBodyAdvice").asList().hasSize(1);
+		assertThat(this.resolver).extracting("responseBodyAdvice").asInstanceOf(LIST).hasSize(1);
 		this.resolver.setResponseBodyAdvice(Collections.singletonList(new CustomResponseBodyAdvice()));
-		assertThat(this.resolver).extracting("responseBodyAdvice").asList().hasSize(2);
+		assertThat(this.resolver).extracting("responseBodyAdvice").asInstanceOf(LIST).hasSize(2);
 	}
 
 	@Test
@@ -383,6 +388,35 @@ public class ExceptionHandlerExceptionResolverTests {
 		ModelAndView mav = this.resolver.resolveException(this.request, this.response, handler, ex);
 
 		assertExceptionHandledAsBody(mav, "DefaultTestExceptionResolver: IllegalStateException");
+	}
+
+	@Test // gh-26772
+	void resolveExceptionViaMappedHandlerPredicate() throws Exception {
+		Object handler = new Object();
+
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(MyControllerAdviceConfig.class);
+		this.resolver.setMappedHandlerPredicate(h -> h == handler);
+		this.resolver.setApplicationContext(ctx);
+		this.resolver.afterPropertiesSet();
+
+		ModelAndView mav = this.resolver.resolveException(
+				this.request, this.response, handler, new IllegalStateException());
+
+		assertExceptionHandledAsBody(mav, "DefaultTestExceptionResolver: IllegalStateException");
+	}
+
+	@Test
+	void resolveExceptionAsyncRequestNotUsable() throws Exception {
+		HttpServletResponse response = mock();
+		given(response.getOutputStream()).willThrow(new AsyncRequestNotUsableException("Simulated I/O failure"));
+
+		IllegalArgumentException ex = new IllegalArgumentException();
+		HandlerMethod handlerMethod = new HandlerMethod(new ResponseBodyController(), "handle");
+		this.resolver.afterPropertiesSet();
+		ModelAndView mav = this.resolver.resolveException(this.request, response, handlerMethod, ex);
+
+		assertThat(mav).isNotNull();
+		assertThat(mav.isEmpty()).isTrue();
 	}
 
 

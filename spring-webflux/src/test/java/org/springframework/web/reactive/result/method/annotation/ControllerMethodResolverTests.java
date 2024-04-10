@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,11 +50,11 @@ import org.springframework.web.testfixture.method.ResolvableMethod;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link ControllerMethodResolver}.
+ * Tests for {@link ControllerMethodResolver}.
  *
  * @author Rossen Stoyanchev
  */
-public class ControllerMethodResolverTests {
+class ControllerMethodResolverTests {
 
 	private ControllerMethodResolver methodResolver;
 
@@ -62,7 +62,7 @@ public class ControllerMethodResolverTests {
 
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		ArgumentResolverConfigurer resolvers = new ArgumentResolverConfigurer();
 		resolvers.addCustomResolver(new CustomArgumentResolver());
 		resolvers.addCustomResolver(new CustomSyncArgumentResolver());
@@ -77,7 +77,7 @@ public class ControllerMethodResolverTests {
 
 		this.methodResolver = new ControllerMethodResolver(
 				resolvers, ReactiveAdapterRegistry.getSharedInstance(), applicationContext,
-				codecs.getReaders(), null);
+				codecs.getReaders(), null, null, null);
 
 		Method method = ResolvableMethod.on(TestController.class).mockCall(TestController::handle).method();
 		this.handlerMethod = new HandlerMethod(new TestController(), method);
@@ -85,7 +85,7 @@ public class ControllerMethodResolverTests {
 
 
 	@Test
-	public void requestMappingArgumentResolvers() {
+	void requestMappingArgumentResolvers() {
 		InvocableHandlerMethod invocable = this.methodResolver.getRequestMappingMethod(this.handlerMethod);
 		List<HandlerMethodArgumentResolver> resolvers = invocable.getResolvers();
 
@@ -123,7 +123,7 @@ public class ControllerMethodResolverTests {
 	}
 
 	@Test
-	public void modelAttributeArgumentResolvers() {
+	void modelAttributeArgumentResolvers() {
 		List<InvocableHandlerMethod> methods = this.methodResolver.getModelAttributeMethods(this.handlerMethod);
 
 		assertThat(methods).as("Expected one each from Controller + ControllerAdvice").hasSize(2);
@@ -160,7 +160,7 @@ public class ControllerMethodResolverTests {
 	}
 
 	@Test
-	public void initBinderArgumentResolvers() {
+	void initBinderArgumentResolvers() {
 		List<SyncInvocableHandlerMethod> methods =
 				this.methodResolver.getInitBinderMethods(this.handlerMethod);
 
@@ -190,7 +190,7 @@ public class ControllerMethodResolverTests {
 	}
 
 	@Test
-	public void exceptionHandlerArgumentResolvers() {
+	void exceptionHandlerArgumentResolvers() {
 		InvocableHandlerMethod invocable = this.methodResolver.getExceptionHandlerMethod(
 				new ResponseStatusException(HttpStatus.BAD_REQUEST, "reason"), this.handlerMethod);
 
@@ -225,7 +225,7 @@ public class ControllerMethodResolverTests {
 	}
 
 	@Test
-	public void exceptionHandlerFromControllerAdvice() {
+	void exceptionHandlerFromControllerAdvice() {
 		InvocableHandlerMethod invocable = this.methodResolver.getExceptionHandlerMethod(
 				new IllegalStateException("reason"), this.handlerMethod);
 

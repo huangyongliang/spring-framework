@@ -40,7 +40,7 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator;
 
 /**
- * Adapts {@link WebSocketHandler} to the Jetty 9 WebSocket API.
+ * Adapts {@link WebSocketHandler} to the Jetty WebSocket API.
  *
  * @author Rossen Stoyanchev
  * @since 4.0
@@ -115,11 +115,15 @@ public class JettyWebSocketHandlerAdapter {
 				ExceptionWebSocketHandlerDecorator.tryCloseWithError(this.wsSession, ex, logger);
 			}
 		}
+		else {
+			callback.succeed();
+		}
 	}
 
 	private static ByteBuffer copyByteBuffer(ByteBuffer src) {
-		ByteBuffer dest = ByteBuffer.allocate(src.capacity());
-		dest.put(0, src, 0, src.remaining());
+		ByteBuffer dest = ByteBuffer.allocate(src.remaining());
+		dest.put(src);
+		dest.flip();
 		return dest;
 	}
 

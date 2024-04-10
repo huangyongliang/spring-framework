@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.jetty.client.ContentResponse;
@@ -172,9 +171,7 @@ public class JettyXhrTransport extends AbstractXhrTransport implements Lifecycle
 
 	private static HttpHeaders toHttpHeaders(HttpFields httpFields) {
 		HttpHeaders responseHeaders = new HttpHeaders();
-		Iterator<String> names = httpFields.getFieldNamesCollection().iterator();
-		while (names.hasNext()) {
-			String name = names.next();
+		for (String name : httpFields.getFieldNamesCollection()) {
 			Enumeration<String> values = httpFields.getValues(name);
 			while (values.hasMoreElements()) {
 				String value = values.nextElement();

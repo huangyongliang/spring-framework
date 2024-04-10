@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,13 +32,15 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.PlaceholderResolutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.mockito.Mockito.mock;
 
 /**
- * Unit tests for {@link PropertySourceProcessor}.
+ * Tests for {@link PropertySourceProcessor}.
  *
  * @author Sam Brannen
  * @since 6.0.12
@@ -48,7 +50,9 @@ class PropertySourceProcessorTests {
 	private static final String PROPS_FILE = ClassUtils.classPackageAsResourcePath(PropertySourceProcessorTests.class) + "/test.properties";
 
 	private final StandardEnvironment environment = new StandardEnvironment();
+
 	private final ResourceLoader resourceLoader = new DefaultResourceLoader();
+
 	private final PropertySourceProcessor processor = new PropertySourceProcessor(environment, resourceLoader);
 
 
@@ -59,18 +63,20 @@ class PropertySourceProcessorTests {
 
 	@Test
 	void processorRegistersPropertySource() throws Exception {
-		PropertySourceDescriptor descriptor = new PropertySourceDescriptor(List.of(PROPS_FILE), false, null, DefaultPropertySourceFactory.class, null);
+		PropertySourceDescriptor descriptor = new PropertySourceDescriptor(
+				List.of(PROPS_FILE), false, null, DefaultPropertySourceFactory.class, null);
 		processor.processPropertySource(descriptor);
 		assertThat(environment.getPropertySources()).hasSize(3);
 		assertThat(environment.getProperty("enigma")).isEqualTo("42");
 	}
 
+
 	@Nested
 	class FailOnErrorTests {
 
 		@Test
-		void processorFailsOnIllegalArgumentException() {
-			assertProcessorFailsOnError(IllegalArgumentExceptionPropertySourceFactory.class, IllegalArgumentException.class);
+		void processorFailsOnPlaceholderResolutionException() {
+			assertProcessorFailsOnError(PlaceholderResolutionExceptionPropertySourceFactory.class, PlaceholderResolutionException.class);
 		}
 
 		@Test
@@ -86,15 +92,15 @@ class PropertySourceProcessorTests {
 			assertThatExceptionOfType(exceptionType).isThrownBy(() -> processor.processPropertySource(descriptor));
 			assertThat(environment.getPropertySources()).hasSize(2);
 		}
-
 	}
+
 
 	@Nested
 	class IgnoreResourceNotFoundTests {
 
 		@Test
 		void processorIgnoresIllegalArgumentException() {
-			assertProcessorIgnoresFailure(IllegalArgumentExceptionPropertySourceFactory.class);
+			assertProcessorIgnoresFailure(PlaceholderResolutionExceptionPropertySourceFactory.class);
 		}
 
 		@Test
@@ -127,15 +133,14 @@ class PropertySourceProcessorTests {
 			assertThatNoException().isThrownBy(() -> processor.processPropertySource(descriptor));
 			assertThat(environment.getPropertySources()).hasSize(2);
 		}
-
 	}
 
 
-	private static class IllegalArgumentExceptionPropertySourceFactory implements PropertySourceFactory {
+	private static class PlaceholderResolutionExceptionPropertySourceFactory implements PropertySourceFactory {
 
 		@Override
-		public PropertySource<?> createPropertySource(String name, EncodedResource resource) throws IOException {
-			throw new IllegalArgumentException("bogus");
+		public PropertySource<?> createPropertySource(String name, EncodedResource resource) {
+			throw mock(PlaceholderResolutionException.class);
 		}
 	}
 

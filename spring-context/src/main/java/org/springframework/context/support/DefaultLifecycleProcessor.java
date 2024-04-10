@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,11 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
- * Default implementation of the {@link LifecycleProcessor} strategy.
+ * Spring's default implementation of the {@link LifecycleProcessor} strategy.
+ *
+ * <p>Provides interaction with {@link Lifecycle} and {@link SmartLifecycle} beans in
+ * groups for specific phases, on startup/shutdown as well as for explicit start/stop
+ * interactions on a {@link org.springframework.context.ConfigurableApplicationContext}.
  *
  * <p>Provides interaction with {@link Lifecycle} and {@link SmartLifecycle} beans in
  * groups for specific phases, on startup/shutdown as well as for explicit start/stop
@@ -102,7 +106,7 @@ public class DefaultLifecycleProcessor implements LifecycleProcessor, BeanFactor
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	private volatile long timeoutPerShutdownPhase = 30000;
+	private volatile long timeoutPerShutdownPhase = 10000;
 
 	private volatile boolean running;
 
@@ -131,7 +135,7 @@ public class DefaultLifecycleProcessor implements LifecycleProcessor, BeanFactor
 	/**
 	 * Specify the maximum time allotted in milliseconds for the shutdown of any
 	 * phase (group of {@link SmartLifecycle} beans with the same 'phase' value).
-	 * <p>The default value is 30000 milliseconds (30 seconds).
+	 * <p>The default value is 10000 milliseconds (10 seconds) as of 6.2.
 	 * @see SmartLifecycle#getPhase()
 	 */
 	public void setTimeoutPerShutdownPhase(long timeoutPerShutdownPhase) {
@@ -225,7 +229,7 @@ public class DefaultLifecycleProcessor implements LifecycleProcessor, BeanFactor
 
 	void stopForRestart() {
 		if (this.running) {
-			this.stoppedBeans = Collections.newSetFromMap(new ConcurrentHashMap<>());
+			this.stoppedBeans = ConcurrentHashMap.newKeySet();
 			stopBeans();
 			this.running = false;
 		}
@@ -490,9 +494,9 @@ public class DefaultLifecycleProcessor implements LifecycleProcessor, BeanFactor
 			try {
 				latch.await(this.timeout, TimeUnit.MILLISECONDS);
 				if (latch.getCount() > 0 && !countDownBeanNames.isEmpty() && logger.isInfoEnabled()) {
-					logger.info("Failed to shut down " + countDownBeanNames.size() + " bean" +
-							(countDownBeanNames.size() > 1 ? "s" : "") + " with phase value " +
-							this.phase + " within timeout of " + this.timeout + "ms: " + countDownBeanNames);
+					logger.info("Shutdown phase " + this.phase + " ends with " + countDownBeanNames.size() +
+							" bean" + (countDownBeanNames.size() > 1 ? "s" : "") +
+							" still running after timeout of " + this.timeout + "ms: " + countDownBeanNames);
 				}
 			}
 			catch (InterruptedException ex) {

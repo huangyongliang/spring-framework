@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 /**
- * Unit tests for {@link RestTemplateXhrTransport}.
+ * Tests for {@link RestTemplateXhrTransport}.
  *
  * @author Rossen Stoyanchev
  */
@@ -133,11 +133,11 @@ class RestTemplateXhrTransportTests {
 	void connectFailure() {
 		final HttpServerErrorException expected = new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
 		RestOperations restTemplate = mock();
-		given(restTemplate.execute((URI) any(), eq(HttpMethod.POST), any(), any())).willThrow(expected);
+		given(restTemplate.execute(any(), eq(HttpMethod.POST), any(), any())).willThrow(expected);
 
 		final CountDownLatch latch = new CountDownLatch(1);
 		connect(restTemplate).addCallback(
-				new org.springframework.util.concurrent.ListenableFutureCallback<WebSocketSession>() {
+				new org.springframework.util.concurrent.ListenableFutureCallback<>() {
 					@Override
 					public void onSuccess(WebSocketSession result) {
 					}

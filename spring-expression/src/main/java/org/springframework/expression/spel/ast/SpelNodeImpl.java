@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ public abstract class SpelNodeImpl implements SpelNode, Opcodes {
 	protected volatile String exitTypeDescriptor;
 
 
-	public SpelNodeImpl(int startPos, int endPos, SpelNodeImpl... operands) {
+	public SpelNodeImpl(int startPos, int endPos, @Nullable SpelNodeImpl... operands) {
 		this.startPos = startPos;
 		this.endPos = endPos;
 		if (!ObjectUtils.isEmpty(operands)) {
@@ -149,7 +149,7 @@ public abstract class SpelNodeImpl implements SpelNode, Opcodes {
 	public TypedValue setValueInternal(ExpressionState expressionState, Supplier<TypedValue> valueSupplier)
 			throws EvaluationException {
 
-		throw new SpelEvaluationException(getStartPosition(), SpelMessage.SETVALUE_NOT_SUPPORTED, getClass());
+		throw new SpelEvaluationException(getStartPosition(), SpelMessage.SETVALUE_NOT_SUPPORTED, getClass().getName());
 	}
 
 	@Override
@@ -179,6 +179,16 @@ public abstract class SpelNodeImpl implements SpelNode, Opcodes {
 	@Override
 	public int getEndPosition() {
 		return this.endPos;
+	}
+
+	/**
+	 * Determine if this node is the target of a null-safe navigation operation.
+	 * <p>The default implementation returns {@code false}.
+	 * @return {@code true} if this node is the target of a null-safe operation
+	 * @since 6.1.6
+	 */
+	public boolean isNullSafe() {
+		return false;
 	}
 
 	/**

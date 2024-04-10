@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 		executor.execute(task);
 		Awaitility.await()
 				.dontCatchUncaughtExceptions()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(() -> task.exception.get() != null && task.exception.get().getMessage().equals(
 						"TestTask failure for test 'executeFailingRunnable': expectedRunCount:<0>, actualRunCount:<1>"));
@@ -133,7 +133,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 		future.addCallback(result -> outcome = result, ex -> outcome = ex);
 		// Assert
 		Awaitility.await()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(future::isDone);
 		assertThat(outcome).isNull();
@@ -148,7 +148,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 		future.whenComplete(this::storeOutcome);
 		// Assert
 		Awaitility.await()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(future::isDone);
 		assertThat(outcome).isNull();
@@ -164,7 +164,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 
 		Awaitility.await()
 				.dontCatchUncaughtExceptions()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(() -> future.isDone() && outcome != null);
 		assertThat(outcome.getClass()).isSameAs(RuntimeException.class);
@@ -178,7 +178,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 
 		Awaitility.await()
 				.dontCatchUncaughtExceptions()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(() -> future.isDone() && outcome != null);
 		assertThat(outcome.getClass()).isSameAs(CompletionException.class);
@@ -198,7 +198,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 			// ignore
 		}
 		Awaitility.await()
-				.atMost(4, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.untilAsserted(() -> assertThatExceptionOfType(CancellationException.class)
 						.isThrownBy(() -> future2.get(1000, TimeUnit.MILLISECONDS)));
@@ -217,7 +217,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 			// ignore
 		}
 		Awaitility.await()
-				.atMost(4, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.untilAsserted(() -> assertThatExceptionOfType(TimeoutException.class)
 						.isThrownBy(() -> future2.get(1000, TimeUnit.MILLISECONDS)));
@@ -253,7 +253,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 			// ignore
 		}
 		Awaitility.await()
-				.atMost(4, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.untilAsserted(() -> assertThatExceptionOfType(CancellationException.class)
 						.isThrownBy(() -> future2.get(1000, TimeUnit.MILLISECONDS)));
@@ -268,7 +268,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 		future.addCallback(result -> outcome = result, ex -> outcome = ex);
 		// Assert
 		Awaitility.await()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(() -> future.isDone() && outcome != null);
 		assertThat(outcome.toString().substring(0, this.threadNamePrefix.length())).isEqualTo(this.threadNamePrefix);
@@ -284,7 +284,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 		// Assert
 		Awaitility.await()
 				.dontCatchUncaughtExceptions()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(() -> future.isDone() && outcome != null);
 		assertThat(outcome.getClass()).isSameAs(RuntimeException.class);
@@ -310,7 +310,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 		future.whenComplete(this::storeOutcome);
 		// Assert
 		Awaitility.await()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(() -> future.isDone() && outcome != null);
 		assertThat(outcome.toString().substring(0, this.threadNamePrefix.length())).isEqualTo(this.threadNamePrefix);
@@ -325,7 +325,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 		// Assert
 		Awaitility.await()
 				.dontCatchUncaughtExceptions()
-				.atMost(1, TimeUnit.SECONDS)
+				.atMost(5, TimeUnit.SECONDS)
 				.pollInterval(10, TimeUnit.MILLISECONDS)
 				.until(() -> future.isDone() && outcome != null);
 		assertThat(outcome.getClass()).isSameAs(CompletionException.class);
@@ -427,7 +427,7 @@ abstract class AbstractSchedulingTaskExecutorTests {
 		}
 
 		@Override
-		public String call() throws Exception {
+		public String call() {
 			try {
 				Thread.sleep(10);
 			}

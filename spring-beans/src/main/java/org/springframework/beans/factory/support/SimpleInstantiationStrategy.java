@@ -72,7 +72,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 			synchronized (bd.constructorArgumentLock) {
 				constructorToUse = (Constructor<?>) bd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse == null) {
-					final Class<?> clazz = bd.getBeanClass();
+					Class<?> clazz = bd.getBeanClass();
 					if (clazz.isInterface()) {
 						throw new BeanInstantiationException(clazz, "Specified class is an interface");
 					}
@@ -105,7 +105,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner,
-			final Constructor<?> ctor, Object... args) {
+			Constructor<?> ctor, Object... args) {
 
 		if (!bd.hasMethodOverrides()) {
 			return BeanUtils.instantiateClass(ctor, args);
@@ -129,7 +129,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner,
-			@Nullable Object factoryBean, final Method factoryMethod, Object... args) {
+			@Nullable Object factoryBean, Method factoryMethod, Object... args) {
 
 		try {
 			ReflectionUtils.makeAccessible(factoryMethod);
@@ -153,8 +153,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 			}
 		}
 		catch (IllegalArgumentException ex) {
-			if (factoryBean != null
-					&& !factoryMethod.getDeclaringClass().isAssignableFrom(factoryBean.getClass())) {
+			if (factoryBean != null && !factoryMethod.getDeclaringClass().isAssignableFrom(factoryBean.getClass())) {
 				throw new BeanInstantiationException(factoryMethod,
 						"Illegal factory instance for factory method '" + factoryMethod.getName() + "'; " +
 						"instance: " + factoryBean.getClass().getName(), ex);

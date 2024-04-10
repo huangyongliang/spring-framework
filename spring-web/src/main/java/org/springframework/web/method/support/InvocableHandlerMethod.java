@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 
+import kotlin.Unit;
+import kotlin.jvm.JvmClassMappingKt;
+import kotlin.reflect.KClass;
 import kotlin.reflect.KFunction;
 import kotlin.reflect.KParameter;
+import kotlin.reflect.KType;
+import kotlin.reflect.full.KClasses;
 import kotlin.reflect.jvm.KCallablesJvm;
 import kotlin.reflect.jvm.ReflectJvmMapping;
 
@@ -69,6 +73,8 @@ public class InvocableHandlerMethod extends HandlerMethod {
 
 	@Nullable
 	private MethodValidator methodValidator;
+
+	private Class<?>[] validationGroups = EMPTY_GROUPS;
 
 
 	/**
@@ -141,6 +147,8 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	 */
 	public void setMethodValidator(@Nullable MethodValidator methodValidator) {
 		this.methodValidator = methodValidator;
+		this.validationGroups = (methodValidator != null ?
+				methodValidator.determineValidationGroups(getBean(), getBridgedMethod()) : EMPTY_GROUPS);
 	}
 
 
@@ -172,17 +180,16 @@ public class InvocableHandlerMethod extends HandlerMethod {
 			logger.trace("Arguments: " + Arrays.toString(args));
 		}
 
-		Class<?>[] groups = getValidationGroups();
 		if (shouldValidateArguments() && this.methodValidator != null) {
 			this.methodValidator.applyArgumentValidation(
-					getBean(), getBridgedMethod(), getMethodParameters(), args, groups);
+					getBean(), getBridgedMethod(), getMethodParameters(), args, this.validationGroups);
 		}
 
 		Object returnValue = doInvoke(args);
 
 		if (shouldValidateReturnValue() && this.methodValidator != null) {
 			this.methodValidator.applyReturnValueValidation(
-					getBean(), getBridgedMethod(), getReturnType(), returnValue, groups);
+					getBean(), getBridgedMethod(), getReturnType(), returnValue, this.validationGroups);
 		}
 
 		return returnValue;
@@ -228,11 +235,6 @@ public class InvocableHandlerMethod extends HandlerMethod {
 			}
 		}
 		return args;
-	}
-
-	private Class<?>[] getValidationGroups() {
-		return ((shouldValidateArguments() || shouldValidateReturnValue()) && this.methodValidator != null ?
-				this.methodValidator.determineValidationGroups(getBean(), getBridgedMethod()) : EMPTY_GROUPS);
 	}
 
 	/**
@@ -296,10 +298,14 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	private static class KotlinDelegate {
 
 		@Nullable
-		@SuppressWarnings("deprecation")
-		public static Object invokeFunction(Method method, Object target, Object[] args) {
-			KFunction<?> function = Objects.requireNonNull(ReflectJvmMapping.getKotlinFunction(method));
-			if (method.isAccessible() && !KCallablesJvm.isAccessible(function)) {
+		@SuppressWarnings({"deprecation", "DataFlowIssue"})
+		public static Object invokeFunction(Method method, Object target, Object[] args) throws InvocationTargetException, IllegalAccessException {
+			KFunction<?> function = ReflectJvmMapping.getKotlinFunction(method);
+			// For property accessors
+			if (function == null) {
+				return method.invoke(target, args);
+			}
+			if (!KCallablesJvm.isAccessible(function)) {
 				KCallablesJvm.setAccessible(function, true);
 			}
 			Map<KParameter, Object> argMap = CollectionUtils.newHashMap(args.length + 1);
@@ -307,16 +313,28 @@ public class InvocableHandlerMethod extends HandlerMethod {
 			for (KParameter parameter : function.getParameters()) {
 				switch (parameter.getKind()) {
 					case INSTANCE -> argMap.put(parameter, target);
-					case VALUE -> {
-						if (!parameter.isOptional() || args[index] != null) {
-							argMap.put(parameter, args[index]);
+					case VALUE, EXTENSION_RECEIVER -> {
+						Object arg = args[index];
+						if (!(parameter.isOptional() && arg == null)) {
+							KType type = parameter.getType();
+							if (!(type.isMarkedNullable() && arg == null) && type.getClassifier() instanceof KClass<?> kClass
+									&& KotlinDetector.isInlineClass(JvmClassMappingKt.getJavaClass(kClass))) {
+								KFunction<?> constructor = KClasses.getPrimaryConstructor(kClass);
+								if (!KCallablesJvm.isAccessible(constructor)) {
+									KCallablesJvm.setAccessible(constructor, true);
+								}
+								arg = constructor.call(arg);
+							}
+							argMap.put(parameter, arg);
 						}
 						index++;
 					}
 				}
 			}
-			return function.callBy(argMap);
+			Object result = function.callBy(argMap);
+			return (result == Unit.INSTANCE ? null : result);
 		}
+
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ class CollectionUtilsTests {
 	void isEmpty() {
 		assertThat(CollectionUtils.isEmpty((Set<Object>) null)).isTrue();
 		assertThat(CollectionUtils.isEmpty((Map<String, String>) null)).isTrue();
-		assertThat(CollectionUtils.isEmpty(new HashMap<String, String>())).isTrue();
+		assertThat(CollectionUtils.isEmpty(new HashMap<>())).isTrue();
 		assertThat(CollectionUtils.isEmpty(new HashSet<>())).isTrue();
 
 		List<Object> list = new ArrayList<>();
@@ -66,9 +66,7 @@ class CollectionUtilsTests {
 		list.add("value3");
 
 		CollectionUtils.mergeArrayIntoCollection(arr, list);
-		assertThat(list.get(0)).isEqualTo("value3");
-		assertThat(list.get(1)).isEqualTo("value1");
-		assertThat(list.get(2)).isEqualTo("value2");
+		assertThat(list).containsExactly("value3", "value1", "value2");
 	}
 
 	@Test
@@ -78,9 +76,7 @@ class CollectionUtilsTests {
 		list.add(3);
 
 		CollectionUtils.mergeArrayIntoCollection(arr, list);
-		assertThat(list.get(0)).isEqualTo(3);
-		assertThat(list.get(1)).isEqualTo(1);
-		assertThat(list.get(2)).isEqualTo(2);
+		assertThat(list).containsExactly(3, 1, 2);
 	}
 
 	@Test
@@ -118,7 +114,7 @@ class CollectionUtilsTests {
 	}
 
 	@Test
-	void containsAny() throws Exception {
+	void containsAny() {
 		List<String> source = new ArrayList<>();
 		source.add("abc");
 		source.add("def");
@@ -137,19 +133,19 @@ class CollectionUtilsTests {
 	}
 
 	@Test
-	void containsInstanceWithNullCollection() throws Exception {
+	void containsInstanceWithNullCollection() {
 		assertThat(CollectionUtils.containsInstance(null, this)).as("Must return false if supplied Collection argument is null").isFalse();
 	}
 
 	@Test
-	void containsInstanceWithInstancesThatAreEqualButDistinct() throws Exception {
+	void containsInstanceWithInstancesThatAreEqualButDistinct() {
 		List<Instance> list = new ArrayList<>();
 		list.add(new Instance("fiona"));
 		assertThat(CollectionUtils.containsInstance(list, new Instance("fiona"))).as("Must return false if instance is not in the supplied Collection argument").isFalse();
 	}
 
 	@Test
-	void containsInstanceWithSameInstance() throws Exception {
+	void containsInstanceWithSameInstance() {
 		List<Instance> list = new ArrayList<>();
 		list.add(new Instance("apple"));
 		Instance instance = new Instance("fiona");
@@ -158,7 +154,7 @@ class CollectionUtilsTests {
 	}
 
 	@Test
-	void containsInstanceWithNullInstance() throws Exception {
+	void containsInstanceWithNullInstance() {
 		List<Instance> list = new ArrayList<>();
 		list.add(new Instance("apple"));
 		list.add(new Instance("fiona"));
@@ -166,7 +162,7 @@ class CollectionUtilsTests {
 	}
 
 	@Test
-	void findFirstMatch() throws Exception {
+	void findFirstMatch() {
 		List<String> source = new ArrayList<>();
 		source.add("abc");
 		source.add("def");
@@ -217,7 +213,7 @@ class CollectionUtilsTests {
 	@Test
 	void conversionOfEmptyMap() {
 		MultiValueMap<String, String> asMultiValueMap = CollectionUtils.toMultiValueMap(new HashMap<>());
-		assertThat(asMultiValueMap.isEmpty()).isTrue();
+		assertThat(asMultiValueMap).isEmpty();
 		assertThat(asMultiValueMap).isEmpty();
 	}
 

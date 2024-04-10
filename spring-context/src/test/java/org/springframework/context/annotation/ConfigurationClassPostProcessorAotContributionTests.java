@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -119,8 +119,8 @@ class ConfigurationClassPostProcessorAotContributionTests {
 				freshContext.refresh();
 				TestAwareCallbackBean bean = freshContext.getBean(TestAwareCallbackBean.class);
 				assertThat(bean.instances).hasSize(2);
-				assertThat(bean.instances.get(0)).isEqualTo(freshContext);
-				assertThat(bean.instances.get(1)).isInstanceOfSatisfying(AnnotationMetadata.class, metadata ->
+				assertThat(bean.instances).element(0).isEqualTo(freshContext);
+				assertThat(bean.instances).element(1).isInstanceOfSatisfying(AnnotationMetadata.class, metadata ->
 						assertThat(metadata.getClassName()).isEqualTo(TestAwareCallbackConfiguration.class.getName()));
 				freshContext.close();
 			});
@@ -238,7 +238,7 @@ class ConfigurationClassPostProcessorAotContributionTests {
 			}
 
 			@Override
-			public void afterPropertiesSet() throws Exception {
+			public void afterPropertiesSet() {
 				Assert.notNull(this.metadata, "Metadata was not injected");
 			}
 

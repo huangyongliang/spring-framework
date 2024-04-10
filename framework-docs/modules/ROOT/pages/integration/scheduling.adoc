@@ -252,7 +252,9 @@ application server environments, as well -- in particular on Tomcat and Jetty.
 As of 6.1, `ThreadPoolTaskScheduler` provides a pause/resume capability and graceful
 shutdown through Spring's lifecycle management. There is also a new option called
 `SimpleAsyncTaskScheduler` which is aligned with JDK 21's Virtual Threads, using a
-single scheduler thread but firing up a new thread for every scheduled task execution.
+single scheduler thread but firing up a new thread for every scheduled task execution
+(except for fixed-delay tasks which all operate on a single scheduler thread, so for
+this virtual-thread-aligned option, fixed rates and cron triggers are recommended).
 
 
 
@@ -282,8 +284,8 @@ You can pick and choose the relevant annotations for your application. For examp
 if you need only support for `@Scheduled`, you can omit `@EnableAsync`. For more
 fine-grained control, you can additionally implement the `SchedulingConfigurer`
 interface, the `AsyncConfigurer` interface, or both. See the
-{api-spring-framework}/scheduling/annotation/SchedulingConfigurer.html[`SchedulingConfigurer`]
-and {api-spring-framework}/scheduling/annotation/AsyncConfigurer.html[`AsyncConfigurer`]
+{spring-framework-api}/scheduling/annotation/SchedulingConfigurer.html[`SchedulingConfigurer`]
+and {spring-framework-api}/scheduling/annotation/AsyncConfigurer.html[`AsyncConfigurer`]
 javadoc for full details.
 
 If you prefer XML configuration, you can use the `<task:annotation-driven>` element,
@@ -477,12 +479,12 @@ the framework to invoke a suspending function as a `Publisher`.
 
 The Spring Framework will obtain a `Publisher` for the annotated method once and will
 schedule a `Runnable` in which it subscribes to said `Publisher`. These inner regular
-subscriptions occur according to the corresponding `cron`/fixedDelay`/`fixedRate` configuration.
+subscriptions occur according to the corresponding `cron`/`fixedDelay`/`fixedRate` configuration.
 
 If the `Publisher` emits `onNext` signal(s), these are ignored and discarded (the same way
 return values from synchronous `@Scheduled` methods are ignored).
 
-In the following example, the `Flux` emits `onNext("Hello"), onNext("World")` every 5
+In the following example, the `Flux` emits `onNext("Hello")`, `onNext("World")` every 5
 seconds, but these values are unused:
 
 [source,java,indent=0,subs="verbatim,quotes"]
@@ -722,7 +724,7 @@ In the preceding configuration, a `queue-capacity` value has also been provided.
 The configuration of the thread pool should also be considered in light of the
 executor's queue capacity. For the full description of the relationship between pool
 size and queue capacity, see the documentation for
-https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.html[`ThreadPoolExecutor`].
+{java-api}/java.base/java/util/concurrent/ThreadPoolExecutor.html[`ThreadPoolExecutor`].
 The main idea is that, when a task is submitted, the executor first tries to use a
 free thread if the number of active threads is currently less than the core size.
 If the core size has been reached, the task is added to the queue, as long as its
@@ -1093,7 +1095,7 @@ we need to set up the `SchedulerFactoryBean`, as the following example shows:
 
 More properties are available for the `SchedulerFactoryBean`, such as the calendars used by the
 job details, properties to customize Quartz with, and a Spring-provided JDBC DataSource. See
-the {api-spring-framework}/scheduling/quartz/SchedulerFactoryBean.html[`SchedulerFactoryBean`]
+the {spring-framework-api}/scheduling/quartz/SchedulerFactoryBean.html[`SchedulerFactoryBean`]
 javadoc for more information.
 
 NOTE: `SchedulerFactoryBean` also recognizes a `quartz.properties` file in the classpath,

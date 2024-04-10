@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -199,9 +199,6 @@ public abstract class ResponseEntityExceptionHandler implements MessageSourceAwa
 		}
 		else if (ex instanceof MethodValidationException subEx) {
 			return handleMethodValidationException(subEx, headers, HttpStatus.INTERNAL_SERVER_ERROR, request);
-		}
-		else if (ex instanceof BindException theEx) {
-			return handleBindException(theEx, headers, HttpStatus.BAD_REQUEST, request);
 		}
 		else {
 			// Unknown exception, typically a wrapper with a common MVC exception as cause
@@ -550,30 +547,6 @@ public abstract class ResponseEntityExceptionHandler implements MessageSourceAwa
 	}
 
 	/**
-	 * Customize the handling of {@link BindException}.
-	 * <p>By default this method creates a {@link ProblemDetail} with the status
-	 * and a short detail message, and then delegates to
-	 * {@link #handleExceptionInternal}.
-	 * @param ex the exception to handle
-	 * @param headers the headers to use for the response
-	 * @param status the status code to use for the response
-	 * @param request the current request
-	 * @return a {@code ResponseEntity} for the response to use, possibly
-	 * {@code null} when the response is already committed
-	 * @deprecated as of 6.0 since {@link org.springframework.web.method.annotation.ModelAttributeMethodProcessor}
-	 * now raises the {@link MethodArgumentNotValidException} subclass instead.
-	 */
-	@Nullable
-	@Deprecated(since = "6.0", forRemoval = true)
-	protected ResponseEntity<Object> handleBindException(
-			BindException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-
-		ProblemDetail body = ProblemDetail.forStatusAndDetail(status, "Failed to bind request");
-		return handleExceptionInternal(ex, body, headers, status, request);
-	}
-
-
-	/**
 	 * Customize the handling of {@link MethodValidationException}.
 	 * <p>By default this method creates a {@link ProblemDetail} with the status
 	 * and a short detail message, and also looks up an override for the detail
@@ -658,12 +631,12 @@ public abstract class ResponseEntityExceptionHandler implements MessageSourceAwa
 			}
 		}
 
-		if (statusCode.equals(HttpStatus.INTERNAL_SERVER_ERROR)) {
-			request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
-		}
-
 		if (body == null && ex instanceof ErrorResponse errorResponse) {
 			body = errorResponse.updateAndGetBody(this.messageSource, LocaleContextHolder.getLocale());
+		}
+
+		if (statusCode.equals(HttpStatus.INTERNAL_SERVER_ERROR) && body == null) {
+			request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
 		}
 
 		return createResponseEntity(body, headers, statusCode, request);
