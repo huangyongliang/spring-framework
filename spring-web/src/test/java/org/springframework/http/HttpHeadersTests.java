@@ -155,6 +155,17 @@ class HttpHeadersTests {
 	}
 
 	@Test
+	void setContentLengthWithNegativeValue() {
+		assertThatIllegalArgumentException().isThrownBy(() ->
+				headers.setContentLength(-1));
+	}
+
+	@Test
+	void getContentLengthReturnsMinusOneForAbsentHeader() {
+		assertThat(headers.getContentLength()).isEqualTo(-1);
+	}
+
+	@Test
 	void contentType() {
 		MediaType contentType = new MediaType("text", "html", StandardCharsets.UTF_8);
 		headers.setContentType(contentType);
@@ -203,9 +214,15 @@ class HttpHeadersTests {
 	}
 
 	@Test
-	void illegalETag() {
+	void illegalETagWithoutQuotes() {
 		String eTag = "v2.6";
 		assertThatIllegalArgumentException().isThrownBy(() -> headers.setETag(eTag));
+	}
+
+	@Test
+	void illegalWeakETagWithoutLeadingQuote() {
+		String etag = "W/v2.6\"";
+		assertThatIllegalArgumentException().isThrownBy(() -> headers.setETag(etag));
 	}
 
 	@Test
@@ -504,6 +521,20 @@ class HttpHeadersTests {
 
 		headers.setAcceptLanguageAsLocales(Collections.singletonList(Locale.FRANCE));
 		assertThat(headers.getAcceptLanguageAsLocales()).first().isEqualTo(Locale.FRANCE);
+	}
+
+	@Test // gh-32259
+	void acceptLanguageTrailingSemicolon() {
+		String headerValue = "en-us,en;,nl;";
+		headers.set(HttpHeaders.ACCEPT_LANGUAGE, headerValue);
+		assertThat(headers.getFirst(HttpHeaders.ACCEPT_LANGUAGE)).isEqualTo(headerValue);
+
+		List<Locale.LanguageRange> expectedRanges = Arrays.asList(
+				new Locale.LanguageRange("en-us"),
+				new Locale.LanguageRange("en"),
+				new Locale.LanguageRange("nl")
+		);
+		assertThat(headers.getAcceptLanguage()).isEqualTo(expectedRanges);
 	}
 
 	@Test // SPR-15603

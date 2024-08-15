@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -419,6 +419,7 @@ class StringUtilsTests {
 		assertThat(StringUtils.cleanPath("file:///c:/some/../path/the%20file.txt")).isEqualTo("file:///c:/path/the%20file.txt");
 		assertThat(StringUtils.cleanPath("jar:file:///c:\\some\\..\\path\\.\\the%20file.txt")).isEqualTo("jar:file:///c:/path/the%20file.txt");
 		assertThat(StringUtils.cleanPath("jar:file:///c:/some/../path/./the%20file.txt")).isEqualTo("jar:file:///c:/path/the%20file.txt");
+		assertThat(StringUtils.cleanPath("jar:file:///c:\\\\some\\\\..\\\\path\\\\.\\\\the%20file.txt")).isEqualTo("jar:file:///c:/path/the%20file.txt");
 	}
 
 	@Test
@@ -464,6 +465,18 @@ class StringUtilsTests {
 		StringUtils.sortStringArray(input);
 		assertThat(input[0]).isEqualTo("myString1");
 		assertThat(input[1]).isEqualTo("myString2");
+	}
+
+	@Test
+	void trimArrayElements() {
+		assertThat(StringUtils.trimArrayElements(null)).isNull();
+		assertThat(StringUtils.trimArrayElements(new String[] {})).isEmpty();
+		assertThat(StringUtils.trimArrayElements(new String[] { "", " ", "  ", "   " })).containsExactly("", "", "", "");
+		assertThat(StringUtils.trimArrayElements(new String[] { "\n", "\t ", "\n\t" })).containsExactly("", "", "");
+		assertThat(StringUtils.trimArrayElements(new String[] { "a", "b", "c" })).containsExactly("a", "b", "c");
+		assertThat(StringUtils.trimArrayElements(new String[] { "  a  ", "  b b ", "  cc  " })).containsExactly("a", "b b", "cc");
+		assertThat(StringUtils.trimArrayElements(new String[] { "  a  ", "b", "  c  " })).containsExactly("a", "b", "c");
+		assertThat(StringUtils.trimArrayElements(new String[] { null, "  a  ", null })).containsExactly(null, "a", null);
 	}
 
 	@Test
@@ -555,6 +568,18 @@ class StringUtilsTests {
 		String[] sa = StringUtils.delimitedListToStringArray("a,b", null);
 		assertThat(sa).hasSize(1);
 		assertThat(sa[0]).isEqualTo("a,b");
+	}
+
+	@Test
+	void delimitedListToStringArrayWithCharacterToDelete() {
+		String[] sa = StringUtils.delimitedListToStringArray("a,b,c", ",", "a");
+		assertThat(sa).containsExactly("", "b", "c");
+	}
+
+	@Test
+	void delimitedListToStringArrayWithCharacterToDeleteEqualsToDelimiter() {
+		String[] sa = StringUtils.delimitedListToStringArray("a,b,c", ",", ",");
+		assertThat(sa).containsExactly("a", "b", "c");
 	}
 
 	@Test

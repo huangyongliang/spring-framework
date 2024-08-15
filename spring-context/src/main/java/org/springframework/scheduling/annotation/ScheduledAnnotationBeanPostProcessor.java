@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -43,6 +44,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.DestructionAwareBeanPostProcessor;
+import org.springframework.beans.factory.config.SingletonBeanRegistry;
 import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.ApplicationContext;
@@ -57,6 +59,8 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.format.annotation.DurationFormat;
+import org.springframework.format.datetime.standard.DurationFormatterUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.Trigger;
@@ -153,6 +157,8 @@ public class ScheduledAnnotationBeanPostProcessor
 	private final Map<Object, Set<ScheduledTask>> scheduledTasks = new IdentityHashMap<>(16);
 
 	private final Map<Object, List<Runnable>> reactiveSubscriptions = new IdentityHashMap<>(16);
+
+	private final Set<Object> manualCancellationOnContextClose = Collections.newSetFromMap(new IdentityHashMap<>(16));
 
 
 	/**
@@ -304,6 +310,13 @@ public class ScheduledAnnotationBeanPostProcessor
 					logger.trace(annotatedMethods.size() + " @Scheduled methods processed on bean '" + beanName +
 							"': " + annotatedMethods);
 				}
+				if ((this.beanFactory != null &&
+						(!this.beanFactory.containsBean(beanName) || !this.beanFactory.isSingleton(beanName)) ||
+						(this.beanFactory instanceof SingletonBeanRegistry sbr && sbr.containsSingleton(beanName)))) {
+					// Either a prototype/scoped bean or a FactoryBean with a pre-existing managed singleton
+					// -> trigger manual cancellation when ContextClosedEvent comes in
+					this.manualCancellationOnContextClose.add(bean);
+				}
 			}
 		}
 		return bean;
@@ -410,7 +423,7 @@ public class ScheduledAnnotationBeanPostProcessor
 					}
 					catch (RuntimeException ex) {
 						throw new IllegalArgumentException(
-								"Invalid initialDelayString value \"" + initialDelayString + "\" - cannot parse into long");
+								"Invalid initialDelayString value \"" + initialDelayString + "\"; " + ex);
 					}
 				}
 			}
@@ -462,7 +475,7 @@ public class ScheduledAnnotationBeanPostProcessor
 					}
 					catch (RuntimeException ex) {
 						throw new IllegalArgumentException(
-								"Invalid fixedDelayString value \"" + fixedDelayString + "\" - cannot parse into long");
+								"Invalid fixedDelayString value \"" + fixedDelayString + "\"; " + ex);
 					}
 					tasks.add(this.registrar.scheduleFixedDelayTask(new FixedDelayTask(runnable, fixedDelay, delayToUse)));
 				}
@@ -488,7 +501,7 @@ public class ScheduledAnnotationBeanPostProcessor
 					}
 					catch (RuntimeException ex) {
 						throw new IllegalArgumentException(
-								"Invalid fixedRateString value \"" + fixedRateString + "\" - cannot parse into long");
+								"Invalid fixedRateString value \"" + fixedRateString + "\"; " + ex);
 					}
 					tasks.add(this.registrar.scheduleFixedRateTask(new FixedRateTask(runnable, fixedRate, delayToUse)));
 				}
@@ -557,20 +570,9 @@ public class ScheduledAnnotationBeanPostProcessor
 	}
 
 	private static Duration toDuration(String value, TimeUnit timeUnit) {
-		if (isDurationString(value)) {
-			return Duration.parse(value);
-		}
-		return toDuration(Long.parseLong(value), timeUnit);
+		DurationFormat.Unit unit = DurationFormat.Unit.fromChronoUnit(timeUnit.toChronoUnit());
+		return DurationFormatterUtils.detectAndParse(value, unit); // interpreting as long as fallback already
 	}
-
-	private static boolean isDurationString(String value) {
-		return (value.length() > 1 && (isP(value.charAt(0)) || isP(value.charAt(1))));
-	}
-
-	private static boolean isP(char ch) {
-		return (ch == 'P' || ch == 'p');
-	}
-
 
 	/**
 	 * Return all currently scheduled tasks, from {@link Scheduled} methods
@@ -594,6 +596,18 @@ public class ScheduledAnnotationBeanPostProcessor
 
 	@Override
 	public void postProcessBeforeDestruction(Object bean, String beanName) {
+		cancelScheduledTasks(bean);
+		this.manualCancellationOnContextClose.remove(bean);
+	}
+
+	@Override
+	public boolean requiresDestruction(Object bean) {
+		synchronized (this.scheduledTasks) {
+			return (this.scheduledTasks.containsKey(bean) || this.reactiveSubscriptions.containsKey(bean));
+		}
+	}
+
+	private void cancelScheduledTasks(Object bean) {
 		Set<ScheduledTask> tasks;
 		List<Runnable> liveSubscriptions;
 		synchronized (this.scheduledTasks) {
@@ -613,13 +627,6 @@ public class ScheduledAnnotationBeanPostProcessor
 	}
 
 	@Override
-	public boolean requiresDestruction(Object bean) {
-		synchronized (this.scheduledTasks) {
-			return (this.scheduledTasks.containsKey(bean) || this.reactiveSubscriptions.containsKey(bean));
-		}
-	}
-
-	@Override
 	public void destroy() {
 		synchronized (this.scheduledTasks) {
 			Collection<Set<ScheduledTask>> allTasks = this.scheduledTasks.values();
@@ -635,7 +642,10 @@ public class ScheduledAnnotationBeanPostProcessor
 					liveSubscription.run();  // equivalent to cancelling the subscription
 				}
 			}
+			this.reactiveSubscriptions.clear();
+			this.manualCancellationOnContextClose.clear();
 		}
+
 		this.registrar.destroy();
 		if (this.localScheduler != null) {
 			this.localScheduler.destroy();
@@ -658,15 +668,10 @@ public class ScheduledAnnotationBeanPostProcessor
 				finishRegistration();
 			}
 			else if (event instanceof ContextClosedEvent) {
-				synchronized (this.scheduledTasks) {
-					Collection<Set<ScheduledTask>> allTasks = this.scheduledTasks.values();
-					for (Set<ScheduledTask> tasks : allTasks) {
-						for (ScheduledTask task : tasks) {
-							// At this early point, let in-progress tasks complete still
-							task.cancel(false);
-						}
-					}
+				for (Object bean : this.manualCancellationOnContextClose) {
+					cancelScheduledTasks(bean);
 				}
+				this.manualCancellationOnContextClose.clear();
 			}
 		}
 	}

@@ -28,9 +28,9 @@ import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.lang.Nullable;
+import org.springframework.test.http.HttpMessageContentConverter;
 import org.springframework.util.StringUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -205,8 +205,8 @@ class JsonPathValueAssertTests {
 	@Nested
 	class ConvertToTests {
 
-		private static final MappingJackson2HttpMessageConverter jsonHttpMessageConverter =
-				new MappingJackson2HttpMessageConverter(new ObjectMapper());
+		private static final HttpMessageContentConverter jsonContentConverter = HttpMessageContentConverter.of(
+				new MappingJackson2HttpMessageConverter(new ObjectMapper()));
 
 		@Test
 		void convertToWithoutHttpMessageConverter() {
@@ -231,9 +231,8 @@ class JsonPathValueAssertTests {
 			Map<?, ?> user2 = Map.of("id", 5678, "name", "Sarah", "active", false);
 			Map<?, ?> user3 = Map.of("id", 9012, "name", "Sophia", "active", true);
 			assertThat(forValue(List.of(user1, user2, user3)))
-					.convertTo(new ParameterizedTypeReference<List<User>>() {})
-					.satisfies(users -> assertThat(users).hasSize(3).extracting("name")
-							.containsExactly("John", "Sarah", "Sophia"));
+					.convertTo(InstanceOfAssertFactories.list(User.class))
+					.hasSize(3).extracting("name").containsExactly("John", "Sarah", "Sophia");
 		}
 
 		@Test
@@ -248,7 +247,7 @@ class JsonPathValueAssertTests {
 
 
 		private AssertProvider<JsonPathValueAssert> forValue(@Nullable Object actual) {
-			return () -> new JsonPathValueAssert(actual, "$.test", jsonHttpMessageConverter);
+			return () -> new JsonPathValueAssert(actual, "$.test", jsonContentConverter);
 		}
 
 

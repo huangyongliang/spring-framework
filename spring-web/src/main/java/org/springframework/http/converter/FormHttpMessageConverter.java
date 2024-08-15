@@ -60,14 +60,13 @@ import org.springframework.util.StringUtils;
  * <h3>Multipart Data</h3>
  *
  * <p>By default, {@code "multipart/form-data"} is used as the content type when
- * {@linkplain #write writing} multipart data. As of Spring Framework 5.2 it is
- * also possible to write multipart data using other multipart subtypes such as
- * {@code "multipart/mixed"} and {@code "multipart/related"}, as long as the
- * multipart subtype is registered as a {@linkplain #getSupportedMediaTypes
- * supported media type} <em>and</em> the desired multipart subtype is specified
- * as the content type when {@linkplain #write writing} the multipart data. Note
- * that {@code "multipart/mixed"} is registered as a supported media type by
- * default.
+ * {@linkplain #write writing} multipart data. It is also possible to write
+ * multipart data using other multipart subtypes such as {@code "multipart/mixed"}
+ * and {@code "multipart/related"}, as long as the multipart subtype is registered
+ * as a {@linkplain #getSupportedMediaTypes supported media type} <em>and</em> the
+ * desired multipart subtype is specified as the content type when
+ * {@linkplain #write writing} the multipart data. Note that {@code "multipart/mixed"}
+ * is registered as a supported media type by default.
  *
  * <p>When writing multipart data, this converter uses other
  * {@link HttpMessageConverter HttpMessageConverters} to write the respective
@@ -81,7 +80,7 @@ import org.springframework.util.StringUtils;
  * {@code "multipart/form-data"} content type.
  *
  * <pre class="code">
- * RestTemplate restTemplate = new RestTemplate();
+ * RestClient restClient = RestClient.create();
  * // AllEncompassingFormHttpMessageConverter is configured by default
  *
  * MultiValueMap&lt;String, Object&gt; form = new LinkedMultiValueMap&lt;&gt;();
@@ -90,7 +89,12 @@ import org.springframework.util.StringUtils;
  * form.add("field 2", "value 3");
  * form.add("field 3", 4);  // non-String form values supported as of 5.1.4
  *
- * restTemplate.postForLocation("https://example.com/myForm", form);</pre>
+ * ResponseEntity&lt;Void&gt; response = restClient.post()
+ *   .uri("https://example.com/myForm")
+ *   .contentType(MULTIPART_FORM_DATA)
+ *   .body(form)
+ *   .retrieve()
+ *   .toBodilessEntity();</pre>
  *
  * <p>The following snippet shows how to do a file upload using the
  * {@code "multipart/form-data"} content type.
@@ -100,7 +104,12 @@ import org.springframework.util.StringUtils;
  * parts.add("field 1", "value 1");
  * parts.add("file", new ClassPathResource("myFile.jpg"));
  *
- * restTemplate.postForLocation("https://example.com/myFileUpload", parts);</pre>
+ * ResponseEntity&lt;Void&gt; response = restClient.post()
+ *   .uri("https://example.com/myForm")
+ *   .contentType(MULTIPART_FORM_DATA)
+ *   .body(parts)
+ *   .retrieve()
+ *   .toBodilessEntity();</pre>
  *
  * <p>The following snippet shows how to do a file upload using the
  * {@code "multipart/mixed"} content type.
@@ -110,34 +119,35 @@ import org.springframework.util.StringUtils;
  * parts.add("field 1", "value 1");
  * parts.add("file", new ClassPathResource("myFile.jpg"));
  *
- * HttpHeaders requestHeaders = new HttpHeaders();
- * requestHeaders.setContentType(MediaType.MULTIPART_MIXED);
- *
- * restTemplate.postForLocation("https://example.com/myFileUpload",
- *     new HttpEntity&lt;&gt;(parts, requestHeaders));</pre>
+ * ResponseEntity&lt;Void&gt; response = restClient.post()
+ *   .uri("https://example.com/myForm")
+ *   .contentType(MULTIPART_MIXED)
+ *   .body(form)
+ *   .retrieve()
+ *   .toBodilessEntity();</pre>
  *
  * <p>The following snippet shows how to do a file upload using the
  * {@code "multipart/related"} content type.
  *
  * <pre class="code">
- * MediaType multipartRelated = new MediaType("multipart", "related");
- *
- * restTemplate.getMessageConverters().stream()
- *     .filter(FormHttpMessageConverter.class::isInstance)
+ * restClient = restClient.mutate()
+ *   .messageConverters(l -> l.stream()
+  *    .filter(FormHttpMessageConverter.class::isInstance)
  *     .map(FormHttpMessageConverter.class::cast)
  *     .findFirst()
  *     .orElseThrow(() -&gt; new IllegalStateException("Failed to find FormHttpMessageConverter"))
- *     .addSupportedMediaTypes(multipartRelated);
+ *     .addSupportedMediaTypes(MULTIPART_RELATED);
  *
  * MultiValueMap&lt;String, Object&gt; parts = new LinkedMultiValueMap&lt;&gt;();
  * parts.add("field 1", "value 1");
  * parts.add("file", new ClassPathResource("myFile.jpg"));
  *
- * HttpHeaders requestHeaders = new HttpHeaders();
- * requestHeaders.setContentType(multipartRelated);
- *
- * restTemplate.postForLocation("https://example.com/myFileUpload",
- *     new HttpEntity&lt;&gt;(parts, requestHeaders));</pre>
+ * ResponseEntity&lt;Void&gt; response = restClient.post()
+ *   .uri("https://example.com/myForm")
+ *   .contentType(MULTIPART_RELATED)
+ *   .body(form)
+ *   .retrieve()
+ *   .toBodilessEntity();</pre>
  *
  * <h3>Miscellaneous</h3>
  *

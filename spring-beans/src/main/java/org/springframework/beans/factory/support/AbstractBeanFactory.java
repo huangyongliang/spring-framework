@@ -315,6 +315,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 							throw new BeanCreationException(mbd.getResourceDescription(), beanName,
 									"'" + beanName + "' depends on missing bean '" + dep + "'", ex);
 						}
+						catch (BeanCreationException ex) {
+							if (requiredType != null) {
+								// Wrap exception with current bean metadata but only if specifically
+								// requested (indicated by required type), not for depends-on cascades.
+								throw new BeanCreationException(mbd.getResourceDescription(), beanName,
+										"Failed to initialize dependency '" + ex.getBeanName() + "' of " +
+												requiredType.getSimpleName() + " bean '" + beanName + "': " +
+												ex.getMessage(), ex);
+							}
+							throw ex;
+						}
 					}
 				}
 
@@ -1086,7 +1097,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 	@Override
 	public void setApplicationStartup(ApplicationStartup applicationStartup) {
-		Assert.notNull(applicationStartup, "applicationStartup must not be null");
+		Assert.notNull(applicationStartup, "ApplicationStartup must not be null");
 		this.applicationStartup = applicationStartup;
 	}
 
@@ -1682,7 +1693,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * already. The implementation is allowed to instantiate the target factory bean if
 	 * {@code allowInit} is {@code true} and the type cannot be determined another way;
 	 * otherwise it is restricted to introspecting signatures and related metadata.
-	 * <p>If no {@link FactoryBean#OBJECT_TYPE_ATTRIBUTE} if set on the bean definition
+	 * <p>If no {@link FactoryBean#OBJECT_TYPE_ATTRIBUTE} is set on the bean definition
 	 * and {@code allowInit} is {@code true}, the default implementation will create
 	 * the FactoryBean via {@code getBean} to call its {@code getObjectType} method.
 	 * Subclasses are encouraged to optimize this, typically by inspecting the generic
@@ -1701,9 +1712,15 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @see #getBean(String)
 	 */
 	protected ResolvableType getTypeForFactoryBean(String beanName, RootBeanDefinition mbd, boolean allowInit) {
-		ResolvableType result = getTypeForFactoryBeanFromAttributes(mbd);
-		if (result != ResolvableType.NONE) {
-			return result;
+		try {
+			ResolvableType result = getTypeForFactoryBeanFromAttributes(mbd);
+			if (result != ResolvableType.NONE) {
+				return result;
+			}
+		}
+		catch (IllegalArgumentException ex) {
+			throw new BeanDefinitionStoreException(mbd.getResourceDescription(), beanName,
+					String.valueOf(ex.getMessage()));
 		}
 
 		if (allowInit && mbd.isSingleton()) {

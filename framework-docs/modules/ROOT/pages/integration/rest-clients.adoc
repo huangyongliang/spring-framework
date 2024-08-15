@@ -71,8 +71,34 @@ This can be done with `method(HttpMethod)` or with the convenience methods `get(
 Next, the request URI can be specified with the `uri` methods.
 This step is optional and can be skipped if the `RestClient` is configured with a default URI.
 The URL is typically specified as a `String`, with optional URI template variables.
-String URLs are encoded by default, but this can be changed by building a client with a custom `uriBuilderFactory`.
+The following example configures a GET request to `https://example.com/orders/42`:
 
+[tabs]
+======
+Java::
++
+[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+----
+int id = 42;
+restClient.get()
+  .uri("https://example.com/orders/{id}", id)
+  ....
+----
+
+Kotlin::
++
+[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+----
+val id = 42
+restClient.get()
+  .uri("https://example.com/orders/{id}", id)
+  ...
+----
+======
+
+A function can also be used for more controls, such as specifying xref:web/webmvc/mvc-uri-building.adoc[request parameters].
+
+String URLs are encoded by default, but this can be changed by building a client with a custom `uriBuilderFactory`.
 The URL can also be provided with a function or as a `java.net.URI`, both of which are not encoded.
 For more details on working with and encoding URIs, see xref:web/webmvc/mvc-uri-building.adoc[URI Links].
 
@@ -263,7 +289,7 @@ String result = restClient.get() <1>
   .uri("https://example.com/this-url-does-not-exist") <1>
   .retrieve()
   .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> { <2>
-      throw new MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()) <3>
+      throw new MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()); <3>
   })
   .body(String.class);
 ----
@@ -340,68 +366,7 @@ val result = restClient.get()
 [[rest-message-conversion]]
 === HTTP Message Conversion
 
-[.small]#xref:web/webflux/reactive-spring.adoc#webflux-codecs[See equivalent in the Reactive stack]#
-
-The `spring-web` module contains the `HttpMessageConverter` interface for reading and writing the body of HTTP requests and responses through `InputStream` and `OutputStream`.
-`HttpMessageConverter` instances are used on the client side (for example, in the `RestClient`) and on the server side (for example, in Spring MVC REST controllers).
-
-Concrete implementations for the main media (MIME) types are provided in the framework and are, by default, registered with the `RestClient` and `RestTemplate` on the client side and with `RequestMappingHandlerAdapter` on the server side (see xref:web/webmvc/mvc-config/message-converters.adoc[Configuring Message Converters]).
-
-Several implementations of `HttpMessageConverter` are described below.
-Refer to the {spring-framework-api}/http/converter/HttpMessageConverter.html[`HttpMessageConverter` Javadoc] for the complete list.
-For all converters, a default media type is used, but you can override it by setting the `supportedMediaTypes`  property.
-
-[[rest-message-converters-tbl]]
-.HttpMessageConverter Implementations
-[cols="1,3"]
-|===
-| MessageConverter | Description
-
-| `StringHttpMessageConverter`
-| An `HttpMessageConverter` implementation that can read and write `String` instances from the HTTP request and response.
-By default, this converter supports all text media types(`text/{asterisk}`) and writes with a `Content-Type` of `text/plain`.
-
-| `FormHttpMessageConverter`
-| An `HttpMessageConverter` implementation that can read and write form data from the HTTP request and response.
-By default, this converter reads and writes the `application/x-www-form-urlencoded` media type.
-Form data is read from and written into a `MultiValueMap<String, String>`.
-The converter can also write (but not read) multipart data read from a `MultiValueMap<String, Object>`.
-By default, `multipart/form-data` is supported.
-Additional multipart subtypes can be supported for writing form data.
-Consult the javadoc for `FormHttpMessageConverter` for further details.
-
-| `ByteArrayHttpMessageConverter`
-| An `HttpMessageConverter` implementation that can read and write byte arrays from the HTTP request and response.
-By default, this converter supports all media types (`{asterisk}/{asterisk}`) and writes with a `Content-Type` of `application/octet-stream`.
-You can override this by setting the `supportedMediaTypes` property and overriding `getContentType(byte[])`.
-
-| `MarshallingHttpMessageConverter`
-| An `HttpMessageConverter` implementation that can read and write XML by using Spring's `Marshaller` and `Unmarshaller` abstractions from the `org.springframework.oxm` package.
-This converter requires a `Marshaller` and `Unmarshaller` before it can be used.
-You can inject these through constructor or bean properties.
-By default, this converter supports `text/xml` and `application/xml`.
-
-| `MappingJackson2HttpMessageConverter`
-| An `HttpMessageConverter` implementation that can read and write JSON by using Jackson's `ObjectMapper`.
-You can customize JSON mapping as needed through the use of Jackson's provided annotations.
-When you need further control (for cases where custom JSON serializers/deserializers need to be provided for specific types), you can inject a custom `ObjectMapper` through the `ObjectMapper` property.
-By default, this converter supports `application/json`.
-
-| `MappingJackson2XmlHttpMessageConverter`
-| An `HttpMessageConverter` implementation that can read and write XML by using {jackson-github-org}/jackson-dataformat-xml[Jackson XML] extension's `XmlMapper`.
-You can customize XML mapping as needed through the use of JAXB or Jackson's provided annotations.
-When you need further control (for cases where custom XML serializers/deserializers need to be provided for specific types), you can inject a custom `XmlMapper` through the `ObjectMapper` property.
-By default, this converter supports `application/xml`.
-
-| `SourceHttpMessageConverter`
-| An `HttpMessageConverter` implementation that can read and write `javax.xml.transform.Source` from the HTTP request and response.
-Only `DOMSource`, `SAXSource`, and `StreamSource` are supported.
-By default, this converter supports `text/xml` and `application/xml`.
-
-|===
-
-By default, `RestClient` and `RestTemplate` register all built-in message converters, depending on the availability of underlying libraries on the classpath.
-You can also set the message converters to use explicitly, by using the `messageConverters()` method on the `RestClient` builder, or via the `messageConverters` property of `RestTemplate`.
+xref:web/webmvc/message-converters.adoc#message-converters[See the supported HTTP message converters in the dedicated section].
 
 ==== Jackson JSON Views
 
@@ -467,6 +432,9 @@ Various implementations are available:
 If no request factory is specified when the `RestClient` was built, it will use the Apache or Jetty `HttpClient` if they are available on the classpath.
 Otherwise, if the `java.net.http` module is loaded, it will use Java's `HttpClient`.
 Finally, it will resort to the simple default.
+
+TIP: Note that the `SimpleClientHttpRequestFactory` may raise an exception when accessing the status of a response that represents an error (e.g. 401).
+If this is an issue, use any of the alternative request factories.
 
 [[rest-webclient]]
 == `WebClient`
@@ -970,7 +938,8 @@ method parameters:
 | `@RequestHeader`
 | Add a request header or multiple headers. The argument may be a `Map<String, ?>` or
   `MultiValueMap<String, ?>` with multiple headers, a `Collection<?>` of values, or an
-  individual value. Type conversion is supported for non-String values.
+  individual value. Type conversion is supported for non-String values. This overrides
+  the annotation's `headers` attribute.
 
 | `@PathVariable`
 | Add a variable for expand a placeholder in the request URL. The argument may be a
@@ -978,7 +947,8 @@ method parameters:
   is supported for non-String values.
 
 | `@RequestAttribute`
-| Provide an `Object` to add as a request attribute. Only supported by `WebClient`.
+| Provide an `Object` to add as a request attribute. Only supported by `RestClient`
+  and `WebClient`.
 
 | `@RequestBody`
 | Provide the body of the request either as an Object to be serialized, or a
@@ -1009,6 +979,11 @@ method parameters:
   individual value. Type conversion is supported for non-String values.
 
 |===
+
+Method parameters cannot be `null` unless the `required` attribute (where available on a
+parameter annotation) is set to `false`, or the parameter is marked optional as determined by
+{spring-framework-api}/core/MethodParameter.html#isOptional()[`MethodParameter#isOptional`].
+
 
 
 [[rest-http-interface-return-values]]

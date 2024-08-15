@@ -19,6 +19,7 @@ package org.springframework.test.json;
 import org.assertj.core.api.AssertProvider;
 
 import org.springframework.lang.Nullable;
+import org.springframework.test.http.HttpMessageContentConverter;
 import org.springframework.util.Assert;
 
 /**
@@ -34,18 +35,27 @@ public final class JsonContent implements AssertProvider<JsonContentAssert> {
 	private final String json;
 
 	@Nullable
-	private final Class<?> resourceLoadClass;
+	private final HttpMessageContentConverter contentConverter;
 
+
+	/**
+	 * Create a new {@code JsonContent} instance with the message converter to
+	 * use to deserialize content.
+	 * @param json the actual JSON content
+	 * @param contentConverter the content converter to use
+	 */
+	public JsonContent(String json, @Nullable HttpMessageContentConverter contentConverter) {
+		Assert.notNull(json, "JSON must not be null");
+		this.json = json;
+		this.contentConverter = contentConverter;
+	}
 
 	/**
 	 * Create a new {@code JsonContent} instance.
 	 * @param json the actual JSON content
-	 * @param resourceLoadClass the source class used to load resources
 	 */
-	JsonContent(String json, @Nullable Class<?> resourceLoadClass) {
-		Assert.notNull(json, "JSON must not be null");
-		this.json = json;
-		this.resourceLoadClass = resourceLoadClass;
+	public JsonContent(String json) {
+		this(json, null);
 	}
 
 
@@ -55,15 +65,22 @@ public final class JsonContent implements AssertProvider<JsonContentAssert> {
 	 */
 	@Override
 	public JsonContentAssert assertThat() {
-		return new JsonContentAssert(this.json, this.resourceLoadClass, null);
+		return new JsonContentAssert(this);
 	}
 
 	/**
 	 * Return the actual JSON content string.
-	 * @return the JSON content
 	 */
 	public String getJson() {
 		return this.json;
+	}
+
+	/**
+	 * Return the {@link HttpMessageContentConverter} to use to deserialize content.
+	 */
+	@Nullable
+	HttpMessageContentConverter getContentConverter() {
+		return this.contentConverter;
 	}
 
 	@Override

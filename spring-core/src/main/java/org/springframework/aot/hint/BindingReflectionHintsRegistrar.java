@@ -55,16 +55,16 @@ public class BindingReflectionHintsRegistrar {
 
 	private static final String JACKSON_ANNOTATION = "com.fasterxml.jackson.annotation.JacksonAnnotation";
 
-	private static final boolean jacksonAnnotationPresent = ClassUtils.isPresent(JACKSON_ANNOTATION,
-			BindingReflectionHintsRegistrar.class.getClassLoader());
+	private static final boolean jacksonAnnotationPresent =
+			ClassUtils.isPresent(JACKSON_ANNOTATION, BindingReflectionHintsRegistrar.class.getClassLoader());
+
 
 	/**
 	 * Register the necessary reflection hints to bind the specified types.
 	 * @param hints the hints instance to use
 	 * @param types the types to register
 	 */
-	@SuppressWarnings("NullAway")
-	public void registerReflectionHints(ReflectionHints hints, @Nullable Type... types) {
+	public void registerReflectionHints(ReflectionHints hints, Type... types) {
 		Set<Type> seen = new HashSet<>();
 		for (Type type : types) {
 			registerReflectionHints(hints, seen, type);
@@ -97,12 +97,10 @@ public class BindingReflectionHintsRegistrar {
 						}
 					}
 					if (clazz.isEnum()) {
-						typeHint.withMembers(
-								MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+						typeHint.withMembers(MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
 								MemberCategory.INVOKE_PUBLIC_METHODS);
 					}
-					typeHint.withMembers(
-							MemberCategory.DECLARED_FIELDS,
+					typeHint.withMembers(MemberCategory.DECLARED_FIELDS,
 							MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
 					for (Method method : clazz.getMethods()) {
 						String methodName = method.getName();
@@ -139,8 +137,7 @@ public class BindingReflectionHintsRegistrar {
 	}
 
 	private void registerPropertyHints(ReflectionHints hints, Set<Type> seen, @Nullable Method method, int parameterIndex) {
-		if (method != null && method.getDeclaringClass() != Object.class &&
-				method.getDeclaringClass() != Enum.class) {
+		if (method != null && method.getDeclaringClass() != Object.class && method.getDeclaringClass() != Enum.class) {
 			hints.registerMethod(method, ExecutableMode.INVOKE);
 			MethodParameter methodParameter = MethodParameter.forExecutable(method, parameterIndex);
 			Type methodParameterType = methodParameter.getGenericParameterType();
@@ -214,6 +211,7 @@ public class BindingReflectionHintsRegistrar {
 			}
 		});
 	}
+
 
 	/**
 	 * Inner class to avoid a hard dependency on Kotlin at runtime.

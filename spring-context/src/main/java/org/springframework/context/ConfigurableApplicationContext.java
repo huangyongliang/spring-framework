@@ -224,8 +224,8 @@ public interface ConfigurableApplicationContext extends ApplicationContext, Life
 	 * on JVM shutdown unless it has already been closed at that time.
 	 * <p>This method can be called multiple times. Only one shutdown hook
 	 * (at max) will be registered for each context instance.
-	 * <p>As of Spring Framework 5.2, the {@linkplain Thread#getName() name} of
-	 * the shutdown hook thread should be {@link #SHUTDOWN_HOOK_THREAD_NAME}.
+	 * <p>The {@linkplain Thread#getName() name} of the shutdown hook thread
+	 * should be {@link #SHUTDOWN_HOOK_THREAD_NAME}.
 	 * @see java.lang.Runtime#addShutdownHook
 	 * @see #close()
 	 */
@@ -241,6 +241,18 @@ public interface ConfigurableApplicationContext extends ApplicationContext, Life
 	 */
 	@Override
 	void close();
+
+	/**
+	 * Return whether this context has been closed already, that is,
+	 * whether {@link #close()} has been called on an active context
+	 * in order to initiate its shutdown.
+	 * <p>Note: This does not indicate whether context shutdown has completed.
+	 * Use {@link #isActive()} for differentiating between those scenarios:
+	 * a context becomes inactive once it has been fully shut down and the
+	 * original {@code close()} call has returned.
+	 * @since 6.2
+	 */
+	boolean isClosed();
 
 	/**
 	 * Determine whether this application context is active, that is,

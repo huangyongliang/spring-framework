@@ -40,6 +40,8 @@ import org.springframework.expression.spel.support.ReflectionHelper.ArgumentsMat
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.InstanceOfAssertFactories.array;
 import static org.springframework.expression.spel.support.ReflectionHelper.ArgumentsMatchKind.CLOSE;
 import static org.springframework.expression.spel.support.ReflectionHelper.ArgumentsMatchKind.EXACT;
 import static org.springframework.expression.spel.support.ReflectionHelper.ArgumentsMatchKind.REQUIRES_CONVERSION;
@@ -251,15 +253,72 @@ class ReflectionHelperTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void setupArgumentsForVarargsInvocation() {
-		Object[] newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(
-				new Class<?>[] {String[].class}, "a", "b", "c");
+	void setupArgumentsForVarargsInvocationPreconditions() {
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> ReflectionHelper.setupArgumentsForVarargsInvocation(new Class[] {}, "a"))
+				.withMessage("Required parameter types array must not be empty");
 
-		assertThat(newArray).hasSize(1);
-		Object firstParam = newArray[0];
-		assertThat(firstParam.getClass().componentType()).isEqualTo(String.class);
-		Object[] firstParamArray = (Object[]) firstParam;
-		assertThat(firstParamArray).containsExactly("a", "b", "c");
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> ReflectionHelper.setupArgumentsForVarargsInvocation(
+						new Class<?>[] { Integer.class, Integer.class }, 123))
+				.withMessage("The last required parameter type must be an array to support varargs invocation");
+	}
+
+	@Test
+	void setupArgumentsForVarargsInvocation() {
+		Object[] newArray;
+
+		newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(new Class<?>[] { String[].class }, "a", "b", "c");
+		assertThat(newArray)
+				.singleElement()
+				.asInstanceOf(array(String[].class))
+				.containsExactly("a", "b", "c");
+
+		newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(new Class<?>[] { Object[].class }, "a", "b", "c");
+		assertThat(newArray)
+				.singleElement()
+				.asInstanceOf(array(Object[].class))
+				.containsExactly("a", "b", "c");
+
+		newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(
+				new Class<?>[] { Integer.class, Integer.class, String[].class }, 123, 456, "a", "b", "c");
+		assertThat(newArray).satisfiesExactly(
+				one -> assertThat(one).isEqualTo(123),
+				two -> assertThat(two).isEqualTo(456),
+				three -> assertThat(three).asInstanceOf(array(String[].class)).containsExactly("a", "b", "c"));
+
+		newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(new Class<?>[] { String[].class });
+		assertThat(newArray)
+				.singleElement()
+				.asInstanceOf(array(String[].class))
+				.isEmpty();
+
+		newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(
+				new Class<?>[] { String[].class }, new Object[] { new String[] { "a", "b", "c" } });
+		assertThat(newArray)
+				.singleElement()
+				.asInstanceOf(array(String[].class))
+				.containsExactly("a", "b", "c");
+
+		newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(
+				new Class<?>[] { Object[].class }, new Object[] { new String[] { "a", "b", "c" } });
+		assertThat(newArray)
+				.singleElement()
+				.asInstanceOf(array(Object[].class))
+				.containsExactly("a", "b", "c");
+
+		newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(new Class<?>[] { String[].class }, "a");
+		assertThat(newArray)
+				.singleElement()
+				.asInstanceOf(array(String[].class))
+				.containsExactly("a");
+
+		newArray = ReflectionHelper.setupArgumentsForVarargsInvocation(new Class<?>[] { String[].class }, new Object[] { null });
+		assertThat(newArray)
+				.singleElement()
+				.asInstanceOf(array(String[].class))
+				.singleElement()
+				.isNull();
 	}
 
 	@Test
@@ -391,22 +450,22 @@ class ReflectionHelperTests extends AbstractExpressionTests {
 	 * Used to validate the match returned from a compareArguments call.
 	 */
 	private void checkMatch(Class<?>[] inputTypes, Class<?>[] expectedTypes, StandardTypeConverter typeConverter, ArgumentsMatchKind expectedMatchKind) {
-		ReflectionHelper.ArgumentsMatchInfo matchInfo = ReflectionHelper.compareArguments(typeDescriptors(expectedTypes), typeDescriptors(inputTypes), typeConverter);
+		ArgumentsMatchKind matchKind = ReflectionHelper.compareArguments(typeDescriptors(expectedTypes), typeDescriptors(inputTypes), typeConverter);
 		if (expectedMatchKind == null) {
-			assertThat(matchInfo).as("Did not expect them to match in any way").isNull();
+			assertThat(matchKind).as("Did not expect them to match in any way").isNull();
 		}
 		else {
-			assertThat(matchInfo).as("Should not be a null match").isNotNull();
+			assertThat(matchKind).as("Should not be a null match").isNotNull();
 		}
 
 		if (expectedMatchKind == EXACT) {
-			assertThat(matchInfo.isExactMatch()).isTrue();
+			assertThat(matchKind.isExactMatch()).isTrue();
 		}
 		else if (expectedMatchKind == CLOSE) {
-			assertThat(matchInfo.isCloseMatch()).isTrue();
+			assertThat(matchKind.isCloseMatch()).isTrue();
 		}
 		else if (expectedMatchKind == REQUIRES_CONVERSION) {
-			assertThat(matchInfo.isMatchRequiringConversion()).as("expected to be a match requiring conversion, but was " + matchInfo).isTrue();
+			assertThat(matchKind.isMatchRequiringConversion()).as("expected to be a match requiring conversion, but was " + matchKind).isTrue();
 		}
 	}
 
@@ -416,18 +475,18 @@ class ReflectionHelperTests extends AbstractExpressionTests {
 	private static void checkMatchVarargs(Class<?>[] inputTypes, Class<?>[] expectedTypes,
 			StandardTypeConverter typeConverter, ArgumentsMatchKind expectedMatchKind) {
 
-		ReflectionHelper.ArgumentsMatchInfo matchInfo =
+		ArgumentsMatchKind matchKind =
 				ReflectionHelper.compareArgumentsVarargs(typeDescriptors(expectedTypes), typeDescriptors(inputTypes), typeConverter);
 		if (expectedMatchKind == null) {
-			assertThat(matchInfo).as("Did not expect them to match in any way: " + matchInfo).isNull();
+			assertThat(matchKind).as("Did not expect them to match in any way: " + matchKind).isNull();
 		}
 		else {
-			assertThat(matchInfo).as("Should not be a null match").isNotNull();
+			assertThat(matchKind).as("Should not be a null match").isNotNull();
 			switch (expectedMatchKind) {
-				case EXACT -> assertThat(matchInfo.isExactMatch()).isTrue();
-				case CLOSE -> assertThat(matchInfo.isCloseMatch()).isTrue();
-				case REQUIRES_CONVERSION -> assertThat(matchInfo.isMatchRequiringConversion())
-						.as("expected to be a match requiring conversion, but was " + matchInfo).isTrue();
+				case EXACT -> assertThat(matchKind.isExactMatch()).isTrue();
+				case CLOSE -> assertThat(matchKind.isCloseMatch()).isTrue();
+				case REQUIRES_CONVERSION -> assertThat(matchKind.isMatchRequiringConversion())
+						.as("expected to be a match requiring conversion, but was " + matchKind).isTrue();
 			}
 		}
 	}

@@ -18,84 +18,119 @@ package org.springframework.test.context.bean.override;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.SingletonBeanRegistry;
 import org.springframework.core.ResolvableType;
+import org.springframework.core.annotation.MergedAnnotation;
+import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.style.ToStringCreator;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
+import org.springframework.util.ReflectionUtils;
+
+import static org.springframework.core.annotation.MergedAnnotations.SearchStrategy.DIRECT;
 
 /**
- * Metadata for Bean Overrides.
+ * Metadata for Bean Override injection points, also responsible for creation of
+ * the overriding instance.
+ *
+ * <p><strong>WARNING</strong>: implementations are used as a cache key and
+ * must implement proper {@code equals()} and {@code hashCode()} methods.
+ *
+ * <p>Specific implementations of metadata can have state to be used during
+ * override {@linkplain #createOverride(String, BeanDefinition, Object)
+ * instance creation} &mdash; for example, based on further parsing of the
+ * annotation or the annotated field.
  *
  * @author Simon Baslé
+ * @author Stephane Nicoll
  * @since 6.2
  */
 public abstract class OverrideMetadata {
 
 	private final Field field;
 
-	private final Annotation overrideAnnotation;
+	private final ResolvableType beanType;
 
-	private final ResolvableType typeToOverride;
+	@Nullable
+	private final String beanName;
 
 	private final BeanOverrideStrategy strategy;
 
 
-	protected OverrideMetadata(Field field, Annotation overrideAnnotation,
-			ResolvableType typeToOverride, BeanOverrideStrategy strategy) {
-
+	protected OverrideMetadata(Field field, ResolvableType beanType, @Nullable String beanName,
+			BeanOverrideStrategy strategy) {
 		this.field = field;
-		this.overrideAnnotation = overrideAnnotation;
-		this.typeToOverride = typeToOverride;
+		this.beanType = beanType;
+		this.beanName = beanName;
 		this.strategy = strategy;
 	}
 
-
 	/**
-	 * Return a short, human-readable description of the kind of override this
-	 * instance handles.
+	 * Parse the given {@code testClass} and build the corresponding list of
+	 * bean {@code OverrideMetadata}.
+	 * @param testClass the class to parse
+	 * @return a list of {@code OverrideMetadata}
 	 */
-	public abstract String getBeanOverrideDescription();
-
-	/**
-	 * Return the expected bean name to override.
-	 * <p>Typically, this is either explicitly set in a concrete annotation or
-	 * inferred from the annotated field's name.
-	 * @return the expected bean name
-	 */
-	protected String getExpectedBeanName() {
-		return this.field.getName();
+	public static List<OverrideMetadata> forTestClass(Class<?> testClass) {
+		List<OverrideMetadata> metadata = new LinkedList<>();
+		ReflectionUtils.doWithFields(testClass, field -> parseField(field, testClass, metadata));
+		return metadata;
 	}
 
+	private static void parseField(Field field, Class<?> testClass, List<OverrideMetadata> metadataList) {
+		AtomicBoolean overrideAnnotationFound = new AtomicBoolean();
+		MergedAnnotations.from(field, DIRECT).stream(BeanOverride.class).forEach(mergedAnnotation -> {
+			MergedAnnotation<?> metaSource = mergedAnnotation.getMetaSource();
+			Assert.state(metaSource != null, "@BeanOverride annotation must be meta-present");
+
+			BeanOverride beanOverride = mergedAnnotation.synthesize();
+			BeanOverrideProcessor processor = BeanUtils.instantiateClass(beanOverride.value());
+			Annotation composedAnnotation = metaSource.synthesize();
+
+			Assert.state(overrideAnnotationFound.compareAndSet(false, true),
+					() -> "Multiple @BeanOverride annotations found on field: " + field);
+			OverrideMetadata metadata = processor.createMetadata(composedAnnotation, testClass, field);
+			metadataList.add(metadata);
+		});
+	}
+
+
 	/**
-	 * Return the annotated {@link Field}.
+	 * Get the annotated {@link Field}.
 	 */
-	public Field field() {
+	public final Field getField() {
 		return this.field;
 	}
 
 	/**
-	 * Return the concrete override annotation, that is the one meta-annotated
-	 * with {@link BeanOverride @BeanOverride}.
+	 * Get the bean {@linkplain ResolvableType type} to override.
 	 */
-	public Annotation overrideAnnotation() {
-		return this.overrideAnnotation;
+	public final ResolvableType getBeanType() {
+		return this.beanType;
 	}
 
 	/**
-	 * Return the bean {@link ResolvableType type} to override.
+	 * Get the bean name to override, or {@code null} to look for a single
+	 * matching bean of type {@link #getBeanType()}.
 	 */
-	public ResolvableType typeToOverride() {
-		return this.typeToOverride;
+	@Nullable
+	public String getBeanName() {
+		return this.beanName;
 	}
 
 	/**
-	 * Return the {@link BeanOverrideStrategy} for this instance, as a hint on
+	 * Get the {@link BeanOverrideStrategy} for this instance, as a hint on
 	 * how and when the override instance should be created.
 	 */
-	public final BeanOverrideStrategy getBeanOverrideStrategy() {
+	public final BeanOverrideStrategy getStrategy() {
 		return this.strategy;
 	}
 
@@ -104,9 +139,9 @@ public abstract class OverrideMetadata {
 	 * optionally provided with an existing {@link BeanDefinition} and/or an
 	 * original instance, that is a singleton or an early wrapped instance.
 	 * @param beanName the name of the bean being overridden
-	 * @param existingBeanDefinition an existing bean definition for that bean
-	 * name, or {@code null} if not relevant
-	 * @param existingBeanInstance an existing instance for that bean name,
+	 * @param existingBeanDefinition an existing bean definition for the supplied
+	 * bean name, or {@code null} if not relevant
+	 * @param existingBeanInstance an existing instance for the supplied bean name
 	 * for wrapping purposes, or {@code null} if irrelevant
 	 * @return the instance with which to override the bean
 	 */
@@ -125,33 +160,41 @@ public abstract class OverrideMetadata {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (obj == this) {
+	public boolean equals(Object other) {
+		if (other == this) {
 			return true;
 		}
-		if (obj == null || !getClass().isAssignableFrom(obj.getClass())) {
+		if (other == null || other.getClass() != getClass()) {
 			return false;
 		}
-		OverrideMetadata that = (OverrideMetadata) obj;
-		return Objects.equals(this.field, that.field) &&
-				Objects.equals(this.overrideAnnotation, that.overrideAnnotation) &&
-				Objects.equals(this.strategy, that.strategy) &&
-				Objects.equals(typeToOverride(), that.typeToOverride());
+		OverrideMetadata that = (OverrideMetadata) other;
+		if (!Objects.equals(this.beanType.getType(), that.beanType.getType()) ||
+				!Objects.equals(this.beanName, that.beanName) ||
+				!Objects.equals(this.strategy, that.strategy)) {
+			return false;
+		}
+		if (this.beanName != null) {
+			return true;
+		}
+		// by type lookup
+		return Objects.equals(this.field.getName(), that.field.getName()) &&
+				Arrays.equals(this.field.getAnnotations(), that.field.getAnnotations());
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(this.field, this.overrideAnnotation, this.strategy, typeToOverride());
+		int hash = Objects.hash(getClass(), this.beanType.getType(), this.beanName, this.strategy);
+		return (this.beanName != null ? hash : hash +
+				Objects.hash(this.field.getName(), Arrays.hashCode(this.field.getAnnotations())));
 	}
 
 	@Override
 	public String toString() {
 		return new ToStringCreator(this)
-				.append("category", getBeanOverrideDescription())
 				.append("field", this.field)
-				.append("overrideAnnotation", this.overrideAnnotation)
+				.append("beanType", this.beanType)
+				.append("beanName", this.beanName)
 				.append("strategy", this.strategy)
-				.append("typeToOverride", typeToOverride())
 				.toString();
 	}
 

@@ -23,11 +23,11 @@ supported for all return values.
 | For returning a response with headers and no body.
 
 | `ErrorResponse`
-| To render an RFC 7807 error response with details in the body,
+| To render an RFC 9457 error response with details in the body,
   see xref:web/webmvc/mvc-ann-rest-exceptions.adoc[Error Responses]
 
 | `ProblemDetail`
-| To render an RFC 7807 error response with details in the body,
+| To render an RFC 9457 error response with details in the body,
   see xref:web/webmvc/mvc-ann-rest-exceptions.adoc[Error Responses]
 
 | `String`
@@ -55,6 +55,10 @@ supported for all return values.
 
 | `ModelAndView` object
 | The view and model attributes to use and, optionally, a response status.
+
+| `FragmentsRendering`, `Collection<ModelAndView>`
+| For rendering one or more fragments each with its own view and model.
+  See xref:web/webmvc-view/mvc-fragments.adoc[HTML Fragments] for more details.
 
 | `void`
 | A method with a `void` return type (or `null` return value) is considered to have fully

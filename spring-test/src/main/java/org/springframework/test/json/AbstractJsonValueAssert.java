@@ -20,28 +20,27 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.AbstractBooleanAssert;
 import org.assertj.core.api.AbstractMapAssert;
 import org.assertj.core.api.AbstractObjectAssert;
 import org.assertj.core.api.AbstractStringAssert;
+import org.assertj.core.api.AssertFactory;
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ObjectArrayAssert;
 import org.assertj.core.error.BasicErrorMessageFactory;
 import org.assertj.core.internal.Failures;
 
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
-import org.springframework.http.HttpInputMessage;
-import org.springframework.http.MediaType;
 import org.springframework.http.converter.GenericHttpMessageConverter;
 import org.springframework.lang.Nullable;
-import org.springframework.mock.http.MockHttpInputMessage;
-import org.springframework.mock.http.MockHttpOutputMessage;
+import org.springframework.test.http.HttpMessageContentConverter;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * Base AssertJ {@link org.assertj.core.api.Assert assertions} that can be
+ * Base AssertJ {@linkplain org.assertj.core.api.Assert assertions} that can be
  * applied to a JSON value.
  *
  * <p>In JSON, values must be one of the following data types:
@@ -66,14 +65,14 @@ public abstract class AbstractJsonValueAssert<SELF extends AbstractJsonValueAsse
 	private final Failures failures = Failures.instance();
 
 	@Nullable
-	private final GenericHttpMessageConverter<Object> httpMessageConverter;
+	private final HttpMessageContentConverter contentConverter;
 
 
 	protected AbstractJsonValueAssert(@Nullable Object actual, Class<?> selfType,
-			@Nullable GenericHttpMessageConverter<Object> httpMessageConverter) {
+			@Nullable HttpMessageContentConverter contentConverter) {
 
 		super(actual, selfType);
-		this.httpMessageConverter = httpMessageConverter;
+		this.contentConverter = contentConverter;
 	}
 
 
@@ -152,16 +151,23 @@ public abstract class AbstractJsonValueAssert<SELF extends AbstractJsonValueAsse
 	}
 
 	/**
-	 * Verify that the actual value can be converted to an instance of the
-	 * given {@code target}, and produce a new {@linkplain AbstractObjectAssert
-	 * assertion} object narrowed to that type.
-	 * @param target the {@linkplain ParameterizedTypeReference parameterized
-	 * type} to convert the actual value to
+	 * Verify that the actual value can be converted to an instance of the type
+	 * defined by the given {@link AssertFactory} and return a new Assert narrowed
+	 * to that type.
+	 * <p>{@link InstanceOfAssertFactories} provides static factories for all the
+	 * types supported by {@link Assertions#assertThat}. Additional factories can
+	 * be created by implementing {@link AssertFactory}.
+	 * <p>Example: <pre><code class="java">
+	 * // Check that the json value is an array of 3 users
+	 * assertThat(jsonValue).convertTo(InstanceOfAssertFactories.list(User.class))
+	 *         hasSize(3); // ListAssert of User
+	 * </code></pre>
+	 * @param assertFactory the {@link AssertFactory} to use to produce a narrowed
+	 * Assert for the type that it defines.
 	 */
-	public <T> AbstractObjectAssert<?, T> convertTo(ParameterizedTypeReference<T> target) {
+	public <ASSERT extends AbstractAssert<?, ?>> ASSERT convertTo(AssertFactory<?, ASSERT> assertFactory) {
 		isNotNull();
-		T value = convertToTargetType(target.getType());
-		return Assertions.assertThat(value);
+		return assertFactory.createAssert(this::convertToTargetType);
 	}
 
 	/**
@@ -190,30 +196,18 @@ public abstract class AbstractJsonValueAssert<SELF extends AbstractJsonValueAsse
 		return this.myself;
 	}
 
-
-	@SuppressWarnings("unchecked")
 	private <T> T convertToTargetType(Type targetType) {
-		if (this.httpMessageConverter == null) {
+		if (this.contentConverter == null) {
 			throw new IllegalStateException(
 					"No JSON message converter available to convert %s".formatted(actualToString()));
 		}
 		try {
-			MockHttpOutputMessage outputMessage = new MockHttpOutputMessage();
-			this.httpMessageConverter.write(this.actual, ResolvableType.forInstance(this.actual).getType(),
-					MediaType.APPLICATION_JSON, outputMessage);
-			return (T) this.httpMessageConverter.read(targetType, getClass(),
-					fromHttpOutputMessage(outputMessage));
+			return this.contentConverter.convertViaJson(this.actual, ResolvableType.forType(targetType));
 		}
 		catch (Exception ex) {
 			throw valueProcessingFailed("To convert successfully to:%n  %s%nBut it failed:%n  %s%n"
 					.formatted(targetType.getTypeName(), ex.getMessage()));
 		}
-	}
-
-	private HttpInputMessage fromHttpOutputMessage(MockHttpOutputMessage message) {
-		MockHttpInputMessage inputMessage = new MockHttpInputMessage(message.getBodyAsBytes());
-		inputMessage.getHeaders().addAll(message.getHeaders());
-		return inputMessage;
 	}
 
 	protected String getExpectedErrorMessagePrefix() {
