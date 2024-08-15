@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,11 +83,36 @@ class ConditionEvaluator {
 		}
 
 		if (phase == null) {
-			if (metadata instanceof AnnotationMetadata &&
-					ConfigurationClassUtils.isConfigurationCandidate((AnnotationMetadata) metadata)) {
+			if (metadata instanceof AnnotationMetadata annotationMetadata &&
+					ConfigurationClassUtils.isConfigurationCandidate(annotationMetadata)) {
 				return shouldSkip(metadata, ConfigurationPhase.PARSE_CONFIGURATION);
 			}
 			return shouldSkip(metadata, ConfigurationPhase.REGISTER_BEAN);
+		}
+
+		List<Condition> conditions = collectConditions(metadata);
+		for (Condition condition : conditions) {
+			ConfigurationPhase requiredPhase = null;
+			if (condition instanceof ConfigurationCondition configurationCondition) {
+				requiredPhase = configurationCondition.getConfigurationPhase();
+			}
+			if ((requiredPhase == null || requiredPhase == phase) && !condition.matches(this.context, metadata)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Return the {@linkplain Condition conditions} that should be applied when
+	 * considering the given annotated type.
+	 * @param metadata the metadata of the annotated type
+	 * @return the ordered list of conditions for that type
+	 */
+	List<Condition> collectConditions(@Nullable AnnotatedTypeMetadata metadata) {
+		if (metadata == null || !metadata.isAnnotated(Conditional.class.getName())) {
+			return Collections.emptyList();
 		}
 
 		List<Condition> conditions = new ArrayList<>();
@@ -97,20 +122,8 @@ class ConditionEvaluator {
 				conditions.add(condition);
 			}
 		}
-
 		AnnotationAwareOrderComparator.sort(conditions);
-
-		for (Condition condition : conditions) {
-			ConfigurationPhase requiredPhase = null;
-			if (condition instanceof ConfigurationCondition) {
-				requiredPhase = ((ConfigurationCondition) condition).getConfigurationPhase();
-			}
-			if ((requiredPhase == null || requiredPhase == phase) && !condition.matches(this.context, metadata)) {
-				return true;
-			}
-		}
-
-		return false;
+		return conditions;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -155,32 +168,32 @@ class ConditionEvaluator {
 		}
 
 		@Nullable
-		private ConfigurableListableBeanFactory deduceBeanFactory(@Nullable BeanDefinitionRegistry source) {
-			if (source instanceof ConfigurableListableBeanFactory) {
-				return (ConfigurableListableBeanFactory) source;
+		private static ConfigurableListableBeanFactory deduceBeanFactory(@Nullable BeanDefinitionRegistry source) {
+			if (source instanceof ConfigurableListableBeanFactory configurableListableBeanFactory) {
+				return configurableListableBeanFactory;
 			}
-			if (source instanceof ConfigurableApplicationContext) {
-				return (((ConfigurableApplicationContext) source).getBeanFactory());
+			if (source instanceof ConfigurableApplicationContext configurableApplicationContext) {
+				return configurableApplicationContext.getBeanFactory();
 			}
 			return null;
 		}
 
-		private Environment deduceEnvironment(@Nullable BeanDefinitionRegistry source) {
-			if (source instanceof EnvironmentCapable) {
-				return ((EnvironmentCapable) source).getEnvironment();
+		private static Environment deduceEnvironment(@Nullable BeanDefinitionRegistry source) {
+			if (source instanceof EnvironmentCapable environmentCapable) {
+				return environmentCapable.getEnvironment();
 			}
 			return new StandardEnvironment();
 		}
 
-		private ResourceLoader deduceResourceLoader(@Nullable BeanDefinitionRegistry source) {
-			if (source instanceof ResourceLoader) {
-				return (ResourceLoader) source;
+		private static ResourceLoader deduceResourceLoader(@Nullable BeanDefinitionRegistry source) {
+			if (source instanceof ResourceLoader resourceLoader) {
+				return resourceLoader;
 			}
 			return new DefaultResourceLoader();
 		}
 
 		@Nullable
-		private ClassLoader deduceClassLoader(@Nullable ResourceLoader resourceLoader,
+		private static ClassLoader deduceClassLoader(@Nullable ResourceLoader resourceLoader,
 				@Nullable ConfigurableListableBeanFactory beanFactory) {
 
 			if (resourceLoader != null) {

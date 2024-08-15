@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,30 +44,31 @@ public abstract class AbstractListableBeanFactoryTests extends AbstractBeanFacto
 	 * Subclasses can override this.
 	 */
 	@Test
-	public void count() {
+	protected void count() {
 		assertCount(13);
 	}
 
 	protected final void assertCount(int count) {
 		String[] defnames = getListableBeanFactory().getBeanDefinitionNames();
-		assertThat(defnames.length == count).as("We should have " + count + " beans, not " + defnames.length).isTrue();
+		assertThat(defnames.length).as("We should have " + count + " beans, not " + defnames.length).isEqualTo(count);
 	}
 
 	protected void assertTestBeanCount(int count) {
 		String[] defNames = getListableBeanFactory().getBeanNamesForType(TestBean.class, true, false);
-		assertThat(defNames.length == count).as("We should have " + count + " beans for class org.springframework.beans.testfixture.beans.TestBean, not " +
-				defNames.length).isTrue();
+		assertThat(defNames.length).as("We should have " + count + " beans for class org.springframework.beans.testfixture.beans.TestBean, not " +
+				defNames.length).isEqualTo(count);
 
 		int countIncludingFactoryBeans = count + 2;
 		String[] names = getListableBeanFactory().getBeanNamesForType(TestBean.class, true, true);
-		assertThat(names.length == countIncludingFactoryBeans).as("We should have " + countIncludingFactoryBeans +
-				" beans for class org.springframework.beans.testfixture.beans.TestBean, not " + names.length).isTrue();
+		assertThat(names.length).as("We should have " + countIncludingFactoryBeans +
+				" beans for class org.springframework.beans.testfixture.beans.TestBean, not " + names.length)
+				.isEqualTo(countIncludingFactoryBeans);
 	}
 
 	@Test
-	public void getDefinitionsForNoSuchClass() {
+	protected void getDefinitionsForNoSuchClass() {
 		String[] defnames = getListableBeanFactory().getBeanNamesForType(String.class);
-		assertThat(defnames.length == 0).as("No string definitions").isTrue();
+		assertThat(defnames.length).as("No string definitions").isEqualTo(0);
 	}
 
 	/**
@@ -75,16 +76,16 @@ public abstract class AbstractListableBeanFactoryTests extends AbstractBeanFacto
 	 * what type factories may return, and it may even change over time.)
 	 */
 	@Test
-	public void getCountForFactoryClass() {
-		assertThat(getListableBeanFactory().getBeanNamesForType(FactoryBean.class).length == 2).as("Should have 2 factories, not " +
-				getListableBeanFactory().getBeanNamesForType(FactoryBean.class).length).isTrue();
+	protected void getCountForFactoryClass() {
+		assertThat(getListableBeanFactory().getBeanNamesForType(FactoryBean.class).length).as("Should have 2 factories, not " +
+				getListableBeanFactory().getBeanNamesForType(FactoryBean.class).length).isEqualTo(2);
 
-		assertThat(getListableBeanFactory().getBeanNamesForType(FactoryBean.class).length == 2).as("Should have 2 factories, not " +
-				getListableBeanFactory().getBeanNamesForType(FactoryBean.class).length).isTrue();
+		assertThat(getListableBeanFactory().getBeanNamesForType(FactoryBean.class).length).as("Should have 2 factories, not " +
+				getListableBeanFactory().getBeanNamesForType(FactoryBean.class).length).isEqualTo(2);
 	}
 
 	@Test
-	public void containsBeanDefinition() {
+	protected void containsBeanDefinition() {
 		assertThat(getListableBeanFactory().containsBeanDefinition("rod")).isTrue();
 		assertThat(getListableBeanFactory().containsBeanDefinition("roderick")).isTrue();
 	}

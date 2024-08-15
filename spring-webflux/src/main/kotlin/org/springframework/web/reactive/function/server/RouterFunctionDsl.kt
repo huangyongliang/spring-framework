@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.web.reactive.function.server
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
 import org.springframework.http.MediaType
 import reactor.core.publisher.Mono
 import java.net.URI
@@ -173,7 +174,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.3
 	 */
 	fun GET(predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.GET(predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.GET(predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -184,7 +185,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.2
 	 */
 	fun GET(pattern: String, predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.GET(pattern, predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.GET(pattern, predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -218,7 +219,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.3
 	 */
 	fun HEAD(predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.HEAD(predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.HEAD(predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -229,7 +230,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.2
 	 */
 	fun HEAD(pattern: String, predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.HEAD(pattern, predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.HEAD(pattern, predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -263,7 +264,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.3
 	 */
 	fun POST(predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.POST(predicate, HandlerFunction<ServerResponse>  { f(it).cast(ServerResponse::class.java) })
+		builder.POST(predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -274,7 +275,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.2
 	 */
 	fun POST(pattern: String, predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.POST(pattern, predicate, HandlerFunction<ServerResponse>  { f(it).cast(ServerResponse::class.java) })
+		builder.POST(pattern, predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -308,7 +309,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.3
 	 */
 	fun PUT(predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.PUT(predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.PUT(predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -319,7 +320,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.2
 	 */
 	fun PUT(pattern: String, predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.PUT(pattern, predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.PUT(pattern, predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -353,7 +354,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.3
 	 */
 	fun PATCH(predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.PATCH(predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.PATCH(predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -364,7 +365,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.2
 	 */
 	fun PATCH(pattern: String, predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.PATCH(pattern, predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.PATCH(pattern, predicate, { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -400,7 +401,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.3
 	 */
 	fun DELETE(predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.DELETE(predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.DELETE(predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -411,7 +412,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.2
 	 */
 	fun DELETE(pattern: String, predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.DELETE(pattern, predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.DELETE(pattern, predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -447,7 +448,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.3
 	 */
 	fun OPTIONS(predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.OPTIONS(predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.OPTIONS(predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -458,7 +459,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @since 5.2
 	 */
 	fun OPTIONS(pattern: String, predicate: RequestPredicate, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.OPTIONS(pattern, predicate, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) })
+		builder.OPTIONS(pattern, predicate) { f(it).cast(ServerResponse::class.java) }
 	}
 
 	/**
@@ -475,7 +476,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	fun accept(mediaType: MediaType, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.accept(mediaType), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.accept(mediaType)) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -492,7 +493,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	fun contentType(mediaTypes: MediaType, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.contentType(mediaTypes), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.contentType(mediaTypes)) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -509,7 +510,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	fun headers(headersPredicate: (ServerRequest.Headers) -> Boolean, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.headers(headersPredicate), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.headers(headersPredicate)) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -525,7 +526,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	fun method(httpMethod: HttpMethod, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.method(httpMethod), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.method(httpMethod)) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -540,7 +541,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	fun path(pattern: String, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.path(pattern), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.path(pattern)) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -554,7 +555,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	fun pathExtension(extension: String, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.pathExtension(extension), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.pathExtension(extension)) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -568,8 +569,8 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * Route to the given handler function if the given pathExtension predicate applies.
 	 * @see RouterFunctions.route
 	 */
-	fun pathExtension(predicate: (String) -> Boolean, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.pathExtension(predicate), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+	fun pathExtension(predicate: (String?) -> Boolean, f: (ServerRequest) -> Mono<out ServerResponse>) {
+		builder.add(RouterFunctions.route(RequestPredicates.pathExtension(predicate)) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -577,7 +578,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * predicate.
 	 * @see RequestPredicates.pathExtension
 	 */
-	fun pathExtension(predicate: (String) -> Boolean): RequestPredicate =
+	fun pathExtension(predicate: (String?) -> Boolean): RequestPredicate =
 			RequestPredicates.pathExtension(predicate)
 
 	/**
@@ -585,7 +586,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	fun queryParam(name: String, predicate: (String) -> Boolean, f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.queryParam(name, predicate), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.queryParam(name, predicate)) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -604,7 +605,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	operator fun RequestPredicate.invoke(f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(this, HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(this) { f(it).cast(ServerResponse::class.java) })
 	}
 
 	/**
@@ -613,7 +614,16 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @see RouterFunctions.route
 	 */
 	operator fun String.invoke(f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.path(this),  HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.path(this)) { f(it).cast(ServerResponse::class.java) })
+	}
+
+	/**
+	 * Route requests that match the given predicate to the given resource.
+	 * @since 6.1.4
+	 * @see RouterFunctions.resource
+	 */
+	fun resource(predicate: RequestPredicate, resource: Resource) {
+		builder.resource(predicate, resource)
 	}
 
 	/**
@@ -652,7 +662,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	fun filter(filterFunction: (ServerRequest, (ServerRequest) -> Mono<ServerResponse>) -> Mono<ServerResponse>) {
 		builder.filter { request, next ->
 			filterFunction(request) {
-				next.handle(request)
+				next.handle(it)
 			}
 		}
 	}
@@ -702,6 +712,30 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	}
 
 	/**
+	 * Add an attribute with the given name and value to the last route built with this builder.
+	 * @param name the attribute name
+	 * @param value the attribute value
+	 * @since 6.0
+	 */
+	fun withAttribute(name: String, value: Any) {
+		builder.withAttribute(name, value)
+	}
+
+	/**
+	 * Manipulate the attributes of the last route built with the given consumer.
+	 *
+	 * The map provided to the consumer is "live", so that the consumer can be used
+	 * to [overwrite][MutableMap.put] existing attributes,
+	 * [remove][MutableMap.remove] attributes, or use any of the other
+	 * [MutableMap] methods.
+	 * @param attributesConsumer a function that consumes the attributes map
+	 * @since 6.0
+	 */
+	fun withAttributes(attributesConsumer: (MutableMap<String, Any>) -> Unit) {
+		builder.withAttributes(attributesConsumer)
+	}
+
+	/**
 	 * Return a composed routing function created from all the registered routes.
 	 * @since 5.1
 	 */
@@ -725,7 +759,7 @@ class RouterFunctionDsl internal constructor (private val init: RouterFunctionDs
 	 * @return the created builder
 	 * @since 5.1
 	 */
-	fun status(status: HttpStatus): ServerResponse.BodyBuilder =
+	fun status(status: HttpStatusCode): ServerResponse.BodyBuilder =
 			ServerResponse.status(status)
 
 	/**

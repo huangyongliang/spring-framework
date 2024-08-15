@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import org.springframework.web.testfixture.servlet.MockHttpServletRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.springframework.beans.factory.config.AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR;
 
 /**
  * @author Rob Harrop
@@ -45,13 +44,13 @@ import static org.springframework.beans.factory.config.AutowireCapableBeanFactor
  * @author Sam Brannen
  * @see SessionScopeTests
  */
-public class RequestScopeTests {
+class RequestScopeTests {
 
 	private final DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
 
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		this.beanFactory.registerScope("request", new RequestScope());
 		this.beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver());
 		XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(this.beanFactory);
@@ -60,13 +59,13 @@ public class RequestScopeTests {
 	}
 
 	@AfterEach
-	public void resetRequestAttributes() {
+	void resetRequestAttributes() {
 		RequestContextHolder.setRequestAttributes(null);
 	}
 
 
 	@Test
-	public void getFromScope() {
+	void getFromScope() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setContextPath("/path");
 		RequestAttributes requestAttributes = new ServletRequestAttributes(request);
@@ -81,7 +80,7 @@ public class RequestScopeTests {
 	}
 
 	@Test
-	public void destructionAtRequestCompletion() {
+	void destructionAtRequestCompletion() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		ServletRequestAttributes requestAttributes = new ServletRequestAttributes(request);
 		RequestContextHolder.setRequestAttributes(requestAttributes);
@@ -97,7 +96,7 @@ public class RequestScopeTests {
 	}
 
 	@Test
-	public void getFromFactoryBeanInScope() {
+	void getFromFactoryBeanInScope() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		RequestAttributes requestAttributes = new ServletRequestAttributes(request);
 		RequestContextHolder.setRequestAttributes(requestAttributes);
@@ -111,7 +110,7 @@ public class RequestScopeTests {
 	}
 
 	@Test
-	public void circleLeadsToException() {
+	void circleLeadsToException() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		RequestAttributes requestAttributes = new ServletRequestAttributes(request);
 		RequestContextHolder.setRequestAttributes(requestAttributes);
@@ -124,7 +123,7 @@ public class RequestScopeTests {
 	}
 
 	@Test
-	public void innerBeanInheritsContainingBeanScopeByDefault() {
+	void innerBeanInheritsContainingBeanScopeByDefault() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		ServletRequestAttributes requestAttributes = new ServletRequestAttributes(request);
 		RequestContextHolder.setRequestAttributes(requestAttributes);
@@ -147,7 +146,7 @@ public class RequestScopeTests {
 	}
 
 	@Test
-	public void requestScopedInnerBeanDestroyedWhileContainedBySingleton() {
+	void requestScopedInnerBeanDestroyedWhileContainedBySingleton() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		ServletRequestAttributes requestAttributes = new ServletRequestAttributes(request);
 		RequestContextHolder.setRequestAttributes(requestAttributes);
@@ -165,7 +164,7 @@ public class RequestScopeTests {
 	}
 
 	@Test
-	public void scopeNotAvailable() {
+	void scopeNotAvailable() {
 		assertThatExceptionOfType(ScopeNotActiveException.class).isThrownBy(
 				() -> this.beanFactory.getBean(CountingTestBean.class));
 
@@ -174,8 +173,7 @@ public class RequestScopeTests {
 		assertThat(beanProvider.getIfAvailable()).isNull();
 		assertThat(beanProvider.getIfUnique()).isNull();
 
-		ObjectProvider<CountingTestBean> provider =
-				((ProviderBean) this.beanFactory.createBean(ProviderBean.class, AUTOWIRE_CONSTRUCTOR, false)).provider;
+		ObjectProvider<CountingTestBean> provider = this.beanFactory.createBean(ProviderBean.class).provider;
 		assertThatExceptionOfType(ScopeNotActiveException.class).isThrownBy(provider::getObject);
 		assertThat(provider.getIfAvailable()).isNull();
 		assertThat(provider.getIfUnique()).isNull();

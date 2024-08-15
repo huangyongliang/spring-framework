@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.web.cors.reactive;
 
-
-import java.io.IOException;
 import java.util.Arrays;
-
-import javax.servlet.ServletException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,17 +40,18 @@ import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.HttpHeaders.ORIGIN;
 
 /**
- * Unit tests for {@link CorsWebFilter}.
+ * Tests for {@link CorsWebFilter}.
+ *
  * @author Sebastien Deleuze
  */
-public class CorsWebFilterTests {
+class CorsWebFilterTests {
 
 	private CorsWebFilter filter;
 
 	private final CorsConfiguration config = new CorsConfiguration();
 
 	@BeforeEach
-	public void setup() throws Exception {
+	void setup() {
 		config.setAllowedOrigins(Arrays.asList("https://domain1.com", "https://domain2.com"));
 		config.setAllowedMethods(Arrays.asList("GET", "POST"));
 		config.setAllowedHeaders(Arrays.asList("header1", "header2"));
@@ -64,7 +62,7 @@ public class CorsWebFilterTests {
 	}
 
 	@Test
-	public void nonCorsRequest() {
+	void nonCorsRequest() {
 		WebFilterChain filterChain = filterExchange -> {
 			try {
 				HttpHeaders headers = filterExchange.getResponse().getHeaders();
@@ -85,7 +83,7 @@ public class CorsWebFilterTests {
 	}
 
 	@Test
-	public void sameOriginRequest() {
+	void sameOriginRequest() {
 		WebFilterChain filterChain = filterExchange -> {
 			try {
 				HttpHeaders headers = filterExchange.getResponse().getHeaders();
@@ -106,7 +104,7 @@ public class CorsWebFilterTests {
 	}
 
 	@Test
-	public void validActualRequest() {
+	void validActualRequest() {
 		WebFilterChain filterChain = filterExchange -> {
 			try {
 				HttpHeaders headers = filterExchange.getResponse().getHeaders();
@@ -129,7 +127,7 @@ public class CorsWebFilterTests {
 	}
 
 	@Test
-	public void invalidActualRequest() throws ServletException, IOException {
+	void invalidActualRequest() {
 		MockServerWebExchange exchange = MockServerWebExchange.from(
 				MockServerHttpRequest
 						.delete("https://domain1.com/test.html")
@@ -144,7 +142,7 @@ public class CorsWebFilterTests {
 	}
 
 	@Test
-	public void validPreFlightRequest() throws ServletException, IOException {
+	void validPreFlightRequest() {
 
 		MockServerWebExchange exchange = MockServerWebExchange.from(
 				MockServerHttpRequest
@@ -167,7 +165,7 @@ public class CorsWebFilterTests {
 	}
 
 	@Test
-	public void invalidPreFlightRequest() throws ServletException, IOException {
+	void invalidPreFlightRequest() {
 
 		MockServerWebExchange exchange = MockServerWebExchange.from(
 				MockServerHttpRequest

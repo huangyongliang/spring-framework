@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,12 @@ import org.springframework.core.annotation.AliasFor;
  *
  * <p>Method-level declarations override class-level declarations by default,
  * but this behavior can be configured via {@link SqlMergeMode @SqlMergeMode}.
+ * However, this does not apply to class-level declarations configured for the
+ * {@link ExecutionPhase#BEFORE_TEST_CLASS BEFORE_TEST_CLASS} or
+ * {@link ExecutionPhase#AFTER_TEST_CLASS AFTER_TEST_CLASS} execution phase. Such
+ * declarations cannot be overridden, and the corresponding scripts and statements
+ * will be executed once per class in addition to any method-level scripts and
+ * statements.
  *
  * <p>Script execution is performed by the {@link SqlScriptsTestExecutionListener},
  * which is enabled by default.
@@ -45,15 +51,25 @@ import org.springframework.core.annotation.AliasFor;
  * XML namespace element. Consult the javadocs of individual attributes in this
  * annotation and {@link SqlConfig @SqlConfig} for details.
  *
- * <p>Beginning with Java 8, {@code @Sql} can be used as a
- * <em>{@linkplain Repeatable repeatable}</em> annotation. Otherwise,
- * {@link SqlGroup @SqlGroup} can be used as an explicit container for declaring
- * multiple instances of {@code @Sql}.
+ * <p>{@code @Sql} can be used as a <em>{@linkplain Repeatable repeatable}</em>
+ * annotation. Otherwise, {@link SqlGroup @SqlGroup} can be used as an explicit
+ * container for declaring multiple instances of {@code @Sql}.
  *
- * <p>This annotation may be used as a <em>meta-annotation</em> to create custom
- * <em>composed annotations</em> with attribute overrides.
+ * <p>This annotation will be inherited from an enclosing test class by default. See
+ * {@link org.springframework.test.context.NestedTestConfiguration @NestedTestConfiguration}
+ * for details. This annotation may also be used as a <em>meta-annotation</em> to
+ * create custom <em>composed annotations</em> with attribute overrides.
+ *
+ * <p>If you want to see which SQL scripts are being executed, set the
+ * {@code org.springframework.test.context.jdbc} logging category to {@code DEBUG}.
+ * If you want to see which SQL statements are being executed, set the
+ * {@code org.springframework.jdbc.datasource.init} logging category to {@code DEBUG}.
+ *
+ * <p>Use of this annotation requires the {@code spring-jdbc} and {@code spring-tx}
+ * modules as well as their transitive dependencies to be present on the classpath.
  *
  * @author Sam Brannen
+ * @author Andreas Ahlenstorf
  * @since 4.1
  * @see SqlConfig
  * @see SqlMergeMode
@@ -87,7 +103,7 @@ public @interface Sql {
 	 * {@link #value}, but it may be used instead of {@link #value}. Similarly,
 	 * this attribute may be used in conjunction with or instead of
 	 * {@link #statements}.
-	 * <h3>Path Resource Semantics</h3>
+	 * <h4>Path Resource Semantics</h4>
 	 * <p>Each path will be interpreted as a Spring
 	 * {@link org.springframework.core.io.Resource Resource}. A plain path
 	 * &mdash; for example, {@code "schema.sql"} &mdash; will be treated as a
@@ -99,7 +115,11 @@ public @interface Sql {
 	 * {@link org.springframework.util.ResourceUtils#CLASSPATH_URL_PREFIX classpath:},
 	 * {@link org.springframework.util.ResourceUtils#FILE_URL_PREFIX file:},
 	 * {@code http:}, etc.) will be loaded using the specified resource protocol.
-	 * <h3>Default Script Detection</h3>
+	 * <p>As of Spring Framework 6.2, paths may contain property placeholders
+	 * (<code>${...}</code>) that will be replaced by properties stored in the
+	 * {@link org.springframework.core.env.Environment Environment} of the test's
+	 * {@code ApplicationContext}.
+	 * <h4>Default Script Detection</h4>
 	 * <p>If no SQL scripts or {@link #statements} are specified, an attempt will
 	 * be made to detect a <em>default</em> script depending on where this
 	 * annotation is declared. If a default cannot be detected, an
@@ -115,6 +135,7 @@ public @interface Sql {
 	 * </ul>
 	 * @see #value
 	 * @see #statements
+	 * @see org.springframework.core.env.Environment#resolveRequiredPlaceholders(String)
 	 */
 	@AliasFor("value")
 	String[] scripts() default {};
@@ -123,7 +144,7 @@ public @interface Sql {
 	 * <em>Inlined SQL statements</em> to execute.
 	 * <p>This attribute may be used in conjunction with or instead of
 	 * {@link #scripts}.
-	 * <h3>Ordering</h3>
+	 * <h4>Ordering</h4>
 	 * <p>Statements declared via this attribute will be executed after
 	 * statements loaded from resource {@link #scripts}. If you wish to have
 	 * inlined statements executed before scripts, simply declare multiple
@@ -155,14 +176,67 @@ public @interface Sql {
 	enum ExecutionPhase {
 
 		/**
+		 * The configured SQL scripts and statements will be executed once per
+		 * test class <em>before</em> any test method is run.
+		 * <p>Specifically, the configured SQL scripts and statements will be
+		 * executed prior to any <em>before class lifecycle methods</em> of a
+		 * particular testing framework &mdash; for example, methods annotated
+		 * with JUnit Jupiter's {@link org.junit.jupiter.api.BeforeAll @BeforeAll}
+		 * annotation.
+		 * <p>NOTE: Configuring {@code BEFORE_TEST_CLASS} as the execution phase
+		 * causes the test's {@code ApplicationContext} to be eagerly loaded
+		 * during test class initialization which can potentially result in
+		 * undesired side effects. For example,
+		 * {@link org.springframework.test.context.DynamicPropertySource @DynamicPropertySource}
+		 * methods will be invoked before {@code @BeforeAll} methods when using
+		 * {@code BEFORE_TEST_CLASS}.
+		 * @since 6.1
+		 * @see #AFTER_TEST_CLASS
+		 * @see #BEFORE_TEST_METHOD
+		 * @see #AFTER_TEST_METHOD
+		 */
+		BEFORE_TEST_CLASS,
+
+		/**
+		 * The configured SQL scripts and statements will be executed once per
+		 * test class <em>after</em> all test methods have run.
+		 * <p>Specifically, the configured SQL scripts and statements will be
+		 * executed after any <em>after class lifecycle methods</em> of a
+		 * particular testing framework &mdash; for example, methods annotated
+		 * with JUnit Jupiter's {@link org.junit.jupiter.api.AfterAll @AfterAll}
+		 * annotation.
+		 * @since 6.1
+		 * @see #BEFORE_TEST_CLASS
+		 * @see #BEFORE_TEST_METHOD
+		 * @see #AFTER_TEST_METHOD
+		 */
+		AFTER_TEST_CLASS,
+
+		/**
 		 * The configured SQL scripts and statements will be executed
 		 * <em>before</em> the corresponding test method.
+		 * <p>Specifically, the configured SQL scripts and statements will be
+		 * executed prior to any <em>before test lifecycle methods</em> of a
+		 * particular testing framework &mdash; for example, methods annotated
+		 * with JUnit Jupiter's {@link org.junit.jupiter.api.BeforeEach @BeforeEach}
+		 * annotation.
+		 * @see #BEFORE_TEST_CLASS
+		 * @see #AFTER_TEST_CLASS
+		 * @see #AFTER_TEST_METHOD
 		 */
 		BEFORE_TEST_METHOD,
 
 		/**
 		 * The configured SQL scripts and statements will be executed
 		 * <em>after</em> the corresponding test method.
+		 * <p>Specifically, the configured SQL scripts and statements will be
+		 * executed after any <em>after test lifecycle methods</em> of a
+		 * particular testing framework &mdash; for example, methods annotated
+		 * with JUnit Jupiter's {@link org.junit.jupiter.api.AfterEach @AfterEach}
+		 * annotation.
+		 * @see #BEFORE_TEST_CLASS
+		 * @see #AFTER_TEST_CLASS
+		 * @see #BEFORE_TEST_METHOD
 		 */
 		AFTER_TEST_METHOD
 	}

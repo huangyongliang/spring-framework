@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,24 +31,26 @@ import org.springframework.transaction.interceptor.RuleBasedTransactionAttribute
 import org.springframework.transaction.interceptor.TransactionAttribute;
 
 /**
- * Strategy implementation for parsing JTA 1.2's {@link javax.transaction.Transactional} annotation.
+ * Strategy implementation for parsing JTA 1.2's {@link jakarta.transaction.Transactional} annotation.
  *
  * @author Juergen Hoeller
  * @since 4.0
+ * @see SpringTransactionAnnotationParser
+ * @see Ejb3TransactionAnnotationParser
  */
 @SuppressWarnings("serial")
 public class JtaTransactionAnnotationParser implements TransactionAnnotationParser, Serializable {
 
 	@Override
 	public boolean isCandidateClass(Class<?> targetClass) {
-		return AnnotationUtils.isCandidateClass(targetClass, javax.transaction.Transactional.class);
+		return AnnotationUtils.isCandidateClass(targetClass, jakarta.transaction.Transactional.class);
 	}
 
 	@Override
 	@Nullable
 	public TransactionAttribute parseTransactionAnnotation(AnnotatedElement element) {
 		AnnotationAttributes attributes = AnnotatedElementUtils.getMergedAnnotationAttributes(
-				element, javax.transaction.Transactional.class);
+				element, jakarta.transaction.Transactional.class);
 		if (attributes != null) {
 			return parseTransactionAnnotation(attributes);
 		}
@@ -57,7 +59,7 @@ public class JtaTransactionAnnotationParser implements TransactionAnnotationPars
 		}
 	}
 
-	public TransactionAttribute parseTransactionAnnotation(javax.transaction.Transactional ann) {
+	public TransactionAttribute parseTransactionAnnotation(jakarta.transaction.Transactional ann) {
 		return parseTransactionAnnotation(AnnotationUtils.getAnnotationAttributes(ann, false, false));
 	}
 
@@ -65,7 +67,7 @@ public class JtaTransactionAnnotationParser implements TransactionAnnotationPars
 		RuleBasedTransactionAttribute rbta = new RuleBasedTransactionAttribute();
 
 		rbta.setPropagationBehaviorName(
-				RuleBasedTransactionAttribute.PREFIX_PROPAGATION + attributes.getEnum("value").toString());
+				RuleBasedTransactionAttribute.PREFIX_PROPAGATION + attributes.getEnum("value"));
 
 		List<RollbackRuleAttribute> rollbackRules = new ArrayList<>();
 		for (Class<?> rbRule : attributes.getClassArray("rollbackOn")) {

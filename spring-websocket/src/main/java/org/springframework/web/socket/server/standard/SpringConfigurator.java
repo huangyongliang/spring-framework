@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.websocket.server.ServerEndpoint;
-import javax.websocket.server.ServerEndpointConfig.Configurator;
-
+import jakarta.websocket.server.ServerEndpoint;
+import jakarta.websocket.server.ServerEndpointConfig.Configurator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -35,7 +34,7 @@ import org.springframework.web.context.ContextLoader;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * A {@link javax.websocket.server.ServerEndpointConfig.Configurator} for initializing
+ * A {@link jakarta.websocket.server.ServerEndpointConfig.Configurator} for initializing
  * {@link ServerEndpoint}-annotated classes through Spring.
  *
  * <p>
@@ -103,11 +102,7 @@ public class SpringConfigurator extends Configurator {
 	private String getBeanNameByType(WebApplicationContext wac, Class<?> endpointClass) {
 		String wacId = wac.getId();
 
-		Map<Class<?>, String> beanNamesByType = cache.get(wacId);
-		if (beanNamesByType == null) {
-			beanNamesByType = new ConcurrentHashMap<>();
-			cache.put(wacId, beanNamesByType);
-		}
+		Map<Class<?>, String> beanNamesByType = cache.computeIfAbsent(wacId, k -> new ConcurrentHashMap<>());
 
 		if (!beanNamesByType.containsKey(endpointClass)) {
 			String[] names = wac.getBeanNamesForType(endpointClass);
@@ -118,7 +113,7 @@ public class SpringConfigurator extends Configurator {
 				beanNamesByType.put(endpointClass, NO_VALUE);
 				if (names.length > 1) {
 					throw new IllegalStateException("Found multiple @ServerEndpoint's of type [" +
-							endpointClass.getName() + "]: bean names " + Arrays.asList(names));
+							endpointClass.getName() + "]: bean names " + Arrays.toString(names));
 				}
 			}
 		}

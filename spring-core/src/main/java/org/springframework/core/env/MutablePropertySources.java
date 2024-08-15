@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.springframework.core.env;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
@@ -69,7 +68,7 @@ public class MutablePropertySources implements PropertySources {
 
 	@Override
 	public Spliterator<PropertySource<?>> spliterator() {
-		return Spliterators.spliterator(this.propertySourceList, 0);
+		return this.propertySourceList.spliterator();
 	}
 
 	@Override
@@ -100,7 +99,7 @@ public class MutablePropertySources implements PropertySources {
 
 
 	/**
-	 * Add the given property source object with highest precedence.
+	 * Add the given property source object with the highest precedence.
 	 */
 	public void addFirst(PropertySource<?> propertySource) {
 		synchronized (this.propertySourceList) {
@@ -110,7 +109,7 @@ public class MutablePropertySources implements PropertySources {
 	}
 
 	/**
-	 * Add the given property source object with lowest precedence.
+	 * Add the given property source object with the lowest precedence.
 	 */
 	public void addLast(PropertySource<?> propertySource) {
 		synchronized (this.propertySourceList) {

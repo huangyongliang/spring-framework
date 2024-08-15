@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,16 @@
 
 package org.springframework.dao;
 
+import org.springframework.lang.Nullable;
+
 /**
  * Exception thrown when an attempt to insert or update data
- * results in violation of an primary key or unique constraint.
+ * results in violation of a primary key or unique constraint.
  * Note that this is not necessarily a purely relational concept;
  * unique primary keys are required by most database types.
+ *
+ * <p>Consider handling the general {@link DataIntegrityViolationException}
+ * instead, semantically including a wider range of constraint violations.
  *
  * @author Thomas Risberg
  */
@@ -31,7 +36,7 @@ public class DuplicateKeyException extends DataIntegrityViolationException {
 	 * Constructor for DuplicateKeyException.
 	 * @param msg the detail message
 	 */
-	public DuplicateKeyException(String msg) {
+	public DuplicateKeyException(@Nullable String msg) {
 		super(msg);
 	}
 
@@ -40,7 +45,7 @@ public class DuplicateKeyException extends DataIntegrityViolationException {
 	 * @param msg the detail message
 	 * @param cause the root cause from the data access API in use
 	 */
-	public DuplicateKeyException(String msg, Throwable cause) {
+	public DuplicateKeyException(@Nullable String msg, @Nullable Throwable cause) {
 		super(msg, cause);
 	}
 

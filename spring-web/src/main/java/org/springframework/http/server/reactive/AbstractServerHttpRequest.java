@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,21 @@
 
 package org.springframework.http.server.reactive;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.server.RequestPath;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -45,9 +50,15 @@ public abstract class AbstractServerHttpRequest implements ServerHttpRequest {
 
 	private final URI uri;
 
-	private final RequestPath path;
+	@Nullable
+	private final String contextPath;
+
+	@Nullable
+	private RequestPath path;
 
 	private final HttpHeaders headers;
+
+	private final HttpMethod method;
 
 	@Nullable
 	private MultiValueMap<String, String> queryParams;
@@ -64,29 +75,28 @@ public abstract class AbstractServerHttpRequest implements ServerHttpRequest {
 	@Nullable
 	private String logPrefix;
 
+	@Nullable
+	private Supplier<Map<String, Object>> attributesSupplier;
+
 
 	/**
-	 * Constructor with the URI and headers for the request.
+	 * Constructor with the method, URI and headers for the request.
+	 * @param method the HTTP method for the request
 	 * @param uri the URI for the request
 	 * @param contextPath the context path for the request
 	 * @param headers the headers for the request (as {@link MultiValueMap})
-	 * @since 5.3
+	 * @since 6.0.8
 	 */
-	public AbstractServerHttpRequest(URI uri, @Nullable String contextPath, MultiValueMap<String, String> headers) {
-		this.uri = uri;
-		this.path = RequestPath.parse(uri, contextPath);
-		this.headers = HttpHeaders.readOnlyHttpHeaders(headers);
-	}
+	public AbstractServerHttpRequest(HttpMethod method, URI uri, @Nullable String contextPath,
+			MultiValueMap<String, String> headers) {
 
-	/**
-	 * Constructor with the URI and headers for the request.
-	 * @param uri the URI for the request
-	 * @param contextPath the context path for the request
-	 * @param headers the headers for the request (as {@link HttpHeaders})
-	 */
-	public AbstractServerHttpRequest(URI uri, @Nullable String contextPath, HttpHeaders headers) {
+		Assert.notNull(method, "Method must not be null");
+		Assert.notNull(uri, "Uri must not be null");
+		Assert.notNull(headers, "Headers must not be null");
+
+		this.method = method;
 		this.uri = uri;
-		this.path = RequestPath.parse(uri, contextPath);
+		this.contextPath = contextPath;
 		this.headers = HttpHeaders.readOnlyHttpHeaders(headers);
 	}
 
@@ -113,12 +123,30 @@ public abstract class AbstractServerHttpRequest implements ServerHttpRequest {
 	}
 
 	@Override
+	public HttpMethod getMethod() {
+		return this.method;
+	}
+
+	@Override
 	public URI getURI() {
 		return this.uri;
 	}
 
 	@Override
+	public Map<String, Object> getAttributes() {
+		if (this.attributesSupplier != null) {
+			return this.attributesSupplier.get();
+		}
+		else {
+			return Collections.emptyMap();
+		}
+	}
+
+	@Override
 	public RequestPath getPath() {
+		if (this.path == null) {
+			this.path = RequestPath.parse(this.uri, this.contextPath);
+		}
 		return this.path;
 	}
 
@@ -158,15 +186,8 @@ public abstract class AbstractServerHttpRequest implements ServerHttpRequest {
 		return queryParams;
 	}
 
-	@SuppressWarnings("deprecation")
 	private String decodeQueryParam(String value) {
-		try {
-			return URLDecoder.decode(value, "UTF-8");
-		}
-		catch (UnsupportedEncodingException ex) {
-			// Should never happen but we got a platform default fallback anyway.
-			return URLDecoder.decode(value);
-		}
+		return URLDecoder.decode(value, StandardCharsets.UTF_8);
 	}
 
 	@Override
@@ -182,7 +203,7 @@ public abstract class AbstractServerHttpRequest implements ServerHttpRequest {
 	 * an {@link HttpCookie} map. The return value is turned into an immutable
 	 * map and cached.
 	 * <p>Note that this method is invoked lazily on access to
-	 * {@link #getCookies()}. Sub-classes should synchronize cookie
+	 * {@link #getCookies()}. Subclasses should synchronize cookie
 	 * initialization if the underlying "native" request does not provide
 	 * thread-safe access to cookie data.
 	 */
@@ -218,9 +239,26 @@ public abstract class AbstractServerHttpRequest implements ServerHttpRequest {
 	 */
 	String getLogPrefix() {
 		if (this.logPrefix == null) {
-			this.logPrefix = "[" + getId() + "] ";
+			this.logPrefix = "[" + initLogPrefix() + "] ";
 		}
 		return this.logPrefix;
 	}
 
+	/**
+	 * Subclasses can override this to provide the prefix to use for log messages.
+	 * <p>By default, this is {@link #getId()}.
+	 * @since 5.3.15
+	 */
+	protected String initLogPrefix() {
+		return getId();
+	}
+
+	/**
+	 * Set the attribute supplier.
+	 * <p><strong>Note:</strong> This is exposed mainly for internal framework
+	 * use.
+	 */
+	public void setAttributesSupplier(Supplier<Map<String, Object>> attributesSupplier) {
+		this.attributesSupplier = attributesSupplier;
+	}
 }

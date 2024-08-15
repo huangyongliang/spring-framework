@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,10 +30,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * @author Arjen Poutsma
  */
-public class ConsumesRequestConditionTests {
+class ConsumesRequestConditionTests {
 
 	@Test
-	public void consumesMatch() {
+	void consumesMatch() {
 		ConsumesRequestCondition condition = new ConsumesRequestCondition("text/plain");
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -43,7 +43,7 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void negatedConsumesMatch() {
+	void negatedConsumesMatch() {
 		ConsumesRequestCondition condition = new ConsumesRequestCondition("!text/plain");
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -53,13 +53,13 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void getConsumableMediaTypesNegatedExpression() {
+	void getConsumableMediaTypesNegatedExpression() {
 		ConsumesRequestCondition condition = new ConsumesRequestCondition("!application/xml");
 		assertThat(condition.getConsumableMediaTypes()).isEqualTo(Collections.emptySet());
 	}
 
 	@Test
-	public void consumesWildcardMatch() {
+	void consumesWildcardMatch() {
 		ConsumesRequestCondition condition = new ConsumesRequestCondition("text/*");
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -69,7 +69,7 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void consumesMultipleMatch() {
+	void consumesMultipleMatch() {
 		ConsumesRequestCondition condition = new ConsumesRequestCondition("text/plain", "application/xml");
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -79,7 +79,7 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void consumesSingleNoMatch() {
+	void consumesSingleNoMatch() {
 		ConsumesRequestCondition condition = new ConsumesRequestCondition("text/plain");
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -88,8 +88,33 @@ public class ConsumesRequestConditionTests {
 		assertThat(condition.getMatchingCondition(request)).isNull();
 	}
 
+	@Test // gh-28024
+	public void matchWithParameters() {
+		String base = "application/hal+json";
+		ConsumesRequestCondition condition = new ConsumesRequestCondition(base + ";profile=\"a\"");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setContentType(base + ";profile=\"a\"");
+		assertThat(condition.getMatchingCondition(request)).isNotNull();
+
+		condition = new ConsumesRequestCondition(base + ";profile=\"a\"");
+		request.setContentType(base + ";profile=\"b\"");
+		assertThat(condition.getMatchingCondition(request)).isNull();
+
+		condition = new ConsumesRequestCondition(base + ";profile=\"a\"");
+		request.setContentType(base);
+		assertThat(condition.getMatchingCondition(request)).isNotNull();
+
+		condition = new ConsumesRequestCondition(base);
+		request.setContentType(base + ";profile=\"a\"");
+		assertThat(condition.getMatchingCondition(request)).isNotNull();
+
+		condition = new ConsumesRequestCondition(base + ";profile=\"a\"");
+		request.setContentType(base + ";profile=\"A\"");
+		assertThat(condition.getMatchingCondition(request)).isNotNull();
+	}
+
 	@Test
-	public void consumesParseError() {
+	void consumesParseError() {
 		ConsumesRequestCondition condition = new ConsumesRequestCondition("text/plain");
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -99,7 +124,7 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void consumesParseErrorWithNegation() {
+	void consumesParseErrorWithNegation() {
 		ConsumesRequestCondition condition = new ConsumesRequestCondition("!text/plain");
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -130,36 +155,36 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void compareToSingle() {
+	void compareToSingle() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 
 		ConsumesRequestCondition condition1 = new ConsumesRequestCondition("text/plain");
 		ConsumesRequestCondition condition2 = new ConsumesRequestCondition("text/*");
 
 		int result = condition1.compareTo(condition2, request);
-		assertThat(result < 0).as("Invalid comparison result: " + result).isTrue();
+		assertThat(result).as("Invalid comparison result: " + result).isLessThan(0);
 
 		result = condition2.compareTo(condition1, request);
-		assertThat(result > 0).as("Invalid comparison result: " + result).isTrue();
+		assertThat(result).as("Invalid comparison result: " + result).isGreaterThan(0);
 	}
 
 	@Test
-	public void compareToMultiple() {
+	void compareToMultiple() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 
 		ConsumesRequestCondition condition1 = new ConsumesRequestCondition("*/*", "text/plain");
 		ConsumesRequestCondition condition2 = new ConsumesRequestCondition("text/*", "text/plain;q=0.7");
 
 		int result = condition1.compareTo(condition2, request);
-		assertThat(result < 0).as("Invalid comparison result: " + result).isTrue();
+		assertThat(result).as("Invalid comparison result: " + result).isLessThan(0);
 
 		result = condition2.compareTo(condition1, request);
-		assertThat(result > 0).as("Invalid comparison result: " + result).isTrue();
+		assertThat(result).as("Invalid comparison result: " + result).isGreaterThan(0);
 	}
 
 
 	@Test
-	public void combine() {
+	void combine() {
 		ConsumesRequestCondition condition1 = new ConsumesRequestCondition("text/plain");
 		ConsumesRequestCondition condition2 = new ConsumesRequestCondition("application/xml");
 
@@ -168,7 +193,7 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void combineWithDefault() {
+	void combineWithDefault() {
 		ConsumesRequestCondition condition1 = new ConsumesRequestCondition("text/plain");
 		ConsumesRequestCondition condition2 = new ConsumesRequestCondition();
 
@@ -177,7 +202,7 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void parseConsumesAndHeaders() {
+	void parseConsumesAndHeaders() {
 		String[] consumes = new String[] {"text/plain"};
 		String[] headers = new String[]{"foo=bar", "content-type=application/xml,application/pdf"};
 		ConsumesRequestCondition condition = new ConsumesRequestCondition(consumes, headers);
@@ -186,7 +211,7 @@ public class ConsumesRequestConditionTests {
 	}
 
 	@Test
-	public void getMatchingCondition() {
+	void getMatchingCondition() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setContentType("text/plain");
 

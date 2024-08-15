@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,37 +16,32 @@
 
 package org.springframework.test.context.support;
 
-import java.util.HashMap;
-import java.util.function.Supplier;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link DynamicValuesPropertySource}.
+ * Tests for {@link DynamicValuesPropertySource}.
  *
  * @author Phillip Webb
  * @author Sam Brannen
  */
 class DynamicValuesPropertySourceTests {
 
-	@SuppressWarnings("serial")
-	private final DynamicValuesPropertySource source = new DynamicValuesPropertySource("test",
-		new HashMap<String, Supplier<Object>>() {{
-			put("a", () -> "A");
-			put("b", () -> "B");
-		}});
+	private final DynamicValuesPropertySource source = new DynamicValuesPropertySource(
+			Map.of("a", () -> "A", "b", () -> "B"));
 
 
 	@Test
-	void getPropertyReturnsSuppliedProperty() throws Exception {
+	void getPropertyReturnsSuppliedProperty() {
 		assertThat(this.source.getProperty("a")).isEqualTo("A");
 		assertThat(this.source.getProperty("b")).isEqualTo("B");
 	}
 
 	@Test
-	void getPropertyWhenMissingReturnsNull() throws Exception {
+	void getPropertyWhenMissingReturnsNull() {
 		assertThat(this.source.getProperty("c")).isNull();
 	}
 
@@ -63,7 +58,7 @@ class DynamicValuesPropertySourceTests {
 
 	@Test
 	void getPropertyNamesReturnsNames() {
-		assertThat(this.source.getPropertyNames()).containsExactly("a", "b");
+		assertThat(this.source.getPropertyNames()).containsExactlyInAnyOrder("a", "b");
 	}
 
 }

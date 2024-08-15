@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,12 @@
 package org.springframework.web.reactive.function.server
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.reactive.awaitSingleOrNull
-import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactive.asFlow
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.MediaType
 import org.springframework.http.codec.multipart.Part
-import org.springframework.util.CollectionUtils
 import org.springframework.util.MultiValueMap
 import org.springframework.web.server.WebSession
 import reactor.core.publisher.Flux
@@ -36,7 +35,7 @@ import kotlin.reflect.KClass
  * Extension for [ServerRequest.bodyToMono] providing a `bodyToMono<Foo>()` variant
  * leveraging Kotlin reified type parameters. This extension is not subject to type
  * erasure and retains actual generic type arguments.
- * 
+ *
  * @author Sebastien Deleuze
  * @since 5.0
  */
@@ -76,6 +75,7 @@ fun <T : Any> ServerRequest.bodyToFlow(clazz: KClass<T>): Flow<T> =
 /**
  * Non-nullable Coroutines variant of [ServerRequest.bodyToMono].
  *
+ * @throws NoSuchElementException if the underlying [Mono] does not emit any value
  * @author Sebastien Deleuze
  * @since 5.2
  */
@@ -86,6 +86,7 @@ suspend inline fun <reified T : Any> ServerRequest.awaitBody(): T =
  * `KClass` non-nullable Coroutines variant of [ServerRequest.bodyToMono].
  * Please consider `awaitBody<Foo>` variant if possible.
  *
+ * @throws NoSuchElementException if the underlying [Mono] does not emit any value
  * @author Igor Manushin
  * @since 5.3
  */
@@ -171,15 +172,7 @@ fun ServerRequest.attributeOrNull(name: String): Any? = attributes()[name]
  */
 fun ServerRequest.queryParamOrNull(name: String): String? {
 	val queryParamValues = queryParams()[name]
-	return if (CollectionUtils.isEmpty(queryParamValues)) {
-		null
-	} else {
-		var value: String? = queryParamValues!![0]
-		if (value == null) {
-			value = ""
-		}
-		value
-	}
+	return if (queryParamValues.isNullOrEmpty()) null else queryParamValues[0] ?: ""
 }
 
 /**
@@ -199,3 +192,13 @@ fun ServerRequest.Headers.contentLengthOrNull(): Long? =
  */
 fun ServerRequest.Headers.contentTypeOrNull(): MediaType? =
 		contentType().orElse(null)
+
+/**
+ * Nullable variant of [ServerRequest.pathVariable].
+ *
+ * @author George Papadopoulos
+ * @since 6.2
+ */
+fun ServerRequest.pathVariableOrNull(name: String): String? {
+	return pathVariables()[name]
+}

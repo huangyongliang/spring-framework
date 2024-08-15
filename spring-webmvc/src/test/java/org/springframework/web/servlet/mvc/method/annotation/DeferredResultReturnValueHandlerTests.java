@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.MethodParameter;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.SettableListenableFuture;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.async.AsyncWebRequest;
@@ -38,11 +36,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.testfixture.method.ResolvableMethod.on;
 
 /**
- * Unit tests for {@link DeferredResultMethodReturnValueHandler}.
+ * Tests for {@link DeferredResultMethodReturnValueHandler}.
  *
  * @author Rossen Stoyanchev
  */
-public class DeferredResultReturnValueHandlerTests {
+class DeferredResultReturnValueHandlerTests {
 
 	private DeferredResultMethodReturnValueHandler handler;
 
@@ -52,7 +50,7 @@ public class DeferredResultReturnValueHandlerTests {
 
 
 	@BeforeEach
-	public void setup() throws Exception {
+	void setup() throws Exception {
 		this.handler = new DeferredResultMethodReturnValueHandler();
 		this.request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -65,56 +63,63 @@ public class DeferredResultReturnValueHandlerTests {
 
 
 	@Test
+	@SuppressWarnings("deprecation")
 	public void supportsReturnType() throws Exception {
 		assertThat(this.handler.supportsReturnType(
 				on(TestController.class).resolveReturnType(DeferredResult.class, String.class))).isTrue();
 
 		assertThat(this.handler.supportsReturnType(
-				on(TestController.class).resolveReturnType(ListenableFuture.class, String.class))).isTrue();
+				on(TestController.class).resolveReturnType(org.springframework.util.concurrent.ListenableFuture.class, String.class))).isTrue();
 
 		assertThat(this.handler.supportsReturnType(
 				on(TestController.class).resolveReturnType(CompletableFuture.class, String.class))).isTrue();
 	}
 
 	@Test
-	public void doesNotSupportReturnType() throws Exception {
+	void doesNotSupportReturnType() {
 		assertThat(this.handler.supportsReturnType(on(TestController.class).resolveReturnType(String.class))).isFalse();
 	}
 
 	@Test
-	public void deferredResult() throws Exception {
+	void deferredResult() throws Exception {
 		DeferredResult<String> result = new DeferredResult<>();
 		IllegalStateException ex = new IllegalStateException();
 		testHandle(result, DeferredResult.class, () -> result.setErrorResult(ex), ex);
 	}
 
 	@Test
+	@SuppressWarnings("deprecation")
 	public void listenableFuture() throws Exception {
-		SettableListenableFuture<String> future = new SettableListenableFuture<>();
-		testHandle(future, ListenableFuture.class, () -> future.set("foo"), "foo");
+		org.springframework.util.concurrent.SettableListenableFuture<String> future =
+				new org.springframework.util.concurrent.SettableListenableFuture<>();
+		testHandle(future, org.springframework.util.concurrent.ListenableFuture.class,
+				() -> future.set("foo"), "foo");
 	}
 
 	@Test
-	public void completableFuture() throws Exception {
+	void completableFuture() throws Exception {
 		CompletableFuture<String> future = new CompletableFuture<>();
 		testHandle(future, CompletableFuture.class, () -> future.complete("foo"), "foo");
 	}
 
 	@Test
-	public void deferredResultWithError() throws Exception {
+	void deferredResultWithError() throws Exception {
 		DeferredResult<String> result = new DeferredResult<>();
 		testHandle(result, DeferredResult.class, () -> result.setResult("foo"), "foo");
 	}
 
 	@Test
+	@SuppressWarnings("deprecation")
 	public void listenableFutureWithError() throws Exception {
-		SettableListenableFuture<String> future = new SettableListenableFuture<>();
+		org.springframework.util.concurrent.SettableListenableFuture<String> future =
+				new org.springframework.util.concurrent.SettableListenableFuture<>();
 		IllegalStateException ex = new IllegalStateException();
-		testHandle(future, ListenableFuture.class, () -> future.setException(ex), ex);
+		testHandle(future, org.springframework.util.concurrent.ListenableFuture.class,
+				() -> future.setException(ex), ex);
 	}
 
 	@Test
-	public void completableFutureWithError() throws Exception {
+	void completableFutureWithError() throws Exception {
 		CompletableFuture<String> future = new CompletableFuture<>();
 		IllegalStateException ex = new IllegalStateException();
 		testHandle(future, CompletableFuture.class, () -> future.completeExceptionally(ex), ex);
@@ -145,7 +150,8 @@ public class DeferredResultReturnValueHandlerTests {
 
 		DeferredResult<String> handleDeferredResult() { return null; }
 
-		ListenableFuture<String> handleListenableFuture() { return null; }
+		@SuppressWarnings("deprecation")
+		org.springframework.util.concurrent.ListenableFuture<String> handleListenableFuture() { return null; }
 
 		CompletableFuture<String> handleCompletableFuture() { return null; }
 	}

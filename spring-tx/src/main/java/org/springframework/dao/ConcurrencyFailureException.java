@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,17 +19,15 @@ package org.springframework.dao;
 import org.springframework.lang.Nullable;
 
 /**
- * Exception thrown on concurrency failure.
+ * Exception thrown on various data access concurrency failures.
  *
- * <p>This exception should be subclassed to indicate the type of failure:
- * optimistic locking, failure to acquire lock, etc.
+ * <p>This exception provides subclasses for specific types of failure,
+ * in particular optimistic locking versus pessimistic locking.
  *
  * @author Thomas Risberg
  * @since 1.1
  * @see OptimisticLockingFailureException
  * @see PessimisticLockingFailureException
- * @see CannotAcquireLockException
- * @see DeadlockLoserDataAccessException
  */
 @SuppressWarnings("serial")
 public class ConcurrencyFailureException extends TransientDataAccessException {
@@ -38,7 +36,7 @@ public class ConcurrencyFailureException extends TransientDataAccessException {
 	 * Constructor for ConcurrencyFailureException.
 	 * @param msg the detail message
 	 */
-	public ConcurrencyFailureException(String msg) {
+	public ConcurrencyFailureException(@Nullable String msg) {
 		super(msg);
 	}
 
@@ -47,7 +45,7 @@ public class ConcurrencyFailureException extends TransientDataAccessException {
 	 * @param msg the detail message
 	 * @param cause the root cause from the data access API in use
 	 */
-	public ConcurrencyFailureException(String msg, @Nullable Throwable cause) {
+	public ConcurrencyFailureException(@Nullable String msg, @Nullable Throwable cause) {
 		super(msg, cause);
 	}
 

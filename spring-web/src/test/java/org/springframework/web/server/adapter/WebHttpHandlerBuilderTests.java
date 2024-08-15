@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import io.micrometer.observation.tck.TestObservationRegistry;
+import io.micrometer.observation.tck.TestObservationRegistryAssert;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +39,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.http.server.reactive.HttpHandlerDecoratorFactory;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.observation.DefaultServerRequestObservationConvention;
+import org.springframework.http.server.reactive.observation.ServerRequestObservationConvention;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebExceptionHandler;
 import org.springframework.web.server.WebFilter;
@@ -45,12 +50,15 @@ import org.springframework.web.testfixture.http.server.reactive.MockServerHttpRe
 
 import static java.time.Duration.ofMillis;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit tests for {@link WebHttpHandlerBuilder}.
+ * Tests for {@link WebHttpHandlerBuilder}.
+ *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  */
-public class WebHttpHandlerBuilderTests {
+class WebHttpHandlerBuilderTests {
 
 	@Test  // SPR-15074
 	void orderedWebFilterBeans() {
@@ -73,7 +81,7 @@ public class WebHttpHandlerBuilderTests {
 	@Test
 	void forwardedHeaderTransformer() {
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.register(ForwardedHeaderFilterConfig.class);
+		context.register(ForwardedHeaderTransformerConfig.class);
 		context.refresh();
 
 		WebHttpHandlerBuilder builder = WebHttpHandlerBuilder.applicationContext(context);
@@ -154,6 +162,27 @@ public class WebHttpHandlerBuilderTests {
 		assertThat(headerValue.apply("decoratorC")).isLessThan(headerValue.apply("decoratorB"));
 	}
 
+	@Test
+	void observationRegistry() {
+		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ObservationConfig.class);
+		HttpHandler handler = WebHttpHandlerBuilder.applicationContext(applicationContext).build();
+
+		MockServerHttpResponse response = new MockServerHttpResponse();
+		handler.handle(MockServerHttpRequest.get("/").build(), response).block();
+
+		TestObservationRegistry observationRegistry = applicationContext.getBean(TestObservationRegistry.class);
+		TestObservationRegistryAssert.assertThat(observationRegistry).hasObservationWithNameEqualTo("http.server.requests")
+				.that().hasLowCardinalityKeyValue("uri", "UNKNOWN");
+	}
+
+	@Test
+	void shouldRejectDuplicateObservationConvention() {
+		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ObservationConfig.class,
+				DuplicateConventionObservationConfig.class);
+		assertThatThrownBy(() -> WebHttpHandlerBuilder.applicationContext(applicationContext).build())
+				.isInstanceOf(NoUniqueBeanDefinitionException.class);
+	}
+
 	private static Mono<Void> writeToResponse(ServerWebExchange exchange, String value) {
 		byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
 		DataBuffer buffer = DefaultDataBufferFactory.sharedInstance.wrap(bytes);
@@ -199,7 +228,6 @@ public class WebHttpHandlerBuilderTests {
 
 
 	@Configuration
-	@SuppressWarnings("unused")
 	static class OrderedWebFilterBeanConfig {
 
 		private static final String ATTRIBUTE = "attr";
@@ -234,7 +262,6 @@ public class WebHttpHandlerBuilderTests {
 
 
 	@Configuration
-	@SuppressWarnings("unused")
 	static class OrderedExceptionHandlerBeanConfig {
 
 		@Bean
@@ -256,13 +283,11 @@ public class WebHttpHandlerBuilderTests {
 	}
 
 	@Configuration
-	@SuppressWarnings("unused")
-	static class ForwardedHeaderFilterConfig {
+	static class ForwardedHeaderTransformerConfig {
 
 		@Bean
-		@SuppressWarnings("deprecation")
-		public WebFilter forwardedHeaderFilter() {
-			return new org.springframework.web.filter.reactive.ForwardedHeaderFilter();
+		public ForwardedHeaderTransformer forwardedHeaderTransformer() {
+			return new ForwardedHeaderTransformer();
 		}
 
 		@Bean
@@ -272,13 +297,42 @@ public class WebHttpHandlerBuilderTests {
 	}
 
 	@Configuration
-	@SuppressWarnings("unused")
 	static class NoFilterConfig {
 
 		@Bean
 		public WebHandler webHandler() {
 			return exchange -> writeToResponse(exchange, "handled");
 		}
+	}
+
+	@Configuration
+	static class ObservationConfig {
+
+		@Bean
+		public TestObservationRegistry testObservationRegistry() {
+			return TestObservationRegistry.create();
+		}
+
+		@Bean
+		public ServerRequestObservationConvention requestObservationConvention() {
+			return new DefaultServerRequestObservationConvention();
+		}
+
+		@Bean
+		public WebHandler webHandler() {
+			return exchange -> exchange.getResponse().setComplete();
+		}
+
+	}
+
+	@Configuration
+	static class DuplicateConventionObservationConfig {
+
+		@Bean
+		public ServerRequestObservationConvention duplicateRequestObservationConvention() {
+			return new DefaultServerRequestObservationConvention();
+		}
+
 	}
 
 }

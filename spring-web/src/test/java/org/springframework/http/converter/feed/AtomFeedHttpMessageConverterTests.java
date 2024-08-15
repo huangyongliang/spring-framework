@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@ import org.xmlunit.diff.NodeMatcher;
 
 import org.springframework.core.testfixture.xml.XmlContent;
 import org.springframework.http.MediaType;
-import org.springframework.http.MockHttpInputMessage;
-import org.springframework.http.MockHttpOutputMessage;
+import org.springframework.web.testfixture.http.MockHttpInputMessage;
+import org.springframework.web.testfixture.http.MockHttpOutputMessage;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * @author Arjen Poutsma
  */
-public class AtomFeedHttpMessageConverterTests {
+class AtomFeedHttpMessageConverterTests {
 
 	private static final MediaType ATOM_XML_UTF8 =
 			new MediaType(MediaType.APPLICATION_ATOM_XML, StandardCharsets.UTF_8);
@@ -52,33 +52,33 @@ public class AtomFeedHttpMessageConverterTests {
 
 
 	@BeforeEach
-	public void setUp() {
+	void setUp() {
 		converter = new AtomFeedHttpMessageConverter();
 	}
 
 
 	@Test
-	public void canRead() {
+	void canRead() {
 		assertThat(converter.canRead(Feed.class, MediaType.APPLICATION_ATOM_XML)).isTrue();
 		assertThat(converter.canRead(Feed.class, ATOM_XML_UTF8)).isTrue();
 	}
 
 	@Test
-	public void canWrite() {
+	void canWrite() {
 		assertThat(converter.canWrite(Feed.class, MediaType.APPLICATION_ATOM_XML)).isTrue();
 		assertThat(converter.canWrite(Feed.class, ATOM_XML_UTF8)).isTrue();
 	}
 
 	@Test
-	public void read() throws IOException {
-		InputStream is = getClass().getResourceAsStream("atom.xml");
-		MockHttpInputMessage inputMessage = new MockHttpInputMessage(is);
+	void read() throws IOException {
+		InputStream inputStream = getClass().getResourceAsStream("atom.xml");
+		MockHttpInputMessage inputMessage = new MockHttpInputMessage(inputStream);
 		inputMessage.getHeaders().setContentType(ATOM_XML_UTF8);
 		Feed result = converter.read(Feed.class, inputMessage);
 		assertThat(result.getTitle()).isEqualTo("title");
 		assertThat(result.getSubtitle().getValue()).isEqualTo("subtitle");
 		List<?> entries = result.getEntries();
-		assertThat(entries.size()).isEqualTo(2);
+		assertThat(entries).hasSize(2);
 
 		Entry entry1 = (Entry) entries.get(0);
 		assertThat(entry1.getId()).isEqualTo("id1");
@@ -90,7 +90,7 @@ public class AtomFeedHttpMessageConverterTests {
 	}
 
 	@Test
-	public void write() throws IOException {
+	void write() throws IOException {
 		Feed feed = new Feed("atom_1.0");
 		feed.setTitle("title");
 
@@ -122,7 +122,7 @@ public class AtomFeedHttpMessageConverterTests {
 	}
 
 	@Test
-	public void writeOtherCharset() throws IOException {
+	void writeOtherCharset() throws IOException {
 		Feed feed = new Feed("atom_1.0");
 		feed.setTitle("title");
 		String encoding = "ISO-8859-1";
@@ -137,7 +137,7 @@ public class AtomFeedHttpMessageConverterTests {
 	}
 
 	@Test
-	public void writeOtherContentTypeParameters() throws IOException {
+	void writeOtherContentTypeParameters() throws IOException {
 		MockHttpOutputMessage message = new MockHttpOutputMessage();
 		MediaType contentType = new MediaType("application", "atom+xml", singletonMap("type", "feed"));
 		converter.write(new Feed("atom_1.0"), contentType, message);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.prefs.AbstractPreferences;
-import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import java.util.prefs.PreferencesFactory;
 
@@ -50,7 +49,7 @@ import static org.springframework.beans.factory.support.BeanDefinitionBuilder.ge
 import static org.springframework.core.testfixture.io.ResourceTestUtils.qualifiedResource;
 
 /**
- * Unit tests for various {@link PropertyResourceConfigurer} implementations including:
+ * Tests for various {@link PropertyResourceConfigurer} implementations including:
  * {@link PropertyPlaceholderConfigurer}, {@link PropertyOverrideConfigurer} and
  * {@link PreferencesPlaceholderConfigurer}.
  *
@@ -61,7 +60,7 @@ import static org.springframework.core.testfixture.io.ResourceTestUtils.qualifie
  * @see PropertyPlaceholderConfigurerTests
  */
 @SuppressWarnings("deprecation")
-public class PropertyResourceConfigurerTests {
+class PropertyResourceConfigurerTests {
 
 	static {
 		System.setProperty("java.util.prefs.PreferencesFactory", MockPreferencesFactory.class.getName());
@@ -76,7 +75,7 @@ public class PropertyResourceConfigurerTests {
 
 
 	@Test
-	public void testPropertyOverrideConfigurer() {
+	void testPropertyOverrideConfigurer() {
 		BeanDefinition def1 = BeanDefinitionBuilder.genericBeanDefinition(TestBean.class).getBeanDefinition();
 		factory.registerBeanDefinition("tb1", def1);
 
@@ -111,12 +110,12 @@ public class PropertyResourceConfigurerTests {
 
 		assertThat(tb1.getAge()).isEqualTo(99);
 		assertThat(tb2.getAge()).isEqualTo(99);
-		assertThat(tb1.getName()).isEqualTo(null);
+		assertThat(tb1.getName()).isNull();
 		assertThat(tb2.getName()).isEqualTo("test");
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithNestedProperty() {
+	void testPropertyOverrideConfigurerWithNestedProperty() {
 		BeanDefinition def = BeanDefinitionBuilder.genericBeanDefinition(IndexedTestBean.class).getBeanDefinition();
 		factory.registerBeanDefinition("tb", def);
 
@@ -134,7 +133,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithNestedPropertyAndDotInBeanName() {
+	void testPropertyOverrideConfigurerWithNestedPropertyAndDotInBeanName() {
 		BeanDefinition def = BeanDefinitionBuilder.genericBeanDefinition(IndexedTestBean.class).getBeanDefinition();
 		factory.registerBeanDefinition("my.tb", def);
 
@@ -153,7 +152,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithNestedMapPropertyAndDotInMapKey() {
+	void testPropertyOverrideConfigurerWithNestedMapPropertyAndDotInMapKey() {
 		BeanDefinition def = BeanDefinitionBuilder.genericBeanDefinition(IndexedTestBean.class).getBeanDefinition();
 		factory.registerBeanDefinition("tb", def);
 
@@ -171,7 +170,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithHeldProperties() {
+	void testPropertyOverrideConfigurerWithHeldProperties() {
 		BeanDefinition def = BeanDefinitionBuilder.genericBeanDefinition(PropertiesHolder.class).getBeanDefinition();
 		factory.registerBeanDefinition("tb", def);
 
@@ -187,7 +186,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithPropertiesFile() {
+	void testPropertyOverrideConfigurerWithPropertiesFile() {
 		BeanDefinition def = BeanDefinitionBuilder.genericBeanDefinition(IndexedTestBean.class).getBeanDefinition();
 		factory.registerBeanDefinition("tb", def);
 
@@ -201,7 +200,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithInvalidPropertiesFile() {
+	void testPropertyOverrideConfigurerWithInvalidPropertiesFile() {
 		BeanDefinition def = BeanDefinitionBuilder.genericBeanDefinition(IndexedTestBean.class).getBeanDefinition();
 		factory.registerBeanDefinition("tb", def);
 
@@ -216,7 +215,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithPropertiesXmlFile() {
+	void testPropertyOverrideConfigurerWithPropertiesXmlFile() {
 		BeanDefinition def = BeanDefinitionBuilder.genericBeanDefinition(IndexedTestBean.class).getBeanDefinition();
 		factory.registerBeanDefinition("tb", def);
 
@@ -230,7 +229,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithConvertProperties() {
+	void testPropertyOverrideConfigurerWithConvertProperties() {
 		BeanDefinition def = BeanDefinitionBuilder.genericBeanDefinition(IndexedTestBean.class).getBeanDefinition();
 		factory.registerBeanDefinition("tb", def);
 
@@ -247,7 +246,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithInvalidKey() {
+	void testPropertyOverrideConfigurerWithInvalidKey() {
 		factory.registerBeanDefinition("tb1", genericBeanDefinition(TestBean.class).getBeanDefinition());
 		factory.registerBeanDefinition("tb2", genericBeanDefinition(TestBean.class).getBeanDefinition());
 
@@ -276,13 +275,13 @@ public class PropertyResourceConfigurerTests {
 			}
 			catch (BeanInitializationException ex) {
 				// prove that the processor chokes on the invalid key
-				assertThat(ex.getMessage().toLowerCase().contains("argh")).isTrue();
+				assertThat(ex.getMessage().toLowerCase()).contains("argh");
 			}
 		}
 	}
 
 	@Test
-	public void testPropertyOverrideConfigurerWithIgnoreInvalidKeys() {
+	void testPropertyOverrideConfigurerWithIgnoreInvalidKeys() {
 		factory.registerBeanDefinition("tb1", genericBeanDefinition(TestBean.class).getBeanDefinition());
 		factory.registerBeanDefinition("tb2", genericBeanDefinition(TestBean.class).getBeanDefinition());
 
@@ -310,17 +309,17 @@ public class PropertyResourceConfigurerTests {
 		TestBean tb2 = (TestBean) factory.getBean("tb2");
 		assertThat(tb1.getAge()).isEqualTo(99);
 		assertThat(tb2.getAge()).isEqualTo(99);
-		assertThat(tb1.getName()).isEqualTo(null);
+		assertThat(tb1.getName()).isNull();
 		assertThat(tb2.getName()).isEqualTo("test");
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurer() {
+	void testPropertyPlaceholderConfigurer() {
 		doTestPropertyPlaceholderConfigurer(false);
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithParentChildSeparation() {
+	void testPropertyPlaceholderConfigurerWithParentChildSeparation() {
 		doTestPropertyPlaceholderConfigurer(true);
 	}
 
@@ -357,22 +356,18 @@ public class PropertyResourceConfigurerTests {
 		MutablePropertyValues pvs = new MutablePropertyValues();
 		pvs.add("stringArray", new String[] {"${os.name}", "${age}"});
 
-		List<Object> friends = new ManagedList<>();
-		friends.add("na${age}me");
-		friends.add(new RuntimeBeanReference("${ref}"));
+		List<Object> friends = ManagedList.of("na${age}me", new RuntimeBeanReference("${ref}"));
 		pvs.add("friends", friends);
 
-		Set<Object> someSet = new ManagedSet<>();
-		someSet.add("na${age}me");
-		someSet.add(new RuntimeBeanReference("${ref}"));
-		someSet.add(new TypedStringValue("${age}", Integer.class));
+		Set<Object> someSet = ManagedSet.of("na${age}me",
+				new RuntimeBeanReference("${ref}"), new TypedStringValue("${age}", Integer.class));
 		pvs.add("someSet", someSet);
 
-		Map<Object, Object> someMap = new ManagedMap<>();
-		someMap.put(new TypedStringValue("key${age}"), new TypedStringValue("${age}"));
-		someMap.put(new TypedStringValue("key${age}ref"), new RuntimeBeanReference("${ref}"));
-		someMap.put("key1", new RuntimeBeanReference("${ref}"));
-		someMap.put("key2", "${age}name");
+		Map<Object, Object> someMap = ManagedMap.ofEntries(
+				Map.entry(new TypedStringValue("key${age}"), new TypedStringValue("${age}")),
+				Map.entry(new TypedStringValue("key${age}ref"), new RuntimeBeanReference("${ref}")),
+				Map.entry("key1", new RuntimeBeanReference("${ref}")),
+				Map.entry("key2", "${age}name"));
 		MutablePropertyValues innerPvs = new MutablePropertyValues();
 		innerPvs.add("country", "${os.name}");
 		RootBeanDefinition innerBd = new RootBeanDefinition(TestBean.class);
@@ -403,19 +398,18 @@ public class PropertyResourceConfigurerTests {
 		assertThat(tb1.getName()).isEqualTo("namemyvarmyvar${");
 		assertThat(tb2.getName()).isEqualTo("myvarname98");
 		assertThat(tb1.getSpouse()).isEqualTo(tb2);
-		assertThat(tb1.getSomeMap().size()).isEqualTo(1);
+		assertThat(tb1.getSomeMap()).hasSize(1);
 		assertThat(tb1.getSomeMap().get("myKey")).isEqualTo("myValue");
-		assertThat(tb2.getStringArray().length).isEqualTo(2);
-		assertThat(tb2.getStringArray()[0]).isEqualTo(System.getProperty("os.name"));
-		assertThat(tb2.getStringArray()[1]).isEqualTo("98");
-		assertThat(tb2.getFriends().size()).isEqualTo(2);
-		assertThat(tb2.getFriends().iterator().next()).isEqualTo("na98me");
-		assertThat(tb2.getFriends().toArray()[1]).isEqualTo(tb2);
-		assertThat(tb2.getSomeSet().size()).isEqualTo(3);
+		assertThat(tb2.getStringArray()).containsExactly(System.getProperty("os.name"), "98");
+		assertThat(tb2.getFriends()).satisfiesExactly(
+				zero -> assertThat(zero).isInstanceOfSatisfying(
+						String.class, value -> assertThat(value).isEqualTo("na98me")),
+				one -> assertThat(one).isEqualTo(tb2));
+		assertThat(tb2.getSomeSet()).hasSize(3);
 		assertThat(tb2.getSomeSet().contains("na98me")).isTrue();
 		assertThat(tb2.getSomeSet().contains(tb2)).isTrue();
 		assertThat(tb2.getSomeSet().contains(98)).isTrue();
-		assertThat(tb2.getSomeMap().size()).isEqualTo(6);
+		assertThat(tb2.getSomeMap()).hasSize(6);
 		assertThat(tb2.getSomeMap().get("key98")).isEqualTo("98");
 		assertThat(tb2.getSomeMap().get("key98ref")).isEqualTo(tb2);
 		assertThat(tb2.getSomeMap().get("key1")).isEqualTo(tb2);
@@ -423,7 +417,7 @@ public class PropertyResourceConfigurerTests {
 		TestBean inner1 = (TestBean) tb2.getSomeMap().get("key3");
 		TestBean inner2 = (TestBean) tb2.getSomeMap().get("mykey4");
 		assertThat(inner1.getAge()).isEqualTo(0);
-		assertThat(inner1.getName()).isEqualTo(null);
+		assertThat(inner1.getName()).isNull();
 		assertThat(inner1.getCountry()).isEqualTo(System.getProperty("os.name"));
 		assertThat(inner2.getAge()).isEqualTo(98);
 		assertThat(inner2.getName()).isEqualTo("namemyvarmyvar${");
@@ -431,7 +425,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithSystemPropertyFallback() {
+	void testPropertyPlaceholderConfigurerWithSystemPropertyFallback() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("country", "${os.name}").getBeanDefinition());
 
@@ -443,7 +437,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithSystemPropertyNotUsed() {
+	void testPropertyPlaceholderConfigurerWithSystemPropertyNotUsed() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("country", "${os.name}").getBeanDefinition());
 
@@ -458,7 +452,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithOverridingSystemProperty() {
+	void testPropertyPlaceholderConfigurerWithOverridingSystemProperty() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("country", "${os.name}").getBeanDefinition());
 
@@ -474,7 +468,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithUnresolvableSystemProperty() {
+	void testPropertyPlaceholderConfigurerWithUnresolvableSystemProperty() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("touchy", "${user.dir}").getBeanDefinition());
 		PropertyPlaceholderConfigurer ppc = new PropertyPlaceholderConfigurer();
@@ -485,7 +479,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithUnresolvablePlaceholder() {
+	void testPropertyPlaceholderConfigurerWithUnresolvablePlaceholder() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("name", "${ref}").getBeanDefinition());
 		PropertyPlaceholderConfigurer ppc = new PropertyPlaceholderConfigurer();
@@ -495,7 +489,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithIgnoreUnresolvablePlaceholder() {
+	void testPropertyPlaceholderConfigurerWithIgnoreUnresolvablePlaceholder() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("name", "${ref}").getBeanDefinition());
 
@@ -508,7 +502,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithEmptyStringAsNull() {
+	void testPropertyPlaceholderConfigurerWithEmptyStringAsNull() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("name", "").getBeanDefinition());
 
@@ -521,7 +515,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithEmptyStringInPlaceholderAsNull() {
+	void testPropertyPlaceholderConfigurerWithEmptyStringInPlaceholderAsNull() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("name", "${ref}").getBeanDefinition());
 
@@ -537,7 +531,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithNestedPlaceholderInKey() {
+	void testPropertyPlaceholderConfigurerWithNestedPlaceholderInKey() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("name", "${my${key}key}").getBeanDefinition());
 
@@ -553,7 +547,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithPlaceholderInAlias() {
+	void testPropertyPlaceholderConfigurerWithPlaceholderInAlias() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class).getBeanDefinition());
 		factory.registerAlias("tb", "${alias}");
 
@@ -569,7 +563,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithSelfReferencingPlaceholderInAlias() {
+	void testPropertyPlaceholderConfigurerWithSelfReferencingPlaceholderInAlias() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class).getBeanDefinition());
 		factory.registerAlias("tb", "${alias}");
 
@@ -581,11 +575,11 @@ public class PropertyResourceConfigurerTests {
 
 		TestBean tb = (TestBean) factory.getBean("tb");
 		assertThat(tb).isNotNull();
-		assertThat(factory.getAliases("tb").length).isEqualTo(0);
+		assertThat(factory.getAliases("tb")).isEmpty();
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithCircularReference() {
+	void testPropertyPlaceholderConfigurerWithCircularReference() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("age", "${age}")
 				.addPropertyValue("name", "name${var}")
@@ -602,7 +596,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithDefaultProperties() {
+	void testPropertyPlaceholderConfigurerWithDefaultProperties() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("touchy", "${test}").getBeanDefinition());
 
@@ -617,7 +611,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithInlineDefault() {
+	void testPropertyPlaceholderConfigurerWithInlineDefault() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("touchy", "${test:mytest}").getBeanDefinition());
 
@@ -629,7 +623,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPropertyPlaceholderConfigurerWithAliases() {
+	void testPropertyPlaceholderConfigurerWithAliases() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("touchy", "${test}").getBeanDefinition());
 
@@ -653,7 +647,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPreferencesPlaceholderConfigurer() {
+	void testPreferencesPlaceholderConfigurer() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("name", "${myName}")
 				.addPropertyValue("age", "${myAge}")
@@ -680,7 +674,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPreferencesPlaceholderConfigurerWithCustomTreePaths() {
+	void testPreferencesPlaceholderConfigurerWithCustomTreePaths() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("name", "${myName}")
 				.addPropertyValue("age", "${myAge}")
@@ -709,7 +703,7 @@ public class PropertyResourceConfigurerTests {
 	}
 
 	@Test
-	public void testPreferencesPlaceholderConfigurerWithPathInPlaceholder() {
+	void testPreferencesPlaceholderConfigurerWithPathInPlaceholder() {
 		factory.registerBeanDefinition("tb", genericBeanDefinition(TestBean.class)
 				.addPropertyValue("name", "${mypath/myName}")
 				.addPropertyValue("age", "${myAge}")
@@ -816,16 +810,16 @@ public class PropertyResourceConfigurerTests {
 		}
 
 		@Override
-		protected void removeNodeSpi() throws BackingStoreException {
+		protected void removeNodeSpi() {
 		}
 
 		@Override
-		protected String[] keysSpi() throws BackingStoreException {
+		protected String[] keysSpi() {
 			return StringUtils.toStringArray(values.keySet());
 		}
 
 		@Override
-		protected String[] childrenNamesSpi() throws BackingStoreException {
+		protected String[] childrenNamesSpi() {
 			return StringUtils.toStringArray(children.keySet());
 		}
 
@@ -840,11 +834,11 @@ public class PropertyResourceConfigurerTests {
 		}
 
 		@Override
-		protected void syncSpi() throws BackingStoreException {
+		protected void syncSpi() {
 		}
 
 		@Override
-		protected void flushSpi() throws BackingStoreException {
+		protected void flushSpi() {
 		}
 	}
 

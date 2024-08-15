@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ import org.springframework.util.Assert;
  *
  * <p>The maximum size may be supplied as a {@linkplain #DefaultContextCache(int)
  * constructor argument} or set via a system property or Spring property named
- * {@code spring.test.context.cache.maxSize}.
+ * {@value ContextCache#MAX_CONTEXT_CACHE_SIZE_PROPERTY_NAME}.
  *
  * @author Sam Brannen
  * @author Juergen Hoeller
@@ -56,6 +56,7 @@ import org.springframework.util.Assert;
 public class DefaultContextCache implements ContextCache {
 
 	private static final Log statsLogger = LogFactory.getLog(CONTEXT_CACHE_LOGGING_CATEGORY);
+
 
 	/**
 	 * Map of context keys to Spring {@code ApplicationContext} instances.
@@ -71,6 +72,14 @@ public class DefaultContextCache implements ContextCache {
 	 */
 	private final Map<MergedContextConfiguration, Set<MergedContextConfiguration>> hierarchyMap =
 			new ConcurrentHashMap<>(32);
+
+	/**
+	 * Map of context keys to context load failure counts.
+	 * @since 6.1
+	 */
+	private final Map<MergedContextConfiguration, Integer> failureCounts = new ConcurrentHashMap<>(32);
+
+	private final AtomicInteger totalFailureCount = new AtomicInteger();
 
 	private final int maxSize;
 
@@ -105,18 +114,12 @@ public class DefaultContextCache implements ContextCache {
 	}
 
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public boolean contains(MergedContextConfiguration key) {
 		Assert.notNull(key, "Key must not be null");
 		return this.contextMap.containsKey(key);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	@Nullable
 	public ApplicationContext get(MergedContextConfiguration key) {
@@ -131,9 +134,6 @@ public class DefaultContextCache implements ContextCache {
 		return context;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public void put(MergedContextConfiguration key, ApplicationContext context) {
 		Assert.notNull(key, "Key must not be null");
@@ -150,15 +150,12 @@ public class DefaultContextCache implements ContextCache {
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public void remove(MergedContextConfiguration key, @Nullable HierarchyMode hierarchyMode) {
 		Assert.notNull(key, "Key must not be null");
 
 		// startKey is the level at which to begin clearing the cache,
-		// depending on the configured hierarchy mode.s
+		// depending on the configured hierarchy mode.
 		MergedContextConfiguration startKey = key;
 		if (hierarchyMode == HierarchyMode.EXHAUSTIVE) {
 			MergedContextConfiguration parent = startKey.getParent();
@@ -203,15 +200,23 @@ public class DefaultContextCache implements ContextCache {
 		// Physically remove and close leaf nodes first (i.e., on the way back up the
 		// stack as opposed to prior to the recursive call).
 		ApplicationContext context = this.contextMap.remove(key);
-		if (context instanceof ConfigurableApplicationContext) {
-			((ConfigurableApplicationContext) context).close();
+		if (context instanceof ConfigurableApplicationContext cac) {
+			cac.close();
 		}
 		removedContexts.add(key);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
+	@Override
+	public int getFailureCount(MergedContextConfiguration key) {
+		return this.failureCounts.getOrDefault(key, 0);
+	}
+
+	@Override
+	public void incrementFailureCount(MergedContextConfiguration key) {
+		this.totalFailureCount.incrementAndGet();
+		this.failureCounts.merge(key, 1, Integer::sum);
+	}
+
 	@Override
 	public int size() {
 		return this.contextMap.size();
@@ -224,44 +229,31 @@ public class DefaultContextCache implements ContextCache {
 		return this.maxSize;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public int getParentContextCount() {
 		return this.hierarchyMap.size();
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public int getHitCount() {
 		return this.hitCount.get();
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public int getMissCount() {
 		return this.missCount.get();
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public void reset() {
 		synchronized (this.contextMap) {
 			clear();
 			clearStatistics();
+			this.totalFailureCount.set(0);
+			this.failureCounts.clear();
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public void clear() {
 		synchronized (this.contextMap) {
@@ -270,9 +262,6 @@ public class DefaultContextCache implements ContextCache {
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public void clearStatistics() {
 		synchronized (this.contextMap) {
@@ -281,9 +270,6 @@ public class DefaultContextCache implements ContextCache {
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public void logStatistics() {
 		if (statsLogger.isDebugEnabled()) {
@@ -306,6 +292,7 @@ public class DefaultContextCache implements ContextCache {
 				.append("parentContextCount", getParentContextCount())
 				.append("hitCount", getHitCount())
 				.append("missCount", getMissCount())
+				.append("failureCount", this.totalFailureCount)
 				.toString();
 	}
 

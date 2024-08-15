@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,24 +27,24 @@ import org.springframework.http.HttpHeaders;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link DefaultRenderingBuilder}.
+ * Tests for {@link DefaultRenderingBuilder}.
  *
  * @author Rossen Stoyanchev
  */
-public class DefaultRenderingBuilderTests {
+class DefaultRenderingBuilderTests {
 
 	@Test
-	public void defaultValues() {
+	void defaultValues() {
 		Rendering rendering = Rendering.view("abc").build();
 
 		assertThat(rendering.view()).isEqualTo("abc");
 		assertThat(rendering.modelAttributes()).isEqualTo(Collections.emptyMap());
 		assertThat(rendering.status()).isNull();
-		assertThat(rendering.headers().size()).isEqualTo(0);
+		assertThat(rendering.headers()).isEmpty();
 	}
 
 	@Test
-	public void defaultValuesForRedirect() throws Exception {
+	void defaultValuesForRedirect() {
 		Rendering rendering = Rendering.redirectTo("abc").build();
 
 		Object view = rendering.view();
@@ -56,13 +56,13 @@ public class DefaultRenderingBuilderTests {
 
 
 	@Test
-	public void viewName() {
+	void viewName() {
 		Rendering rendering = Rendering.view("foo").build();
 		assertThat(rendering.view()).isEqualTo("foo");
 	}
 
 	@Test
-	public void modelAttribute() throws Exception {
+	void modelAttribute() {
 		Foo foo = new Foo();
 		Rendering rendering = Rendering.view("foo").modelAttribute(foo).build();
 
@@ -70,7 +70,7 @@ public class DefaultRenderingBuilderTests {
 	}
 
 	@Test
-	public void modelAttributes() throws Exception {
+	void modelAttributes() {
 		Foo foo = new Foo();
 		Bar bar = new Bar();
 		Rendering rendering = Rendering.view("foo").modelAttributes(foo, bar).build();
@@ -82,7 +82,7 @@ public class DefaultRenderingBuilderTests {
 	}
 
 	@Test
-	public void model() throws Exception {
+	void model() {
 		Map<String, Object> map = new LinkedHashMap<>();
 		map.put("foo", new Foo());
 		map.put("bar", new Bar());
@@ -92,15 +92,15 @@ public class DefaultRenderingBuilderTests {
 	}
 
 	@Test
-	public void header() throws Exception {
+	void header() {
 		Rendering rendering = Rendering.view("foo").header("foo", "bar").build();
 
-		assertThat(rendering.headers().size()).isEqualTo(1);
+		assertThat(rendering.headers()).hasSize(1);
 		assertThat(rendering.headers().get("foo")).isEqualTo(Collections.singletonList("bar"));
 	}
 
 	@Test
-	public void httpHeaders() throws Exception {
+	void httpHeaders() {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("foo", "bar");
 		Rendering rendering = Rendering.view("foo").headers(headers).build();
@@ -109,7 +109,7 @@ public class DefaultRenderingBuilderTests {
 	}
 
 	@Test
-	public void redirectWithAbsoluteUrl() throws Exception {
+	void redirectWithAbsoluteUrl() {
 		Rendering rendering = Rendering.redirectTo("foo").contextRelative(false).build();
 
 		Object view = rendering.view();
@@ -118,7 +118,7 @@ public class DefaultRenderingBuilderTests {
 	}
 
 	@Test
-	public void redirectWithPropagateQuery() throws Exception {
+	void redirectWithPropagateQuery() {
 		Rendering rendering = Rendering.redirectTo("foo").propagateQuery(true).build();
 
 		Object view = rendering.view();

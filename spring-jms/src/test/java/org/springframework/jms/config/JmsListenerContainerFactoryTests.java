@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 package org.springframework.jms.config;
 
-import javax.jms.ConnectionFactory;
-import javax.jms.MessageListener;
-import javax.jms.Session;
-import javax.transaction.TransactionManager;
-
+import io.micrometer.observation.tck.TestObservationRegistry;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.MessageListener;
+import jakarta.jms.Session;
+import jakarta.transaction.TransactionManager;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.DirectFieldAccessor;
@@ -47,7 +47,7 @@ import static org.mockito.Mockito.mock;
 /**
  * @author Stephane Nicoll
  */
-public class JmsListenerContainerFactoryTests {
+class JmsListenerContainerFactoryTests {
 
 	private final ConnectionFactory connectionFactory = new StubConnectionFactory();
 
@@ -55,11 +55,11 @@ public class JmsListenerContainerFactoryTests {
 
 	private final MessageConverter messageConverter = new SimpleMessageConverter();
 
-	private final TransactionManager transactionManager = mock(TransactionManager.class);
+	private final TransactionManager transactionManager = mock();
 
 
 	@Test
-	public void createSimpleContainer() {
+	void createSimpleContainer() {
 		SimpleJmsListenerContainerFactory factory = new SimpleJmsListenerContainerFactory();
 		setDefaultJmsConfig(factory);
 		SimpleJmsListenerEndpoint endpoint = new SimpleJmsListenerEndpoint();
@@ -76,12 +76,14 @@ public class JmsListenerContainerFactoryTests {
 	}
 
 	@Test
-	public void createJmsContainerFullConfig() {
+	void createJmsContainerFullConfig() {
 		DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
+		TestObservationRegistry testObservationRegistry = TestObservationRegistry.create();
 		setDefaultJmsConfig(factory);
 		factory.setCacheLevel(DefaultMessageListenerContainer.CACHE_CONSUMER);
 		factory.setConcurrency("3-10");
 		factory.setMaxMessagesPerTask(5);
+		factory.setObservationRegistry(testObservationRegistry);
 
 		SimpleJmsListenerEndpoint endpoint = new SimpleJmsListenerEndpoint();
 		MessageListener messageListener = new MessageListenerAdapter();
@@ -94,13 +96,14 @@ public class JmsListenerContainerFactoryTests {
 		assertThat(container.getConcurrentConsumers()).isEqualTo(3);
 		assertThat(container.getMaxConcurrentConsumers()).isEqualTo(10);
 		assertThat(container.getMaxMessagesPerTask()).isEqualTo(5);
+		assertThat(container.getObservationRegistry()).isEqualTo(testObservationRegistry);
 
 		assertThat(container.getMessageListener()).isEqualTo(messageListener);
 		assertThat(container.getDestinationName()).isEqualTo("myQueue");
 	}
 
 	@Test
-	public void createJcaContainerFullConfig() {
+	void createJcaContainerFullConfig() {
 		DefaultJcaListenerContainerFactory factory = new DefaultJcaListenerContainerFactory();
 		setDefaultJcaConfig(factory);
 		factory.setConcurrency("10");
@@ -118,7 +121,7 @@ public class JmsListenerContainerFactoryTests {
 	}
 
 	@Test
-	public void jcaExclusiveProperties() {
+	void jcaExclusiveProperties() {
 		DefaultJcaListenerContainerFactory factory = new DefaultJcaListenerContainerFactory();
 		factory.setDestinationResolver(this.destinationResolver);
 		factory.setActivationSpecFactory(new StubJmsActivationSpecFactory());
@@ -130,7 +133,7 @@ public class JmsListenerContainerFactoryTests {
 	}
 
 	@Test
-	public void backOffOverridesRecoveryInterval() {
+	void backOffOverridesRecoveryInterval() {
 		DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
 		BackOff backOff = new FixedBackOff();
 		factory.setBackOff(backOff);
@@ -146,7 +149,7 @@ public class JmsListenerContainerFactoryTests {
 	}
 
 	@Test
-	public void endpointConcurrencyTakesPrecedence() {
+	void endpointConcurrencyTakesPrecedence() {
 		DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
 		factory.setConcurrency("2-10");
 
@@ -179,14 +182,14 @@ public class JmsListenerContainerFactoryTests {
 		assertThat(container.getConnectionFactory()).isEqualTo(this.connectionFactory);
 		assertThat(container.getDestinationResolver()).isEqualTo(this.destinationResolver);
 		assertThat(container.getMessageConverter()).isEqualTo(this.messageConverter);
-		assertThat(container.isSessionTransacted()).isEqualTo(true);
+		assertThat(container.isSessionTransacted()).isTrue();
 		assertThat(container.getSessionAcknowledgeMode()).isEqualTo(Session.DUPS_OK_ACKNOWLEDGE);
-		assertThat(container.isPubSubDomain()).isEqualTo(true);
-		assertThat(container.isReplyPubSubDomain()).isEqualTo(true);
+		assertThat(container.isPubSubDomain()).isTrue();
+		assertThat(container.isReplyPubSubDomain()).isTrue();
 		assertThat(container.getReplyQosSettings()).isEqualTo(new QosSettings(1, 7, 5000));
-		assertThat(container.isSubscriptionDurable()).isEqualTo(true);
+		assertThat(container.isSubscriptionDurable()).isTrue();
 		assertThat(container.getClientId()).isEqualTo("client-1234");
-		assertThat(container.isAutoStartup()).isEqualTo(false);
+		assertThat(container.isAutoStartup()).isFalse();
 	}
 
 	private void setDefaultJcaConfig(DefaultJcaListenerContainerFactory factory) {
@@ -206,9 +209,9 @@ public class JmsListenerContainerFactoryTests {
 		JmsActivationSpecConfig config = container.getActivationSpecConfig();
 		assertThat(config).isNotNull();
 		assertThat(config.getAcknowledgeMode()).isEqualTo(Session.DUPS_OK_ACKNOWLEDGE);
-		assertThat(config.isPubSubDomain()).isEqualTo(true);
+		assertThat(config.isPubSubDomain()).isTrue();
 		assertThat(container.getReplyQosSettings()).isEqualTo(new QosSettings(1, 7, 5000));
-		assertThat(config.isSubscriptionDurable()).isEqualTo(true);
+		assertThat(config.isSubscriptionDurable()).isTrue();
 		assertThat(config.getClientId()).isEqualTo("client-1234");
 	}
 

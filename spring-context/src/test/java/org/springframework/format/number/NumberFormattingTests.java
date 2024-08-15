@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.format.annotation.NumberFormat;
 import org.springframework.format.annotation.NumberFormat.Style;
 import org.springframework.format.support.FormattingConversionService;
-import org.springframework.util.StringValueResolver;
 import org.springframework.validation.DataBinder;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Keith Donald
  * @author Juergen Hoeller
  */
-public class NumberFormattingTests {
+class NumberFormattingTests {
 
 	private final FormattingConversionService conversionService = new FormattingConversionService();
 
@@ -47,17 +46,14 @@ public class NumberFormattingTests {
 
 
 	@BeforeEach
-	public void setUp() {
+	void setUp() {
 		DefaultConversionService.addDefaultConverters(conversionService);
-		conversionService.setEmbeddedValueResolver(new StringValueResolver() {
-			@Override
-			public String resolveStringValue(String strVal) {
-				if ("${pattern}".equals(strVal)) {
-					return "#,##.00";
-				}
-				else {
-					return strVal;
-				}
+		conversionService.setEmbeddedValueResolver(strVal -> {
+			if ("${pattern}".equals(strVal)) {
+				return "#,##.00";
+			}
+			else {
+				return strVal;
 			}
 		});
 		conversionService.addFormatterForFieldType(Number.class, new NumberStyleFormatter());
@@ -68,13 +64,13 @@ public class NumberFormattingTests {
 	}
 
 	@AfterEach
-	public void tearDown() {
+	void tearDown() {
 		LocaleContextHolder.setLocale(null);
 	}
 
 
 	@Test
-	public void testDefaultNumberFormatting() {
+	void testDefaultNumberFormatting() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("numberDefault", "3,339.12");
 		binder.bind(propertyValues);
@@ -83,7 +79,7 @@ public class NumberFormattingTests {
 	}
 
 	@Test
-	public void testDefaultNumberFormattingAnnotated() {
+	void testDefaultNumberFormattingAnnotated() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("numberDefaultAnnotated", "3,339.12");
 		binder.bind(propertyValues);
@@ -92,7 +88,7 @@ public class NumberFormattingTests {
 	}
 
 	@Test
-	public void testCurrencyFormatting() {
+	void testCurrencyFormatting() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("currency", "$3,339.12");
 		binder.bind(propertyValues);
@@ -101,7 +97,7 @@ public class NumberFormattingTests {
 	}
 
 	@Test
-	public void testPercentFormatting() {
+	void testPercentFormatting() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("percent", "53%");
 		binder.bind(propertyValues);
@@ -110,7 +106,7 @@ public class NumberFormattingTests {
 	}
 
 	@Test
-	public void testPatternFormatting() {
+	void testPatternFormatting() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("pattern", "1,25.00");
 		binder.bind(propertyValues);
@@ -119,7 +115,7 @@ public class NumberFormattingTests {
 	}
 
 	@Test
-	public void testPatternArrayFormatting() {
+	void testPatternArrayFormatting() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("patternArray", new String[] { "1,25.00", "2,35.00" });
 		binder.bind(propertyValues);
@@ -137,7 +133,7 @@ public class NumberFormattingTests {
 	}
 
 	@Test
-	public void testPatternListFormatting() {
+	void testPatternListFormatting() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("patternList", new String[] { "1,25.00", "2,35.00" });
 		binder.bind(propertyValues);
@@ -155,7 +151,7 @@ public class NumberFormattingTests {
 	}
 
 	@Test
-	public void testPatternList2FormattingListElement() {
+	void testPatternList2FormattingListElement() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("patternList2[0]", "1,25.00");
 		propertyValues.add("patternList2[1]", "2,35.00");
@@ -166,7 +162,7 @@ public class NumberFormattingTests {
 	}
 
 	@Test
-	public void testPatternList2FormattingList() {
+	void testPatternList2FormattingList() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("patternList2[0]", "1,25.00");
 		propertyValues.add("patternList2[1]", "2,35.00");

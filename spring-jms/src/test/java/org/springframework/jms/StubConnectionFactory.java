@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,9 @@
 
 package org.springframework.jms;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSContext;
 
 /**
  * A stub implementation of the JMS ConnectionFactory for testing.
@@ -29,12 +28,12 @@ import javax.jms.JMSException;
 public class StubConnectionFactory implements ConnectionFactory {
 
 	@Override
-	public Connection createConnection() throws JMSException {
+	public Connection createConnection() {
 		return null;
 	}
 
 	@Override
-	public Connection createConnection(String username, String password) throws JMSException {
+	public Connection createConnection(String username, String password) {
 		return null;
 	}
 

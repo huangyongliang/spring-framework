@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -31,8 +32,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.Person;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.ListenableFutureTask;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -58,134 +59,222 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
  * @author Sam Brannen
  * @author Jacek Suchenia
  */
-public class AsyncTests {
+class AsyncTests {
 
-	private final AsyncController asyncController = new AsyncController();
+	@Nested
+	class MockMvcTests {
 
-	private final MockMvc mockMvc = standaloneSetup(this.asyncController).build();
+		private final MockMvc mockMvc = standaloneSetup(new AsyncController()).build();
 
+		@Test
+		void callable() throws Exception {
+			MvcResult mvcResult = this.mockMvc.perform(get("/1").param("callable", "true"))
+					.andExpect(request().asyncStarted())
+					.andExpect(request().asyncResult(equalTo(new Person("Joe"))))
+					.andExpect(request().asyncResult(new Person("Joe")))
+					.andReturn();
 
-	@Test
-	public void callable() throws Exception {
-		MvcResult mvcResult = this.mockMvc.perform(get("/1").param("callable", "true"))
-				.andExpect(request().asyncStarted())
-				.andExpect(request().asyncResult(equalTo(new Person("Joe"))))
-				.andExpect(request().asyncResult(new Person("Joe")))
-				.andReturn();
+			this.mockMvc.perform(asyncDispatch(mvcResult))
+					.andExpect(status().isOk())
+					.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+					.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
+		}
 
-		this.mockMvc.perform(asyncDispatch(mvcResult))
-				.andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-				.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
+		@Test
+		void streaming() throws Exception {
+			this.mockMvc.perform(get("/1").param("streaming", "true"))
+					.andExpect(request().asyncStarted())
+					.andDo(MvcResult::getAsyncResult) // fetch async result similar to "asyncDispatch" builder
+					.andExpect(status().isOk())
+					.andExpect(content().string("name=Joe"));
+		}
+
+		@Test
+		void streamingSlow() throws Exception {
+			this.mockMvc.perform(get("/1").param("streamingSlow", "true"))
+					.andExpect(request().asyncStarted())
+					.andDo(MvcResult::getAsyncResult)
+					.andExpect(status().isOk())
+					.andExpect(content().string("name=Joe&someBoolean=true"));
+		}
+
+		@Test
+		void streamingJson() throws Exception {
+			this.mockMvc.perform(get("/1").param("streamingJson", "true"))
+					.andExpect(request().asyncStarted())
+					.andDo(MvcResult::getAsyncResult)
+					.andExpect(status().isOk())
+					.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+					.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.5}"));
+		}
+
+		@Test
+		void deferredResult() throws Exception {
+			MvcResult mvcResult = this.mockMvc.perform(get("/1").param("deferredResult", "true"))
+					.andExpect(request().asyncStarted())
+					.andReturn();
+
+			this.mockMvc.perform(asyncDispatch(mvcResult))
+					.andExpect(status().isOk())
+					.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+					.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
+		}
+
+		@Test
+		void deferredResultWithImmediateValue() throws Exception {
+			MvcResult mvcResult = this.mockMvc.perform(get("/1").param("deferredResultWithImmediateValue", "true"))
+					.andExpect(request().asyncStarted())
+					.andExpect(request().asyncResult(new Person("Joe")))
+					.andReturn();
+
+			this.mockMvc.perform(asyncDispatch(mvcResult))
+					.andExpect(status().isOk())
+					.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+					.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
+		}
+
+		@Test  // SPR-13079
+		void deferredResultWithDelayedError() throws Exception {
+			MvcResult mvcResult = this.mockMvc.perform(get("/1").param("deferredResultWithDelayedError", "true"))
+					.andExpect(request().asyncStarted())
+					.andReturn();
+
+			this.mockMvc.perform(asyncDispatch(mvcResult))
+					.andExpect(status().is5xxServerError())
+					.andExpect(content().string("Delayed Error"));
+		}
+
+		@Test
+		void listenableFuture() throws Exception {
+			MvcResult mvcResult = this.mockMvc.perform(get("/1").param("listenableFuture", "true"))
+					.andExpect(request().asyncStarted())
+					.andReturn();
+
+			this.mockMvc.perform(asyncDispatch(mvcResult))
+					.andExpect(status().isOk())
+					.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+					.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
+		}
+
+		@Test  // SPR-12597
+		void completableFutureWithImmediateValue() throws Exception {
+			MvcResult mvcResult = this.mockMvc.perform(get("/1").param("completableFutureWithImmediateValue", "true"))
+					.andExpect(request().asyncStarted())
+					.andReturn();
+
+			this.mockMvc.perform(asyncDispatch(mvcResult))
+					.andExpect(status().isOk())
+					.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+					.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
+		}
+
+		@Test  // SPR-12735
+		void printAsyncResult() throws Exception {
+			StringWriter writer = new StringWriter();
+
+			MvcResult mvcResult = this.mockMvc.perform(get("/1").param("deferredResult", "true"))
+					.andDo(print(writer))
+					.andExpect(request().asyncStarted())
+					.andReturn();
+
+			assertThat(writer.toString()).contains("Async started = true");
+			writer = new StringWriter();
+
+			this.mockMvc.perform(asyncDispatch(mvcResult))
+					.andDo(print(writer))
+					.andExpect(status().isOk())
+					.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+					.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
+
+			assertThat(writer.toString()).contains("Async started = false");
+		}
 	}
 
-	@Test
-	public void streaming() throws Exception {
-		this.mockMvc.perform(get("/1").param("streaming", "true"))
-				.andExpect(request().asyncStarted())
-				.andDo(MvcResult::getAsyncResult) // fetch async result similar to "asyncDispatch" builder
-				.andExpect(status().isOk())
-				.andExpect(content().string("name=Joe"));
-	}
+	@Nested
+	class MockMvcTesterTests {
 
-	@Test
-	public void streamingSlow() throws Exception {
-		this.mockMvc.perform(get("/1").param("streamingSlow", "true"))
-				.andExpect(request().asyncStarted())
-				.andDo(MvcResult::getAsyncResult)
-				.andExpect(status().isOk())
-				.andExpect(content().string("name=Joe&someBoolean=true"));
-	}
+		private final MockMvcTester mockMvc = MockMvcTester.of(new AsyncController());
 
-	@Test
-	public void streamingJson() throws Exception {
-		this.mockMvc.perform(get("/1").param("streamingJson", "true"))
-				.andExpect(request().asyncStarted())
-				.andDo(MvcResult::getAsyncResult)
-				.andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-				.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.5}"));
-	}
+		@Test
+		void callable() {
+			assertThat(mockMvc.get().uri("/1").param("callable", "true"))
+					.hasStatusOk()
+					.hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+					.hasBodyTextEqualTo("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}");
+		}
 
-	@Test
-	public void deferredResult() throws Exception {
-		MvcResult mvcResult = this.mockMvc.perform(get("/1").param("deferredResult", "true"))
-				.andExpect(request().asyncStarted())
-				.andReturn();
+		@Test
+		void streaming() {
+			assertThat(this.mockMvc.get().uri("/1").param("streaming", "true"))
+					.hasStatusOk().hasBodyTextEqualTo("name=Joe");
+		}
 
-		this.mockMvc.perform(asyncDispatch(mvcResult))
-				.andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-				.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
-	}
+		@Test
+		void streamingSlow() {
+			assertThat(this.mockMvc.get().uri("/1").param("streamingSlow", "true"))
+					.hasStatusOk().hasBodyTextEqualTo("name=Joe&someBoolean=true");
+		}
 
-	@Test
-	public void deferredResultWithImmediateValue() throws Exception {
-		MvcResult mvcResult = this.mockMvc.perform(get("/1").param("deferredResultWithImmediateValue", "true"))
-				.andExpect(request().asyncStarted())
-				.andExpect(request().asyncResult(new Person("Joe")))
-				.andReturn();
+		@Test
+		void streamingJson() {
+			assertThat(this.mockMvc.get().uri("/1").param("streamingJson", "true"))
+					.hasStatusOk()
+					.hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+					.hasBodyTextEqualTo("{\"name\":\"Joe\",\"someDouble\":0.5}");
+		}
 
-		this.mockMvc.perform(asyncDispatch(mvcResult))
-				.andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-				.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
-	}
+		@Test
+		void deferredResult() {
+			assertThat(this.mockMvc.get().uri("/1").param("deferredResult", "true"))
+					.hasStatusOk()
+					.hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+					.hasBodyTextEqualTo("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}");
+		}
 
-	@Test  // SPR-13079
-	public void deferredResultWithDelayedError() throws Exception {
-		MvcResult mvcResult = this.mockMvc.perform(get("/1").param("deferredResultWithDelayedError", "true"))
-				.andExpect(request().asyncStarted())
-				.andReturn();
+		@Test
+		void deferredResultWithImmediateValue() {
+			assertThat(this.mockMvc.get().uri("/1").param("deferredResultWithImmediateValue", "true"))
+					.hasStatusOk()
+					.hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+					.hasBodyTextEqualTo("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}");
+		}
 
-		this.mockMvc.perform(asyncDispatch(mvcResult))
-				.andExpect(status().is5xxServerError())
-				.andExpect(content().string("Delayed Error"));
-	}
+		@Test  // SPR-13079
+		void deferredResultWithDelayedError() {
+			assertThat(this.mockMvc.get().uri("/1").param("deferredResultWithDelayedError", "true"))
+					.hasStatus5xxServerError().hasBodyTextEqualTo("Delayed Error");
+		}
 
-	@Test
-	public void listenableFuture() throws Exception {
-		MvcResult mvcResult = this.mockMvc.perform(get("/1").param("listenableFuture", "true"))
-				.andExpect(request().asyncStarted())
-				.andReturn();
+		@Test
+		void listenableFuture() {
+			assertThat(this.mockMvc.get().uri("/1").param("listenableFuture", "true"))
+					.hasStatusOk().hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+					.hasBodyTextEqualTo("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}");
+		}
 
-		this.mockMvc.perform(asyncDispatch(mvcResult))
-				.andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-				.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
-	}
+		@Test  // SPR-12597
+		void completableFutureWithImmediateValue() {
+			assertThat(this.mockMvc.get().uri("/1").param("completableFutureWithImmediateValue", "true"))
+					.hasStatusOk()
+					.hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+					.hasBodyTextEqualTo("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}");
+		}
 
-	@Test  // SPR-12597
-	public void completableFutureWithImmediateValue() throws Exception {
-		MvcResult mvcResult = this.mockMvc.perform(get("/1").param("completableFutureWithImmediateValue", "true"))
-				.andExpect(request().asyncStarted())
-				.andReturn();
+		@Test  // SPR-12735
+		void printAsyncResult() {
+			StringWriter asyncWriter = new StringWriter();
 
-		this.mockMvc.perform(asyncDispatch(mvcResult))
-				.andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-				.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
-	}
-
-	@Test  // SPR-12735
-	public void printAsyncResult() throws Exception {
-		StringWriter writer = new StringWriter();
-
-		MvcResult mvcResult = this.mockMvc.perform(get("/1").param("deferredResult", "true"))
-				.andDo(print(writer))
-				.andExpect(request().asyncStarted())
-				.andReturn();
-
-		assertThat(writer.toString().contains("Async started = true")).isTrue();
-		writer = new StringWriter();
-
-		this.mockMvc.perform(asyncDispatch(mvcResult))
-				.andDo(print(writer))
-				.andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-				.andExpect(content().string("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}"));
-
-		assertThat(writer.toString().contains("Async started = false")).isTrue();
+			MvcTestResult result = this.mockMvc.get().uri("/1").param("deferredResult", "true").asyncExchange();
+			assertThat(result).debug(asyncWriter).request().hasAsyncStarted(true);
+			assertThat(asyncWriter.toString()).contains("Async started = true");
+			asyncWriter = new StringWriter(); // Reset
+			assertThat(this.mockMvc.perform(asyncDispatch(result.getMvcResult())))
+					.debug(asyncWriter)
+					.hasStatusOk()
+					.hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+					.hasBodyTextEqualTo("{\"name\":\"Joe\",\"someDouble\":0.0,\"someBoolean\":false}");
+			assertThat(asyncWriter.toString()).contains("Async started = false");
+		}
 	}
 
 
@@ -194,17 +283,17 @@ public class AsyncTests {
 	private static class AsyncController {
 
 		@RequestMapping(params = "callable")
-		public Callable<Person> getCallable() {
+		Callable<Person> getCallable() {
 			return () -> new Person("Joe");
 		}
 
 		@RequestMapping(params = "streaming")
-		public StreamingResponseBody getStreaming() {
+		StreamingResponseBody getStreaming() {
 			return os -> os.write("name=Joe".getBytes(StandardCharsets.UTF_8));
 		}
 
 		@RequestMapping(params = "streamingSlow")
-		public StreamingResponseBody getStreamingSlow() {
+		StreamingResponseBody getStreamingSlow() {
 			return os -> {
 				os.write("name=Joe".getBytes());
 				try {
@@ -218,41 +307,43 @@ public class AsyncTests {
 		}
 
 		@RequestMapping(params = "streamingJson")
-		public ResponseEntity<StreamingResponseBody> getStreamingJson() {
+		ResponseEntity<StreamingResponseBody> getStreamingJson() {
 			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
 					.body(os -> os.write("{\"name\":\"Joe\",\"someDouble\":0.5}".getBytes(StandardCharsets.UTF_8)));
 		}
 
 		@RequestMapping(params = "deferredResult")
-		public DeferredResult<Person> getDeferredResult() {
+		DeferredResult<Person> getDeferredResult() {
 			DeferredResult<Person> result = new DeferredResult<>();
 			delay(100, () -> result.setResult(new Person("Joe")));
 			return result;
 		}
 
 		@RequestMapping(params = "deferredResultWithImmediateValue")
-		public DeferredResult<Person> getDeferredResultWithImmediateValue() {
+		DeferredResult<Person> getDeferredResultWithImmediateValue() {
 			DeferredResult<Person> deferredResult = new DeferredResult<>();
 			deferredResult.setResult(new Person("Joe"));
 			return deferredResult;
 		}
 
 		@RequestMapping(params = "deferredResultWithDelayedError")
-		public DeferredResult<Person> getDeferredResultWithDelayedError() {
+		DeferredResult<Person> getDeferredResultWithDelayedError() {
 			DeferredResult<Person> result = new DeferredResult<>();
 			delay(100, () -> result.setErrorResult(new RuntimeException("Delayed Error")));
 			return result;
 		}
 
 		@RequestMapping(params = "listenableFuture")
-		public ListenableFuture<Person> getListenableFuture() {
-			ListenableFutureTask<Person> futureTask = new ListenableFutureTask<>(() -> new Person("Joe"));
+		@SuppressWarnings("deprecation")
+		org.springframework.util.concurrent.ListenableFuture<Person> getListenableFuture() {
+			org.springframework.util.concurrent.ListenableFutureTask<Person> futureTask =
+					new org.springframework.util.concurrent.ListenableFutureTask<>(() -> new Person("Joe"));
 			delay(100, futureTask);
 			return futureTask;
 		}
 
 		@RequestMapping(params = "completableFutureWithImmediateValue")
-		public CompletableFuture<Person> getCompletableFutureWithImmediateValue() {
+		CompletableFuture<Person> getCompletableFutureWithImmediateValue() {
 			CompletableFuture<Person> future = new CompletableFuture<>();
 			future.complete(new Person("Joe"));
 			return future;
@@ -260,7 +351,7 @@ public class AsyncTests {
 
 		@ExceptionHandler(Exception.class)
 		@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-		public String errorHandler(Exception ex) {
+		String errorHandler(Exception ex) {
 			return ex.getMessage();
 		}
 

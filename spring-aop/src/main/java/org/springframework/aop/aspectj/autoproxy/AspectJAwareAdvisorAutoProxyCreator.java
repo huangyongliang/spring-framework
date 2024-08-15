@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,11 @@ import org.springframework.aop.Advisor;
 import org.springframework.aop.aspectj.AbstractAspectJAdvice;
 import org.springframework.aop.aspectj.AspectJPointcutAdvisor;
 import org.springframework.aop.aspectj.AspectJProxyUtils;
+import org.springframework.aop.aspectj.ShadowMatchUtils;
 import org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator;
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.core.Ordered;
 import org.springframework.util.ClassUtils;
 
@@ -44,7 +47,8 @@ import org.springframework.util.ClassUtils;
  * @since 2.0
  */
 @SuppressWarnings("serial")
-public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator {
+public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
+		implements SmartInitializingSingleton, DisposableBean {
 
 	private static final Comparator<Advisor> DEFAULT_PRECEDENCE_COMPARATOR = new AspectJPrecedenceComparator();
 
@@ -60,8 +64,8 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 	 * <li>Otherwise the advice declared first gets highest precedence (i.e., runs
 	 * first).</li>
 	 * </ul>
-	 * <p><b>Important:</b> Advisors are sorted in precedence order, from highest
-	 * precedence to lowest. "On the way in" to a join point, the highest precedence
+	 * <p><b>Important:</b> Advisors are sorted in precedence order, from the highest
+	 * precedence to the lowest. "On the way in" to a join point, the highest precedence
 	 * advisor should run first. "On the way out" of a join point, the highest
 	 * precedence advisor should run last.
 	 */
@@ -100,12 +104,22 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 		// TODO: Consider optimization by caching the list of the aspect names
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
 		for (Advisor advisor : candidateAdvisors) {
-			if (advisor instanceof AspectJPointcutAdvisor &&
-					((AspectJPointcutAdvisor) advisor).getAspectName().equals(beanName)) {
+			if (advisor instanceof AspectJPointcutAdvisor pointcutAdvisor &&
+					pointcutAdvisor.getAspectName().equals(beanName)) {
 				return true;
 			}
 		}
 		return super.shouldSkip(beanClass, beanName);
+	}
+
+	@Override
+	public void afterSingletonsInstantiated() {
+		ShadowMatchUtils.clearCache();
+	}
+
+	@Override
+	public void destroy() {
+		ShadowMatchUtils.clearCache();
 	}
 
 
@@ -143,13 +157,12 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 			Advice advice = this.advisor.getAdvice();
 			StringBuilder sb = new StringBuilder(ClassUtils.getShortName(advice.getClass()));
 			boolean appended = false;
-			if (this.advisor instanceof Ordered) {
-				sb.append(": order = ").append(((Ordered) this.advisor).getOrder());
+			if (this.advisor instanceof Ordered ordered) {
+				sb.append(": order = ").append(ordered.getOrder());
 				appended = true;
 			}
-			if (advice instanceof AbstractAspectJAdvice) {
+			if (advice instanceof AbstractAspectJAdvice ajAdvice) {
 				sb.append(!appended ? ": " : ", ");
-				AbstractAspectJAdvice ajAdvice = (AbstractAspectJAdvice) advice;
 				sb.append("aspect name = ");
 				sb.append(ajAdvice.getAspectName());
 				sb.append(", declaration order = ");

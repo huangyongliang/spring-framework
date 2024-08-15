@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,12 @@ import java.util.StringJoiner;
 
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.lang.Nullable;
-import org.springframework.util.ClassUtils;
 
 /**
- * Utility methods (formatters etc) used during parsing and evaluation.
+ * Utility methods (formatters, etc) used during parsing and evaluation.
  *
  * @author Andy Clement
+ * @author Sam Brannen
  */
 abstract class FormatHelper {
 
@@ -34,19 +34,15 @@ abstract class FormatHelper {
 	 * Produce a readable representation for a given method name with specified arguments.
 	 * @param name the name of the method
 	 * @param argumentTypes the types of the arguments to the method
-	 * @return a nicely formatted representation, e.g. {@code foo(String,int)}
+	 * @return a nicely formatted representation &mdash; for example, {@code foo(java.lang.String,int)}
 	 */
-	public static String formatMethodForMessage(String name, List<TypeDescriptor> argumentTypes) {
+	static String formatMethodForMessage(String name, List<TypeDescriptor> argumentTypes) {
 		StringJoiner sj = new StringJoiner(",", "(", ")");
 		for (TypeDescriptor typeDescriptor : argumentTypes) {
-			if (typeDescriptor != null) {
-				sj.add(formatClassNameForMessage(typeDescriptor.getType()));
-			}
-			else {
-				sj.add(formatClassNameForMessage(null));
-			}
+			String className = (typeDescriptor != null ? formatClassNameForMessage(typeDescriptor.getType()) : "null");
+			sj.add(className);
 		}
-		return name + sj.toString();
+		return name + sj;
 	}
 
 	/**
@@ -54,10 +50,9 @@ abstract class FormatHelper {
 	 * <p>A String array will have the formatted name "java.lang.String[]".
 	 * @param clazz the Class whose name is to be formatted
 	 * @return a formatted String suitable for message inclusion
-	 * @see ClassUtils#getQualifiedName(Class)
 	 */
-	public static String formatClassNameForMessage(@Nullable Class<?> clazz) {
-		return (clazz != null ? ClassUtils.getQualifiedName(clazz) : "null");
+	static String formatClassNameForMessage(@Nullable Class<?> clazz) {
+		return (clazz != null ? clazz.getTypeName() : "null");
 	}
 
 }

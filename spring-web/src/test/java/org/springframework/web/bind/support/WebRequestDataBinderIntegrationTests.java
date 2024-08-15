@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,27 +16,30 @@
 
 package org.springframework.web.bind.support;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
-import javax.servlet.MultipartConfigElement;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.Part;
-
+import jakarta.servlet.MultipartConfigElement;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.NetworkConnector;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.util.FileSystemUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -48,29 +51,32 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Brian Clozel
  * @author Sam Brannen
  */
-public class WebRequestDataBinderIntegrationTests {
+@TestInstance(Lifecycle.PER_CLASS)
+class WebRequestDataBinderIntegrationTests {
 
-	private static Server jettyServer;
+	private final PartsServlet partsServlet = new PartsServlet();
 
-	private static final PartsServlet partsServlet = new PartsServlet();
-
-	private static final PartListServlet partListServlet = new PartListServlet();
+	private final PartListServlet partListServlet = new PartListServlet();
 
 	private final RestTemplate template = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
-	protected static String baseUrl;
+	private Server jettyServer;
 
-	protected static MediaType contentType;
+	private String baseUrl;
+
+	private Path tempDirectory;
 
 
 	@BeforeAll
-	public static void startJettyServer() throws Exception {
+	void startJettyServer() throws Exception {
 		// Let server pick its own random, available port.
 		jettyServer = new Server(0);
 
 		ServletContextHandler handler = new ServletContextHandler();
 
-		MultipartConfigElement multipartConfig = new MultipartConfigElement("");
+		this.tempDirectory = Files.createTempDirectory("WebRequestDataBinderIntegrationTests");
+
+		MultipartConfigElement multipartConfig = new MultipartConfigElement(this.tempDirectory.toString());
 
 		ServletHolder holder = new ServletHolder(partsServlet);
 		holder.getRegistration().setMultipartConfig(multipartConfig);
@@ -89,15 +95,20 @@ public class WebRequestDataBinderIntegrationTests {
 	}
 
 	@AfterAll
-	public static void stopJettyServer() throws Exception {
-		if (jettyServer != null) {
-			jettyServer.stop();
+	void stopJettyServer() throws Exception {
+		try {
+			if (jettyServer != null) {
+				jettyServer.stop();
+			}
+		}
+		finally {
+			FileSystemUtils.deleteRecursively(this.tempDirectory);
 		}
 	}
 
 
 	@Test
-	public void partsBinding() {
+	void partsBinding() {
 		PartsBean bean = new PartsBean();
 		partsServlet.setBean(bean);
 
@@ -113,7 +124,7 @@ public class WebRequestDataBinderIntegrationTests {
 	}
 
 	@Test
-	public void partListBinding() {
+	void partListBinding() {
 		PartListBean bean = new PartListBean();
 		partListServlet.setBean(bean);
 
@@ -126,7 +137,7 @@ public class WebRequestDataBinderIntegrationTests {
 		template.postForLocation(baseUrl + "/partlist", parts);
 
 		assertThat(bean.getPartList()).isNotNull();
-		assertThat(bean.getPartList().size()).isEqualTo(parts.get("partList").size());
+		assertThat(bean.getPartList()).hasSize(parts.get("partList").size());
 	}
 
 
@@ -143,7 +154,7 @@ public class WebRequestDataBinderIntegrationTests {
 			response.setStatus(HttpServletResponse.SC_OK);
 		}
 
-		public void setBean(T bean) {
+		void setBean(T bean) {
 			this.bean = bean;
 		}
 	}
@@ -151,9 +162,9 @@ public class WebRequestDataBinderIntegrationTests {
 
 	private static class PartsBean {
 
-		public Part firstPart;
+		private Part firstPart;
 
-		public Part secondPart;
+		private Part secondPart;
 
 		public Part getFirstPart() {
 			return firstPart;
@@ -182,7 +193,7 @@ public class WebRequestDataBinderIntegrationTests {
 
 	private static class PartListBean {
 
-		public List<Part> partList;
+		private List<Part> partList;
 
 		public List<Part> getPartList() {
 			return partList;

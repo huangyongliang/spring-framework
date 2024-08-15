@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -34,8 +34,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 /**
- * Abstract base implementation of the MultipartHttpServletRequest interface.
- * Provides management of pre-generated MultipartFile instances.
+ * Abstract base implementation of the {@link MultipartHttpServletRequest} interface.
+ * <p>Provides management of pre-generated {@link MultipartFile} instances.
  *
  * @author Juergen Hoeller
  * @author Arjen Poutsma
@@ -64,7 +64,7 @@ public abstract class AbstractMultipartHttpServletRequest extends HttpServletReq
 
 	@Override
 	public HttpMethod getRequestMethod() {
-		return HttpMethod.resolve(getRequest().getMethod());
+		return HttpMethod.valueOf(getRequest().getMethod());
 	}
 
 	@Override
@@ -84,6 +84,7 @@ public abstract class AbstractMultipartHttpServletRequest extends HttpServletReq
 	}
 
 	@Override
+	@Nullable
 	public MultipartFile getFile(String name) {
 		return getMultipartFiles().getFirst(name);
 	}
@@ -101,7 +102,7 @@ public abstract class AbstractMultipartHttpServletRequest extends HttpServletReq
 
 	@Override
 	public Map<String, MultipartFile> getFileMap() {
-		return getMultipartFiles().toSingleValueMap();
+		return getMultipartFiles().asSingleValueMap();
 	}
 
 	@Override
@@ -136,6 +137,7 @@ public abstract class AbstractMultipartHttpServletRequest extends HttpServletReq
 	 * lazily initializing it if necessary.
 	 * @see #initializeMultipart()
 	 */
+	@SuppressWarnings("NullAway")
 	protected MultiValueMap<String, MultipartFile> getMultipartFiles() {
 		if (this.multipartFiles == null) {
 			initializeMultipart();

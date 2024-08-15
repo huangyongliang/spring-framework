@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.test.util.JsonPathExpectationsHelper;
 import org.springframework.test.web.client.RequestMatcher;
+import org.springframework.util.Assert;
 
 /**
  * Factory for assertions on the request content using
@@ -52,8 +53,9 @@ public class JsonPathRequestMatchers {
 	 * @param args arguments to parameterize the {@code JsonPath} expression with,
 	 * using formatting specifiers defined in {@link String#format(String, Object...)}
 	 */
-	protected JsonPathRequestMatchers(String expression, Object ... args) {
-		this.jsonPathHelper = new JsonPathExpectationsHelper(expression, args);
+	protected JsonPathRequestMatchers(String expression, Object... args) {
+		Assert.hasText(expression, "expression must not be null or empty");
+		this.jsonPathHelper = new JsonPathExpectationsHelper(expression.formatted(args));
 	}
 
 

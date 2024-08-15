@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,10 +37,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Chris Beams
  * @author Scott Andrews
  */
-public class ServletRequestDataBinderTests {
+class ServletRequestDataBinderTests {
 
 	@Test
-	public void testBindingWithNestedObjectCreation() throws Exception {
+	void testBindingWithNestedObjectCreation() {
 		TestBean tb = new TestBean();
 
 		ServletRequestDataBinder binder = new ServletRequestDataBinder(tb, "person");
@@ -61,7 +61,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testFieldPrefixCausesFieldReset() throws Exception {
+	void testFieldPrefixCausesFieldReset() {
 		TestBean target = new TestBean();
 		ServletRequestDataBinder binder = new ServletRequestDataBinder(target);
 
@@ -77,7 +77,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testFieldPrefixCausesFieldResetWithIgnoreUnknownFields() throws Exception {
+	void testFieldPrefixCausesFieldResetWithIgnoreUnknownFields() {
 		TestBean target = new TestBean();
 		ServletRequestDataBinder binder = new ServletRequestDataBinder(target);
 		binder.setIgnoreUnknownFields(false);
@@ -94,7 +94,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testFieldDefault() throws Exception {
+	void testFieldDefault() {
 		TestBean target = new TestBean();
 		ServletRequestDataBinder binder = new ServletRequestDataBinder(target);
 
@@ -110,7 +110,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testFieldDefaultPreemptsFieldMarker() throws Exception {
+	void testFieldDefaultPreemptsFieldMarker() {
 		TestBean target = new TestBean();
 		ServletRequestDataBinder binder = new ServletRequestDataBinder(target);
 
@@ -131,7 +131,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testFieldDefaultNonBoolean() throws Exception {
+	void testFieldDefaultNonBoolean() {
 		TestBean target = new TestBean();
 		ServletRequestDataBinder binder = new ServletRequestDataBinder(target);
 
@@ -147,7 +147,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testWithCommaSeparatedStringArray() throws Exception {
+	void testWithCommaSeparatedStringArray() {
 		TestBean target = new TestBean();
 		ServletRequestDataBinder binder = new ServletRequestDataBinder(target);
 
@@ -165,7 +165,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testBindingWithNestedObjectCreationAndWrongOrder() throws Exception {
+	void testBindingWithNestedObjectCreationAndWrongOrder() {
 		TestBean tb = new TestBean();
 
 		ServletRequestDataBinder binder = new ServletRequestDataBinder(tb, "person");
@@ -186,7 +186,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testNoPrefix() throws Exception {
+	void testNoPrefix() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addParameter("forname", "Tony");
 		request.addParameter("surname", "Blair");
@@ -197,7 +197,7 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testPrefix() throws Exception {
+	void testPrefix() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addParameter("test_forname", "Tony");
 		request.addParameter("test_surname", "Blair");
@@ -213,20 +213,20 @@ public class ServletRequestDataBinderTests {
 	}
 
 	@Test
-	public void testNoParameters() throws Exception {
+	void testNoParameters() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		ServletRequestParameterPropertyValues pvs = new ServletRequestParameterPropertyValues(request);
-		assertThat(pvs.getPropertyValues().length == 0).as("Found no parameters").isTrue();
+		assertThat(pvs.getPropertyValues().length).as("Found no parameters").isEqualTo(0);
 	}
 
 	@Test
-	public void testMultipleValuesForParameter() throws Exception {
+	void testMultipleValuesForParameter() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		String[] original = new String[] {"Tony", "Rod"};
 		request.addParameter("forname", original);
 
 		ServletRequestParameterPropertyValues pvs = new ServletRequestParameterPropertyValues(request);
-		assertThat(pvs.getPropertyValues().length == 1).as("Found 1 parameter").isTrue();
+		assertThat(pvs.getPropertyValues().length).as("Found 1 parameter").isEqualTo(1);
 		boolean condition = pvs.getPropertyValue("forname").getValue() instanceof String[];
 		assertThat(condition).as("Found array value").isTrue();
 		String[] values = (String[]) pvs.getPropertyValue("forname").getValue();
@@ -236,8 +236,8 @@ public class ServletRequestDataBinderTests {
 	/**
 	 * Must contain: forname=Tony surname=Blair age=50
 	 */
-	protected void doTestTony(PropertyValues pvs) throws Exception {
-		assertThat(pvs.getPropertyValues().length == 3).as("Contains 3").isTrue();
+	protected void doTestTony(PropertyValues pvs) {
+		assertThat(pvs.getPropertyValues().length).as("Contains 3").isEqualTo(3);
 		assertThat(pvs.contains("forname")).as("Contains forname").isTrue();
 		assertThat(pvs.contains("surname")).as("Contains surname").isTrue();
 		assertThat(pvs.contains("age")).as("Contains age").isTrue();
@@ -249,15 +249,15 @@ public class ServletRequestDataBinderTests {
 		m.put("forname", "Tony");
 		m.put("surname", "Blair");
 		m.put("age", "50");
-		for (int i = 0; i < ps.length; i++) {
-			Object val = m.get(ps[i].getName());
-			assertThat(val != null).as("Can't have unexpected value").isTrue();
+		for (PropertyValue element : ps) {
+			Object val = m.get(element.getName());
+			assertThat(val).as("Can't have unexpected value").isNotNull();
 			boolean condition = val instanceof String;
 			assertThat(condition).as("Val i string").isTrue();
-			assertThat(val.equals(ps[i].getValue())).as("val matches expected").isTrue();
-			m.remove(ps[i].getName());
+			assertThat(val.equals(element.getValue())).as("val matches expected").isTrue();
+			m.remove(element.getName());
 		}
-		assertThat(m.size() == 0).as("Map size is 0").isTrue();
+		assertThat(m.size()).as("Map size is 0").isEqualTo(0);
 	}
 
 }

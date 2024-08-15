@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package org.springframework.context.annotation;
 
-import org.springframework.core.env.Profiles;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.MultiValueMap;
 
@@ -32,11 +31,12 @@ import org.springframework.util.MultiValueMap;
 class ProfileCondition implements Condition {
 
 	@Override
+	@SuppressWarnings("NullAway")
 	public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
 		MultiValueMap<String, Object> attrs = metadata.getAllAnnotationAttributes(Profile.class.getName());
 		if (attrs != null) {
 			for (Object value : attrs.get("value")) {
-				if (context.getEnvironment().acceptsProfiles(Profiles.of((String[]) value))) {
+				if (context.getEnvironment().matchesProfiles((String[]) value)) {
 					return true;
 				}
 			}

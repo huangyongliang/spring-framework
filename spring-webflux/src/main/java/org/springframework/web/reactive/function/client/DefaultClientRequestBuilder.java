@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -242,6 +242,7 @@ final class DefaultClientRequestBuilder implements ClientRequest.Builder {
 		}
 
 		@Override
+		@Nullable
 		public Consumer<ClientHttpRequest> httpRequest() {
 			return this.httpRequestConsumer;
 		}
@@ -255,10 +256,7 @@ final class DefaultClientRequestBuilder implements ClientRequest.Builder {
 		public Mono<Void> writeTo(ClientHttpRequest request, ExchangeStrategies strategies) {
 			HttpHeaders requestHeaders = request.getHeaders();
 			if (!this.headers.isEmpty()) {
-				this.headers.entrySet().stream()
-						.filter(entry -> !requestHeaders.containsKey(entry.getKey()))
-						.forEach(entry -> requestHeaders
-								.put(entry.getKey(), entry.getValue()));
+				this.headers.forEach(requestHeaders::putIfAbsent);
 			}
 
 			MultiValueMap<String, HttpCookie> requestCookies = request.getCookies();
@@ -268,6 +266,9 @@ final class DefaultClientRequestBuilder implements ClientRequest.Builder {
 					requestCookies.add(name, cookie);
 				}));
 			}
+
+			request.getAttributes().putAll(this.attributes);
+
 			if (this.httpRequestConsumer != null) {
 				this.httpRequestConsumer.accept(request);
 			}

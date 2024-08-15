@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,8 @@ package org.springframework.web.context;
 
 import java.util.EventListener;
 
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletException;
-
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Arjen Poutsma
  */
-public class ContextLoaderInitializerTests {
+class ContextLoaderInitializerTests {
 
 	private static final String BEAN_NAME = "myBean";
 
@@ -46,14 +45,14 @@ public class ContextLoaderInitializerTests {
 	private EventListener eventListener;
 
 	@BeforeEach
-	public void setUp() throws Exception {
+	void setUp() {
 		servletContext = new MyMockServletContext();
 		initializer = new MyContextLoaderInitializer();
 		eventListener = null;
 	}
 
 	@Test
-	public void register() throws ServletException {
+	void register() throws ServletException {
 		initializer.onStartup(servletContext);
 
 		boolean condition1 = eventListener instanceof ContextLoaderListener;

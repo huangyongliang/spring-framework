@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,12 @@
 package org.springframework.http.server.reactive;
 
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Objects;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelId;
+import io.netty.handler.codec.http.cookie.CookieHeaderNames;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reactivestreams.Publisher;
@@ -34,10 +36,10 @@ import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
-import org.springframework.util.Assert;
+import org.springframework.http.support.Netty4HeadersAdapter;
 
 /**
  * Adapt {@link ServerHttpResponse} to the {@link HttpServerResponse}.
@@ -55,8 +57,8 @@ class ReactorServerHttpResponse extends AbstractServerHttpResponse implements Ze
 
 
 	public ReactorServerHttpResponse(HttpServerResponse response, DataBufferFactory bufferFactory) {
-		super(bufferFactory, new HttpHeaders(new NettyHeadersAdapter(response.responseHeaders())));
-		Assert.notNull(response, "HttpServerResponse must not be null");
+		super(bufferFactory, new HttpHeaders(new Netty4HeadersAdapter(Objects.requireNonNull(response,
+				"HttpServerResponse must not be null").responseHeaders())));
 		this.response = response;
 	}
 
@@ -68,12 +70,13 @@ class ReactorServerHttpResponse extends AbstractServerHttpResponse implements Ze
 	}
 
 	@Override
-	public HttpStatus getStatusCode() {
-		HttpStatus status = super.getStatusCode();
-		return (status != null ? status : HttpStatus.resolve(this.response.status().code()));
+	public HttpStatusCode getStatusCode() {
+		HttpStatusCode status = super.getStatusCode();
+		return (status != null ? status : HttpStatusCode.valueOf(this.response.status().code()));
 	}
 
 	@Override
+	@Deprecated
 	public Integer getRawStatusCode() {
 		Integer status = super.getRawStatusCode();
 		return (status != null ? status : this.response.status().code());
@@ -81,9 +84,9 @@ class ReactorServerHttpResponse extends AbstractServerHttpResponse implements Ze
 
 	@Override
 	protected void applyStatusCode() {
-		Integer status = super.getRawStatusCode();
+		HttpStatusCode status = super.getStatusCode();
 		if (status != null) {
-			this.response.status(status);
+			this.response.status(status.value());
 		}
 	}
 
@@ -103,11 +106,25 @@ class ReactorServerHttpResponse extends AbstractServerHttpResponse implements Ze
 
 	@Override
 	protected void applyCookies() {
-		// Netty Cookie doesn't support sameSite. When this is resolved, we can adapt to it again:
-		// https://github.com/netty/netty/issues/8161
-		for (List<ResponseCookie> cookies : getCookies().values()) {
-			for (ResponseCookie cookie : cookies) {
-				this.response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+		for (String name : getCookies().keySet()) {
+			for (ResponseCookie httpCookie : getCookies().get(name)) {
+				DefaultCookie cookie = new DefaultCookie(name, httpCookie.getValue());
+				if (!httpCookie.getMaxAge().isNegative()) {
+					cookie.setMaxAge(httpCookie.getMaxAge().getSeconds());
+				}
+				if (httpCookie.getDomain() != null) {
+					cookie.setDomain(httpCookie.getDomain());
+				}
+				if (httpCookie.getPath() != null) {
+					cookie.setPath(httpCookie.getPath());
+				}
+				cookie.setSecure(httpCookie.isSecure());
+				cookie.setHttpOnly(httpCookie.isHttpOnly());
+				cookie.setPartitioned(httpCookie.isPartitioned());
+				if (httpCookie.getSameSite() != null) {
+					cookie.setSameSite(CookieHeaderNames.SameSite.valueOf(httpCookie.getSameSite()));
+				}
+				this.response.addCookie(cookie);
 			}
 		}
 	}
@@ -126,30 +143,16 @@ class ReactorServerHttpResponse extends AbstractServerHttpResponse implements Ze
 	@Override
 	protected void touchDataBuffer(DataBuffer buffer) {
 		if (logger.isDebugEnabled()) {
-			if (ReactorServerHttpRequest.reactorNettyRequestChannelOperationsIdPresent) {
-				if (ChannelOperationsIdHelper.touch(buffer, this.response)) {
-					return;
-				}
+			if (this.response instanceof ChannelOperationsId operationsId) {
+				DataBufferUtils.touch(buffer, "Channel id: " + operationsId.asLongText());
 			}
-			this.response.withConnection(connection -> {
-				ChannelId id = connection.channel().id();
-				DataBufferUtils.touch(buffer, "Channel id: " + id.asShortText());
-			});
+			else {
+				this.response.withConnection(connection -> {
+					ChannelId id = connection.channel().id();
+					DataBufferUtils.touch(buffer, "Channel id: " + id.asShortText());
+				});
+			}
 		}
 	}
-
-
-	private static class ChannelOperationsIdHelper {
-
-		public static boolean touch(DataBuffer dataBuffer, HttpServerResponse response) {
-			if (response instanceof reactor.netty.ChannelOperationsId) {
-				String id = ((ChannelOperationsId) response).asLongText();
-				DataBufferUtils.touch(dataBuffer, "Channel id: " + id);
-				return true;
-			}
-			return false;
-		}
-	}
-
 
 }

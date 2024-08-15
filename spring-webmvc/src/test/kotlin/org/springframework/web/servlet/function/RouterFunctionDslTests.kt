@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ class RouterFunctionDslTests {
 		val servletRequest = PathPatternsTestUtils.initRequest("GET", "", true)
 		servletRequest.addHeader("bar", "bar")
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
+		assertThat(sampleRouter().route(request)).isPresent()
 	}
 
 	@Test
@@ -46,7 +46,7 @@ class RouterFunctionDslTests {
 		val servletRequest = PathPatternsTestUtils.initRequest("GET", "/content", true)
 		servletRequest.addHeader(ACCEPT, APPLICATION_ATOM_XML_VALUE)
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
+		assertThat(sampleRouter().route(request)).isPresent()
 	}
 
 	@Test
@@ -54,7 +54,7 @@ class RouterFunctionDslTests {
 		val servletRequest = PathPatternsTestUtils.initRequest("POST", "/api/foo/", true)
 		servletRequest.addHeader(ACCEPT, APPLICATION_JSON_VALUE)
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
+		assertThat(sampleRouter().route(request)).isPresent()
 	}
 
 	@Test
@@ -63,7 +63,7 @@ class RouterFunctionDslTests {
 		servletRequest.addHeader(ACCEPT, APPLICATION_JSON_VALUE)
 		servletRequest.addHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
+		assertThat(sampleRouter().route(request)).isPresent()
 	}
 
 	@Test
@@ -71,36 +71,49 @@ class RouterFunctionDslTests {
 		val servletRequest = PathPatternsTestUtils.initRequest("GET", "/content", true)
 		servletRequest.addHeader(CONTENT_TYPE, APPLICATION_OCTET_STREAM_VALUE)
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
-	}
-
-	@Test
-	fun resourceByPath() {
-		val servletRequest = PathPatternsTestUtils.initRequest(
-				"GET", "/org/springframework/web/servlet/function/response.txt", true)
-		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
+		assertThat(sampleRouter().route(request)).isPresent()
 	}
 
 	@Test
 	fun method() {
 		val servletRequest = PathPatternsTestUtils.initRequest("PATCH", "/", true)
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
+		assertThat(sampleRouter().route(request)).isPresent()
 	}
 
 	@Test
 	fun path() {
 		val servletRequest = PathPatternsTestUtils.initRequest("GET", "/baz", true)
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
+		assertThat(sampleRouter().route(request)).isPresent()
+	}
+
+	@Test
+	fun pathExtension() {
+		val servletRequest = PathPatternsTestUtils.initRequest("GET", "/test.properties", true)
+		val request = DefaultServerRequest(servletRequest, emptyList())
+		assertThat(sampleRouter().route(request)).isPresent()
 	}
 
 	@Test
 	fun resource() {
+		val servletRequest = PathPatternsTestUtils.initRequest("GET","/response2.txt", true)
+		val request = DefaultServerRequest(servletRequest, emptyList())
+		assertThat(sampleRouter().route(request)).isPresent()
+	}
+
+	@Test
+	fun resources() {
+		val servletRequest = PathPatternsTestUtils.initRequest("GET", "/resources/response.txt", true)
+		val request = DefaultServerRequest(servletRequest, emptyList())
+		assertThat(sampleRouter().route(request)).isPresent()
+	}
+
+	@Test
+	fun resourcesLookupFunction() {
 		val servletRequest = PathPatternsTestUtils.initRequest("GET", "/response.txt", true)
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isTrue()
+		assertThat(sampleRouter().route(request)).isPresent()
 	}
 
 	@Test
@@ -110,7 +123,7 @@ class RouterFunctionDslTests {
 		servletRequest.addHeader(ACCEPT, APPLICATION_PDF_VALUE)
 		servletRequest.addHeader(CONTENT_TYPE, APPLICATION_PDF_VALUE)
 		val request = DefaultServerRequest(servletRequest, emptyList())
-		assertThat(sampleRouter().route(request).isPresent).isFalse()
+		assertThat(sampleRouter().route(request)).isNotPresent()
 	}
 
 	@Test
@@ -125,6 +138,27 @@ class RouterFunctionDslTests {
 		assertThatExceptionOfType(IllegalStateException::class.java).isThrownBy {
 			router { }
 		}
+	}
+
+	@Test
+	fun filtering() {
+		val servletRequest = PathPatternsTestUtils.initRequest("GET", "/filter", true)
+		val request = DefaultServerRequest(servletRequest, emptyList())
+		assertThat(sampleRouter().route(request).get().handle(request).headers().getFirst("foo")).isEqualTo("bar")
+	}
+
+	@Test
+	fun attributes() {
+		val visitor = AttributesTestVisitor()
+		attributesRouter.accept(visitor)
+		assertThat(visitor.routerFunctionsAttributes()).containsExactly(
+			listOf(mapOf("foo" to "bar", "baz" to "qux")),
+			listOf(mapOf("foo" to "bar", "baz" to "qux")),
+			listOf(mapOf("foo" to "bar"), mapOf("foo" to "n1")),
+			listOf(mapOf("baz" to "qux"), mapOf("foo" to "n1")),
+			listOf(mapOf("foo" to "n3"), mapOf("foo" to "n2"), mapOf("foo" to "n1"))
+		);
+		assertThat(visitor.visitCount()).isEqualTo(7);
 	}
 
 	private fun sampleRouter() = router {
@@ -147,8 +181,9 @@ class RouterFunctionDslTests {
 			GET("/api/foo/", ::handle)
 		}
 		headers({ it.header("bar").isNotEmpty() }, ::handle)
-		resources("/org/springframework/web/servlet/function/**",
-				ClassPathResource("/org/springframework/web/servlet/function/response.txt"))
+		resource(path("/response2.txt"), ClassPathResource("/org/springframework/web/servlet/function/response.txt"))
+		resources("/resources/**",
+			ClassPathResource("/org/springframework/web/servlet/function/"))
 		resources {
 			if (it.path() == "/response.txt") {
 				ClassPathResource("/org/springframework/web/servlet/function/response.txt")
@@ -157,9 +192,24 @@ class RouterFunctionDslTests {
 				null
 			}
 		}
+		GET(pathExtension { it == "properties" }) {
+			ok().body("foo=bar")
+		}
 		path("/baz", ::handle)
 		GET("/rendering") { RenderingResponse.create("index").build() }
 		add(otherRouter)
+		add(filterRouter)
+	}
+
+	private val filterRouter = router {
+		"/filter" { request ->
+			ok().header("foo", request.headers().firstHeader("foo")).build()
+		}
+
+		filter { request, next ->
+			val newRequest = ServerRequest.from(request).apply { header("foo", "bar") }.build()
+			next(newRequest)
+		}
 	}
 
 	private val otherRouter = router {
@@ -181,6 +231,39 @@ class RouterFunctionDslTests {
 		onError<IllegalStateException> { _, _ ->
 			ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
 		}
+	}
+
+	private val attributesRouter = router {
+		GET("/atts/1") {
+			ok().build()
+		}
+		withAttribute("foo", "bar")
+		withAttribute("baz", "qux")
+		GET("/atts/2") {
+			ok().build()
+		}
+		withAttributes { atts ->
+			atts["foo"] = "bar"
+			atts["baz"] = "qux"
+		}
+		"/atts".nest {
+			GET("/3") {
+				ok().build()
+			}
+			withAttribute("foo", "bar")
+			GET("/4") {
+				ok().build()
+			}
+			withAttribute("baz", "qux")
+			"/5".nest {
+				GET {
+					ok().build()
+				}
+				withAttribute("foo", "n3")
+			}
+			withAttribute("foo", "n2")
+		}
+		withAttribute("foo", "n1")
 	}
 
 	@Suppress("UNUSED_PARAMETER")

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,8 @@
 package org.springframework.web.context.request.async;
 
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 
-import javax.servlet.AsyncEvent;
-
+import jakarta.servlet.AsyncEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +41,7 @@ import static org.springframework.web.context.request.async.CallableProcessingIn
  * @author Violeta Georgieva
  * @since 5.0
  */
-public class WebAsyncManagerErrorTests {
+class WebAsyncManagerErrorTests {
 
 	private WebAsyncManager asyncManager;
 
@@ -55,13 +53,13 @@ public class WebAsyncManagerErrorTests {
 
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		this.servletRequest = new MockHttpServletRequest("GET", "/test");
 		this.servletRequest.setAsyncSupported(true);
 		this.servletResponse = new MockHttpServletResponse();
 		this.asyncWebRequest = new StandardServletAsyncWebRequest(servletRequest, servletResponse);
 
-		AsyncTaskExecutor executor = mock(AsyncTaskExecutor.class);
+		AsyncTaskExecutor executor = mock();
 
 		this.asyncManager = WebAsyncUtils.getAsyncManager(servletRequest);
 		this.asyncManager.setTaskExecutor(executor);
@@ -70,10 +68,10 @@ public class WebAsyncManagerErrorTests {
 
 
 	@Test
-	public void startCallableProcessingErrorAndComplete() throws Exception {
+	void startCallableProcessingErrorAndComplete() throws Exception {
 		StubCallable callable = new StubCallable();
 
-		CallableProcessingInterceptor interceptor = mock(CallableProcessingInterceptor.class);
+		CallableProcessingInterceptor interceptor = mock();
 		Exception e = new Exception();
 		given(interceptor.handleError(this.asyncWebRequest, callable, e)).willReturn(RESULT_NONE);
 
@@ -92,16 +90,11 @@ public class WebAsyncManagerErrorTests {
 	}
 
 	@Test
-	public void startCallableProcessingErrorAndResumeThroughCallback() throws Exception {
+	void startCallableProcessingErrorAndResumeThroughCallback() throws Exception {
 
 		StubCallable callable = new StubCallable();
 		WebAsyncTask<Object> webAsyncTask = new WebAsyncTask<>(callable);
-		webAsyncTask.onError(new Callable<Object>() {
-			@Override
-			public Object call() throws Exception {
-				return 7;
-			}
-		});
+		webAsyncTask.onError(() -> 7);
 
 		this.asyncManager.startCallableProcessing(webAsyncTask);
 
@@ -115,11 +108,11 @@ public class WebAsyncManagerErrorTests {
 	}
 
 	@Test
-	public void startCallableProcessingErrorAndResumeThroughInterceptor() throws Exception {
+	void startCallableProcessingErrorAndResumeThroughInterceptor() throws Exception {
 
 		StubCallable callable = new StubCallable();
 
-		CallableProcessingInterceptor interceptor = mock(CallableProcessingInterceptor.class);
+		CallableProcessingInterceptor interceptor = mock();
 		Exception e = new Exception();
 		given(interceptor.handleError(this.asyncWebRequest, callable, e)).willReturn(22);
 
@@ -137,12 +130,12 @@ public class WebAsyncManagerErrorTests {
 	}
 
 	@Test
-	public void startCallableProcessingAfterException() throws Exception {
+	void startCallableProcessingAfterException() throws Exception {
 
 		StubCallable callable = new StubCallable();
 		Exception exception = new Exception();
 
-		CallableProcessingInterceptor interceptor = mock(CallableProcessingInterceptor.class);
+		CallableProcessingInterceptor interceptor = mock();
 		Exception e = new Exception();
 		given(interceptor.handleError(this.asyncWebRequest, callable, e)).willThrow(exception);
 
@@ -160,11 +153,11 @@ public class WebAsyncManagerErrorTests {
 	}
 
 	@Test
-	public void startDeferredResultProcessingErrorAndComplete() throws Exception {
+	void startDeferredResultProcessingErrorAndComplete() throws Exception {
 
 		DeferredResult<Integer> deferredResult = new DeferredResult<>();
 
-		DeferredResultProcessingInterceptor interceptor = mock(DeferredResultProcessingInterceptor.class);
+		DeferredResultProcessingInterceptor interceptor = mock();
 		Exception e = new Exception();
 		given(interceptor.handleError(this.asyncWebRequest, deferredResult, e)).willReturn(true);
 
@@ -184,7 +177,7 @@ public class WebAsyncManagerErrorTests {
 	}
 
 	@Test
-	public void startDeferredResultProcessingErrorAndResumeWithDefaultResult() throws Exception {
+	void startDeferredResultProcessingErrorAndResumeWithDefaultResult() throws Exception {
 
 		Exception e = new Exception();
 		DeferredResult<Throwable> deferredResult = new DeferredResult<>(null, e);
@@ -199,15 +192,10 @@ public class WebAsyncManagerErrorTests {
 	}
 
 	@Test
-	public void startDeferredResultProcessingErrorAndResumeThroughCallback() throws Exception {
+	void startDeferredResultProcessingErrorAndResumeThroughCallback() throws Exception {
 
 		final DeferredResult<Throwable> deferredResult = new DeferredResult<>();
-		deferredResult.onError(new Consumer<Throwable>() {
-			@Override
-			public void accept(Throwable t) {
-				deferredResult.setResult(t);
-			}
-		});
+		deferredResult.onError(deferredResult::setResult);
 
 		this.asyncManager.startDeferredResultProcessing(deferredResult);
 
@@ -221,14 +209,13 @@ public class WebAsyncManagerErrorTests {
 	}
 
 	@Test
-	public void startDeferredResultProcessingErrorAndResumeThroughInterceptor() throws Exception {
+	void startDeferredResultProcessingErrorAndResumeThroughInterceptor() throws Exception {
 
 		DeferredResult<Integer> deferredResult = new DeferredResult<>();
 
 		DeferredResultProcessingInterceptor interceptor = new DeferredResultProcessingInterceptor() {
 			@Override
-			public <T> boolean handleError(NativeWebRequest request, DeferredResult<T> result, Throwable t)
-					throws Exception {
+			public <T> boolean handleError(NativeWebRequest request, DeferredResult<T> result, Throwable t) {
 				result.setErrorResult(t);
 				return true;
 			}
@@ -247,7 +234,7 @@ public class WebAsyncManagerErrorTests {
 	}
 
 	@Test
-	public void startDeferredResultProcessingAfterException() throws Exception {
+	void startDeferredResultProcessingAfterException() throws Exception {
 
 		DeferredResult<Integer> deferredResult = new DeferredResult<>();
 		final Exception exception = new Exception();
@@ -273,9 +260,9 @@ public class WebAsyncManagerErrorTests {
 	}
 
 
-	private final class StubCallable implements Callable<Object> {
+	private static final class StubCallable implements Callable<Object> {
 		@Override
-		public Object call() throws Exception {
+		public Object call() {
 			return 21;
 		}
 	}

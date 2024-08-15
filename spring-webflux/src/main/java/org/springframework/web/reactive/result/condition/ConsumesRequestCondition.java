@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,14 +75,14 @@ public final class ConsumesRequestCondition extends AbstractRequestCondition<Con
 	 * @param consumes as described in {@link RequestMapping#consumes()}
 	 * @param headers as described in {@link RequestMapping#headers()}
 	 */
-	public ConsumesRequestCondition(String[] consumes, String[] headers) {
+	public ConsumesRequestCondition(@Nullable String[] consumes, @Nullable String[] headers) {
 		this.expressions = parseExpressions(consumes, headers);
 		if (this.expressions.size() > 1) {
 			Collections.sort(this.expressions);
 		}
 	}
 
-	private static List<ConsumeMediaTypeExpression> parseExpressions(String[] consumes, String[] headers) {
+	private static List<ConsumeMediaTypeExpression> parseExpressions(@Nullable String[] consumes, @Nullable String[] headers) {
 		Set<ConsumeMediaTypeExpression> result = null;
 		if (!ObjectUtils.isEmpty(headers)) {
 			for (String header : headers) {
@@ -194,6 +194,7 @@ public final class ConsumesRequestCondition extends AbstractRequestCondition<Con
 	 * or {@code null} if no expressions match.
 	 */
 	@Override
+	@Nullable
 	public ConsumesRequestCondition getMatchingCondition(ServerWebExchange exchange) {
 		ServerHttpRequest request = exchange.getRequest();
 		if (CorsUtils.isPreFlightRequest(request)) {
@@ -274,7 +275,7 @@ public final class ConsumesRequestCondition extends AbstractRequestCondition<Con
 			try {
 				MediaType contentType = exchange.getRequest().getHeaders().getContentType();
 				contentType = (contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM);
-				return getMediaType().includes(contentType);
+				return (getMediaType().includes(contentType) && matchParameters(contentType));
 			}
 			catch (InvalidMediaTypeException ex) {
 				throw new UnsupportedMediaTypeStatusException("Can't parse Content-Type [" +

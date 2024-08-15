@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,12 @@ package org.springframework.web.context;
 
 import java.util.Locale;
 
-import javax.servlet.ServletException;
-
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.testfixture.beans.TestBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.NoSuchMessageException;
@@ -44,36 +40,27 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * @author Rod Johnson
  * @author Juergen Hoeller
  */
-public class XmlWebApplicationContextTests extends AbstractApplicationContextTests {
+class XmlWebApplicationContextTests extends AbstractApplicationContextTests {
 
 	private ConfigurableWebApplicationContext root;
 
 	@Override
-	protected ConfigurableApplicationContext createContext() throws Exception {
+	protected ConfigurableApplicationContext createContext() {
 		InitAndIB.constructed = false;
 		root = new XmlWebApplicationContext();
 		root.getEnvironment().addActiveProfile("rootProfile1");
 		MockServletContext sc = new MockServletContext("");
 		root.setServletContext(sc);
 		root.setConfigLocations("/org/springframework/web/context/WEB-INF/applicationContext.xml");
-		root.addBeanFactoryPostProcessor(new BeanFactoryPostProcessor() {
+		root.addBeanFactoryPostProcessor(beanFactory -> beanFactory.addBeanPostProcessor(new BeanPostProcessor() {
 			@Override
-			public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-				beanFactory.addBeanPostProcessor(new BeanPostProcessor() {
-					@Override
-					public Object postProcessBeforeInitialization(Object bean, String name) throws BeansException {
-						if (bean instanceof TestBean) {
-							((TestBean) bean).getFriends().add("myFriend");
-						}
-						return bean;
-					}
-					@Override
-					public Object postProcessAfterInitialization(Object bean, String name) throws BeansException {
-						return bean;
-					}
-				});
+			public Object postProcessBeforeInitialization(Object bean, String name) throws BeansException {
+				if (bean instanceof TestBean testBean) {
+					testBean.getFriends().add("myFriend");
+				}
+				return bean;
 			}
-		});
+		}));
 		root.refresh();
 		XmlWebApplicationContext wac = new XmlWebApplicationContext();
 		wac.getEnvironment().addActiveProfile("wacProfile1");
@@ -87,7 +74,7 @@ public class XmlWebApplicationContextTests extends AbstractApplicationContextTes
 
 	@Test
 	@SuppressWarnings("deprecation")
-	public void environmentMerge() {
+	void environmentMerge() {
 		assertThat(this.root.getEnvironment().acceptsProfiles("rootProfile1")).isTrue();
 		assertThat(this.root.getEnvironment().acceptsProfiles("wacProfile1")).isFalse();
 		assertThat(this.applicationContext.getEnvironment().acceptsProfiles("rootProfile1")).isTrue();
@@ -95,8 +82,7 @@ public class XmlWebApplicationContextTests extends AbstractApplicationContextTes
 	}
 
 	/**
-	 * Overridden as we can't trust superclass method
-	 * @see org.springframework.context.testfixture.AbstractApplicationContextTests#testEvents()
+	 * Overridden as we can't trust superclass method.
 	 */
 	@Override
 	protected void doTestEvents(TestApplicationListener listener, TestApplicationListener parentListener,
@@ -108,13 +94,12 @@ public class XmlWebApplicationContextTests extends AbstractApplicationContextTes
 
 	@Test
 	@Override
-	public void count() {
-		assertThat(this.applicationContext.getBeanDefinitionCount() == 14).as("should have 14 beans, not "+ this.applicationContext.getBeanDefinitionCount()).isTrue();
+	protected void count() {
+		assertThat(this.applicationContext.getBeanDefinitionCount()).as("should have 14 beans").isEqualTo(14);
 	}
 
 	@Test
-	@SuppressWarnings("resource")
-	public void withoutMessageSource() throws Exception {
+	void withoutMessageSource() {
 		MockServletContext sc = new MockServletContext("");
 		XmlWebApplicationContext wac = new XmlWebApplicationContext();
 		wac.setParent(root);
@@ -125,27 +110,27 @@ public class XmlWebApplicationContextTests extends AbstractApplicationContextTes
 		assertThatExceptionOfType(NoSuchMessageException.class).isThrownBy(() ->
 				wac.getMessage("someMessage", null, Locale.getDefault()));
 		String msg = wac.getMessage("someMessage", null, "default", Locale.getDefault());
-		assertThat("default".equals(msg)).as("Default message returned").isTrue();
+		assertThat(msg).as("Default message returned").isEqualTo("default");
 	}
 
 	@Test
-	public void contextNesting() {
+	void contextNesting() {
 		TestBean father = (TestBean) this.applicationContext.getBean("father");
-		assertThat(father != null).as("Bean from root context").isTrue();
+		assertThat(father).as("Bean from root context").isNotNull();
 		assertThat(father.getFriends().contains("myFriend")).as("Custom BeanPostProcessor applied").isTrue();
 
 		TestBean rod = (TestBean) this.applicationContext.getBean("rod");
-		assertThat("Rod".equals(rod.getName())).as("Bean from child context").isTrue();
-		assertThat(rod.getSpouse() == father).as("Bean has external reference").isTrue();
-		assertThat(!rod.getFriends().contains("myFriend")).as("Custom BeanPostProcessor not applied").isTrue();
+		assertThat(rod.getName()).as("Bean from child context").isEqualTo("Rod");
+		assertThat(rod.getSpouse()).as("Bean has external reference").isSameAs(father);
+		assertThat(rod.getFriends().contains("myFriend")).as("Custom BeanPostProcessor not applied").isFalse();
 
 		rod = (TestBean) this.root.getBean("rod");
-		assertThat("Roderick".equals(rod.getName())).as("Bean from root context").isTrue();
+		assertThat(rod.getName()).as("Bean from root context").isEqualTo("Roderick");
 		assertThat(rod.getFriends().contains("myFriend")).as("Custom BeanPostProcessor applied").isTrue();
 	}
 
 	@Test
-	public void initializingBeanAndInitMethod() throws Exception {
+	void initializingBeanAndInitMethod() {
 		assertThat(InitAndIB.constructed).isFalse();
 		InitAndIB iib = (InitAndIB) this.applicationContext.getBean("init-and-ib");
 		assertThat(InitAndIB.constructed).isTrue();
@@ -178,7 +163,7 @@ public class XmlWebApplicationContextTests extends AbstractApplicationContextTes
 		}
 
 		/** Init method */
-		public void customInit() throws ServletException {
+		public void customInit() {
 			assertThat(this.afterPropertiesSetInvoked).isTrue();
 			this.initMethodInvoked = true;
 		}

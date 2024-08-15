@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 package org.springframework.messaging.core;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -41,11 +41,11 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 /**
- * Unit tests for {@link AbstractMessageSendingTemplate}.
+ * Tests for {@link AbstractMessageSendingTemplate}.
  *
  * @author Rossen Stoyanchev
  */
-public class MessageSendingTemplateTests {
+class MessageSendingTemplateTests {
 
 	private TestMessageSendingTemplate template;
 
@@ -55,7 +55,7 @@ public class MessageSendingTemplateTests {
 
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		this.template = new TestMessageSendingTemplate();
 		this.postProcessor = new TestMessagePostProcessor();
 		this.headers = new HashMap<>();
@@ -63,7 +63,7 @@ public class MessageSendingTemplateTests {
 	}
 
 	@Test
-	public void send() {
+	void send() {
 		Message<?> message = new GenericMessage<Object>("payload");
 		this.template.setDefaultDestination("home");
 		this.template.send(message);
@@ -73,7 +73,7 @@ public class MessageSendingTemplateTests {
 	}
 
 	@Test
-	public void sendToDestination() {
+	void sendToDestination() {
 		Message<?> message = new GenericMessage<Object>("payload");
 		this.template.send("somewhere", message);
 
@@ -82,14 +82,14 @@ public class MessageSendingTemplateTests {
 	}
 
 	@Test
-	public void sendMissingDestination() {
+	void sendMissingDestination() {
 		Message<?> message = new GenericMessage<Object>("payload");
 		assertThatIllegalStateException().isThrownBy(() ->
 				this.template.send(message));
 	}
 
 	@Test
-	public void convertAndSend() {
+	void convertAndSend() {
 		this.template.convertAndSend("somewhere", "payload", headers, this.postProcessor);
 
 		assertThat(this.template.destination).isEqualTo("somewhere");
@@ -102,28 +102,28 @@ public class MessageSendingTemplateTests {
 	}
 
 	@Test
-	public void convertAndSendPayload() {
+	void convertAndSendPayload() {
 		this.template.setDefaultDestination("home");
 		this.template.convertAndSend("payload");
 
 		assertThat(this.template.destination).isEqualTo("home");
 		assertThat(this.template.message).isNotNull();
-		assertThat(this.template.message.getHeaders().size()).as("expected 'id' and 'timestamp' headers only").isEqualTo(2);
+		assertThat(this.template.message.getHeaders()).as("expected 'id' and 'timestamp' headers only").hasSize(2);
 		assertThat(this.template.message.getPayload()).isEqualTo("payload");
 	}
 
 	@Test
-	public void convertAndSendPayloadToDestination() {
+	void convertAndSendPayloadToDestination() {
 		this.template.convertAndSend("somewhere", "payload");
 
 		assertThat(this.template.destination).isEqualTo("somewhere");
 		assertThat(this.template.message).isNotNull();
-		assertThat(this.template.message.getHeaders().size()).as("expected 'id' and 'timestamp' headers only").isEqualTo(2);
+		assertThat(this.template.message.getHeaders()).as("expected 'id' and 'timestamp' headers only").hasSize(2);
 		assertThat(this.template.message.getPayload()).isEqualTo("payload");
 	}
 
 	@Test
-	public void convertAndSendPayloadAndHeadersToDestination() {
+	void convertAndSendPayloadAndHeadersToDestination() {
 		this.template.convertAndSend("somewhere", "payload", headers);
 
 		assertThat(this.template.destination).isEqualTo("somewhere");
@@ -133,7 +133,7 @@ public class MessageSendingTemplateTests {
 	}
 
 	@Test
-	public void convertAndSendPayloadAndMutableHeadersToDestination() {
+	void convertAndSendPayloadAndMutableHeadersToDestination() {
 		MessageHeaderAccessor accessor = new MessageHeaderAccessor();
 		accessor.setHeader("foo", "bar");
 		accessor.setLeaveMutable(true);
@@ -149,13 +149,13 @@ public class MessageSendingTemplateTests {
 	}
 
 	@Test
-	public void convertAndSendPayloadWithPostProcessor() {
+	void convertAndSendPayloadWithPostProcessor() {
 		this.template.setDefaultDestination("home");
 		this.template.convertAndSend((Object) "payload", this.postProcessor);
 
 		assertThat(this.template.destination).isEqualTo("home");
 		assertThat(this.template.message).isNotNull();
-		assertThat(this.template.message.getHeaders().size()).as("expected 'id' and 'timestamp' headers only").isEqualTo(2);
+		assertThat(this.template.message.getHeaders()).as("expected 'id' and 'timestamp' headers only").hasSize(2);
 		assertThat(this.template.message.getPayload()).isEqualTo("payload");
 
 		assertThat(this.postProcessor.getMessage()).isNotNull();
@@ -163,12 +163,12 @@ public class MessageSendingTemplateTests {
 	}
 
 	@Test
-	public void convertAndSendPayloadWithPostProcessorToDestination() {
+	void convertAndSendPayloadWithPostProcessorToDestination() {
 		this.template.convertAndSend("somewhere", "payload", this.postProcessor);
 
 		assertThat(this.template.destination).isEqualTo("somewhere");
 		assertThat(this.template.message).isNotNull();
-		assertThat(this.template.message.getHeaders().size()).as("expected 'id' and 'timestamp' headers only").isEqualTo(2);
+		assertThat(this.template.message.getHeaders()).as("expected 'id' and 'timestamp' headers only").hasSize(2);
 		assertThat(this.template.message.getPayload()).isEqualTo("payload");
 
 		assertThat(this.postProcessor.getMessage()).isNotNull();
@@ -176,10 +176,10 @@ public class MessageSendingTemplateTests {
 	}
 
 	@Test
-	public void convertAndSendNoMatchingConverter() {
+	void convertAndSendNoMatchingConverter() {
 
 		MessageConverter converter = new CompositeMessageConverter(
-				Arrays.<MessageConverter>asList(new MappingJackson2MessageConverter()));
+				List.of(new MappingJackson2MessageConverter()));
 		this.template.setMessageConverter(converter);
 
 		this.headers.put(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_XML);

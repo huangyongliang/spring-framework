@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.lang.reflect.Method;
 
-import javax.servlet.ServletResponse;
-
+import jakarta.servlet.ServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Arjen Poutsma
  */
-public class ServletResponseMethodArgumentResolverTests {
+class ServletResponseMethodArgumentResolverTests {
 
 	private ServletResponseMethodArgumentResolver resolver;
 
@@ -52,7 +51,7 @@ public class ServletResponseMethodArgumentResolverTests {
 
 
 	@BeforeEach
-	public void setup() throws Exception {
+	void setup() throws Exception {
 		resolver = new ServletResponseMethodArgumentResolver();
 		mavContainer = new ModelAndViewContainer();
 		servletResponse = new MockHttpServletResponse();
@@ -63,7 +62,7 @@ public class ServletResponseMethodArgumentResolverTests {
 
 
 	@Test
-	public void servletResponse() throws Exception {
+	void servletResponse() throws Exception {
 		MethodParameter servletResponseParameter = new MethodParameter(method, 0);
 		assertThat(resolver.supportsParameter(servletResponseParameter)).as("ServletResponse not supported").isTrue();
 
@@ -82,7 +81,7 @@ public class ServletResponseMethodArgumentResolverTests {
 	}
 
 	@Test
-	public void outputStream() throws Exception {
+	void outputStream() throws Exception {
 		MethodParameter outputStreamParameter = new MethodParameter(method, 1);
 		assertThat(resolver.supportsParameter(outputStreamParameter)).as("OutputStream not supported").isTrue();
 
@@ -92,7 +91,7 @@ public class ServletResponseMethodArgumentResolverTests {
 	}
 
 	@Test
-	public void writer() throws Exception {
+	void writer() throws Exception {
 		MethodParameter writerParameter = new MethodParameter(method, 2);
 		assertThat(resolver.supportsParameter(writerParameter)).as("Writer not supported").isTrue();
 

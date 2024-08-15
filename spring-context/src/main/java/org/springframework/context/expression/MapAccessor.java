@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,27 @@ import org.springframework.util.Assert;
  */
 public class MapAccessor implements CompilablePropertyAccessor {
 
+	private final boolean allowWrite;
+
+	/**
+	 * Create a new map accessor for reading as well as writing.
+	 * @since 6.2
+	 * @see #MapAccessor(boolean)
+	 */
+	public MapAccessor() {
+		this(true);
+	}
+
+	/**
+	 * Create a new map accessor for reading and possibly also writing.
+	 * @param allowWrite whether to allow write operations on a target instance
+	 * @since 6.2
+	 * @see #canWrite
+	 */
+	public MapAccessor(boolean allowWrite) {
+		this.allowWrite = allowWrite;
+	}
+
 	@Override
 	public Class<?>[] getSpecificTargetClasses() {
 		return new Class<?>[] {Map.class};
@@ -44,7 +65,7 @@ public class MapAccessor implements CompilablePropertyAccessor {
 
 	@Override
 	public boolean canRead(EvaluationContext context, @Nullable Object target, String name) throws AccessException {
-		return (target instanceof Map && ((Map<?, ?>) target).containsKey(name));
+		return (target instanceof Map<?, ?> map && map.containsKey(name));
 	}
 
 	@Override
@@ -60,7 +81,7 @@ public class MapAccessor implements CompilablePropertyAccessor {
 
 	@Override
 	public boolean canWrite(EvaluationContext context, @Nullable Object target, String name) throws AccessException {
-		return true;
+		return (this.allowWrite && target instanceof Map);
 	}
 
 	@Override
@@ -68,7 +89,7 @@ public class MapAccessor implements CompilablePropertyAccessor {
 	public void write(EvaluationContext context, @Nullable Object target, String name, @Nullable Object newValue)
 			throws AccessException {
 
-		Assert.state(target instanceof Map, "Target must be a Map");
+		Assert.state(target instanceof Map, "Target must be of type Map");
 		Map<Object, Object> map = (Map<Object, Object>) target;
 		map.put(name, newValue);
 	}
@@ -93,7 +114,7 @@ public class MapAccessor implements CompilablePropertyAccessor {
 			CodeFlow.insertCheckCast(mv, "Ljava/util/Map");
 		}
 		mv.visitLdcInsn(propertyName);
-		mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get","(Ljava/lang/Object;)Ljava/lang/Object;",true);
+		mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
 	}
 
 

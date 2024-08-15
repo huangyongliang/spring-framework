@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 
 package org.springframework.web.servlet.mvc.condition;
 
-import javax.servlet.http.HttpServletRequest;
-
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.web.testfixture.servlet.MockHttpServletRequest;
@@ -25,27 +24,27 @@ import org.springframework.web.util.ServletRequestPathUtils;
 import org.springframework.web.util.pattern.PathPatternParser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 
 /**
- * Unit tests for {@link PathPatternsRequestCondition}.
+ * Tests for {@link PathPatternsRequestCondition}.
+ *
  * @author Rossen Stoyanchev
  */
-public class PathPatternsRequestConditionTests {
+class PathPatternsRequestConditionTests {
 
 	private static final PathPatternParser parser = new PathPatternParser();
 
 
 	@Test
 	void prependSlash() {
-		assertThat(createCondition("foo").getPatternValues().iterator().next())
-				.isEqualTo("/foo");
+		assertThat(createCondition("foo").getPatternValues()).containsExactly("/foo");
 	}
 
 	@Test
 	void prependNonEmptyPatternsOnly() {
-		assertThat(createCondition("").getPatternValues().iterator().next())
-				.as("Do not prepend empty patterns (SPR-8255)")
-				.isEqualTo("");
+		assertThat(createCondition("").getPatternValues()).first(STRING)
+				.as("Do not prepend empty patterns (SPR-8255)").isEmpty();
 	}
 
 	@Test
@@ -60,8 +59,8 @@ public class PathPatternsRequestConditionTests {
 		PathPatternsRequestCondition c2 = createCondition();
 		PathPatternsRequestCondition c3 = c1.combine(c2);
 
-		assertThat(c3).isSameAs(c1);
 		assertThat(c1.getPatternValues()).isSameAs(c2.getPatternValues()).containsExactly("");
+		assertThat(c3.getPatternValues()).containsExactly("", "/");
 	}
 
 	@Test
@@ -128,14 +127,18 @@ public class PathPatternsRequestConditionTests {
 	}
 
 	@Test
+	@SuppressWarnings("deprecation")
 	void matchTrailingSlash() {
 		MockHttpServletRequest request = createRequest("/foo/");
 
-		PathPatternsRequestCondition condition = createCondition("/foo");
+		PathPatternParser patternParser = new PathPatternParser();
+		patternParser.setMatchOptionalTrailingSeparator(true);
+
+		PathPatternsRequestCondition condition = new PathPatternsRequestCondition(patternParser, "/foo");
 		PathPatternsRequestCondition match = condition.getMatchingCondition(request);
 
 		assertThat(match).isNotNull();
-		assertThat(match.getPatternValues().iterator().next()).as("Should match by default").isEqualTo("/foo");
+		assertThat(match.getPatternValues()).containsExactly("/foo");
 
 		PathPatternParser strictParser = new PathPatternParser();
 		strictParser.setMatchOptionalTrailingSeparator(false);

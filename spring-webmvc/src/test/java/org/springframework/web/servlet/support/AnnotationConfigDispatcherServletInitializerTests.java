@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,17 @@
 package org.springframework.web.servlet.support;
 
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.EventListener;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.servlet.DispatcherType;
-import javax.servlet.Filter;
-import javax.servlet.FilterRegistration.Dynamic;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRegistration;
-
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterRegistration.Dynamic;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRegistration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +38,7 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import org.springframework.web.filter.DelegatingFilterProxy;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
 import org.springframework.web.servlet.DispatcherServlet;
+import org.springframework.web.testfixture.servlet.MockFilterRegistration;
 import org.springframework.web.testfixture.servlet.MockServletConfig;
 import org.springframework.web.testfixture.servlet.MockServletContext;
 
@@ -51,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Arjen Poutsma
  */
-public class AnnotationConfigDispatcherServletInitializerTests {
+class AnnotationConfigDispatcherServletInitializerTests {
 
 	private static final String SERVLET_NAME = "myservlet";
 
@@ -73,7 +71,7 @@ public class AnnotationConfigDispatcherServletInitializerTests {
 
 
 	@BeforeEach
-	public void setUp() throws Exception {
+	void setUp() {
 		servletContext = new MyMockServletContext();
 		initializer = new MyAnnotationConfigDispatcherServletInitializer();
 		servlets = new LinkedHashMap<>(1);
@@ -83,10 +81,10 @@ public class AnnotationConfigDispatcherServletInitializerTests {
 	}
 
 	@Test
-	public void register() throws ServletException {
+	void register() throws ServletException {
 		initializer.onStartup(servletContext);
 
-		assertThat(servlets.size()).isEqualTo(1);
+		assertThat(servlets).hasSize(1);
 		assertThat(servlets.get(SERVLET_NAME)).isNotNull();
 
 		DispatcherServlet servlet = (DispatcherServlet) servlets.get(SERVLET_NAME);
@@ -97,7 +95,7 @@ public class AnnotationConfigDispatcherServletInitializerTests {
 		boolean condition = wac.getBean("bean") instanceof MyBean;
 		assertThat(condition).isTrue();
 
-		assertThat(servletRegistrations.size()).isEqualTo(1);
+		assertThat(servletRegistrations).hasSize(1);
 		assertThat(servletRegistrations.get(SERVLET_NAME)).isNotNull();
 
 		MockServletRegistration servletRegistration = servletRegistrations.get(SERVLET_NAME);
@@ -107,23 +105,21 @@ public class AnnotationConfigDispatcherServletInitializerTests {
 		assertThat(servletRegistration.getRunAsRole()).isEqualTo(ROLE_NAME);
 		assertThat(servletRegistration.isAsyncSupported()).isTrue();
 
-		assertThat(filterRegistrations.size()).isEqualTo(4);
+		assertThat(filterRegistrations).hasSize(4);
 		assertThat(filterRegistrations.get("hiddenHttpMethodFilter")).isNotNull();
 		assertThat(filterRegistrations.get("delegatingFilterProxy")).isNotNull();
 		assertThat(filterRegistrations.get("delegatingFilterProxy#0")).isNotNull();
 		assertThat(filterRegistrations.get("delegatingFilterProxy#1")).isNotNull();
 
-		for (MockFilterRegistration filterRegistration : filterRegistrations.values()) {
-			assertThat(filterRegistration.isAsyncSupported()).isTrue();
-			EnumSet<DispatcherType> enumSet = EnumSet.of(DispatcherType.REQUEST, DispatcherType.FORWARD,
-					DispatcherType.INCLUDE, DispatcherType.ASYNC);
-			assertThat(filterRegistration.getMappings().get(SERVLET_NAME)).isEqualTo(enumSet);
+		for (MockFilterRegistration registration : filterRegistrations.values()) {
+			assertThat(registration.isAsyncSupported()).isTrue();
+			assertThat(registration.getServletNameMappings().iterator().next()).isEqualTo(SERVLET_NAME);
 		}
 
 	}
 
 	@Test
-	public void asyncSupportedFalse() throws ServletException {
+	void asyncSupportedFalse() throws ServletException {
 		initializer = new MyAnnotationConfigDispatcherServletInitializer() {
 			@Override
 			protected boolean isAsyncSupported() {
@@ -136,15 +132,15 @@ public class AnnotationConfigDispatcherServletInitializerTests {
 		MockServletRegistration servletRegistration = servletRegistrations.get(SERVLET_NAME);
 		assertThat(servletRegistration.isAsyncSupported()).isFalse();
 
-		for (MockFilterRegistration filterRegistration : filterRegistrations.values()) {
-			assertThat(filterRegistration.isAsyncSupported()).isFalse();
-			assertThat(filterRegistration.getMappings().get(SERVLET_NAME)).isEqualTo(EnumSet.of(DispatcherType.REQUEST, DispatcherType.FORWARD, DispatcherType.INCLUDE));
+		for (MockFilterRegistration registration : filterRegistrations.values()) {
+			assertThat(registration.isAsyncSupported()).isFalse();
+			assertThat(registration.getServletNameMappings().iterator().next()).isEqualTo(SERVLET_NAME);
 		}
 	}
 
 	// SPR-11357
 	@Test
-	public void rootContextOnly() throws ServletException {
+	void rootContextOnly() throws ServletException {
 		initializer = new MyAnnotationConfigDispatcherServletInitializer() {
 			@Override
 			protected Class<?>[] getRootConfigClasses() {
@@ -170,7 +166,7 @@ public class AnnotationConfigDispatcherServletInitializerTests {
 	}
 
 	@Test
-	public void noFilters() throws ServletException {
+	void noFilters() throws ServletException {
 		initializer = new MyAnnotationConfigDispatcherServletInitializer() {
 			@Override
 			protected Filter[] getServletFilters() {
@@ -180,7 +176,7 @@ public class AnnotationConfigDispatcherServletInitializerTests {
 
 		initializer.onStartup(servletContext);
 
-		assertThat(filterRegistrations.size()).isEqualTo(0);
+		assertThat(filterRegistrations).isEmpty();
 	}
 
 
@@ -210,7 +206,7 @@ public class AnnotationConfigDispatcherServletInitializerTests {
 				return null;
 			}
 			filters.put(filterName, filter);
-			MockFilterRegistration registration = new MockFilterRegistration();
+			MockFilterRegistration registration = new MockFilterRegistration(filter.getClass().getName(), filterName);
 			filterRegistrations.put(filterName, registration);
 			return registration;
 		}

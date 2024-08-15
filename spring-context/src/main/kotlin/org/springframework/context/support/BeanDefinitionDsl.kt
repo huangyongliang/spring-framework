@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,13 @@
 
 package org.springframework.context.support
 
+import org.springframework.aot.AotDetector
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.beans.factory.aot.BeanRegistrationAotProcessor
 import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.beans.factory.config.BeanDefinitionCustomizer
 import org.springframework.beans.factory.getBeanProvider
+import org.springframework.beans.factory.support.AbstractBeanDefinition
 import org.springframework.beans.factory.support.BeanDefinitionReaderUtils
 import org.springframework.context.ApplicationContextInitializer
 import org.springframework.core.env.ConfigurableEnvironment
@@ -108,7 +111,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 		SINGLETON,
 
 		/**
-		 * Scope constant for the standard singleton scope
+		 * Scope constant for the standard prototype scope
 		 * @see org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE
 		 */
 		PROTOTYPE
@@ -164,6 +167,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 */
@@ -175,20 +179,26 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 									  initMethodName: String? = null,
 									  destroyMethodName: String? = null,
 									  description: String? = null,
-									  role: Role? = null) {
+									  role: Role? = null,
+									  order: Int? = null) {
 
+		// This version registers a regular bean definition that has been processed by AOT.
+		if (AotDetector.useGeneratedArtifacts()) {
+			return
+		}
 		val customizer = BeanDefinitionCustomizer { bd ->
-			scope?.let { bd.scope = scope.name.toLowerCase() }
+			scope?.let { bd.scope = scope.name.lowercase() }
 			isLazyInit?.let { bd.isLazyInit = isLazyInit }
 			isPrimary?.let { bd.isPrimary = isPrimary }
 			isAutowireCandidate?.let { bd.isAutowireCandidate = isAutowireCandidate }
 			initMethodName?.let { bd.initMethodName = initMethodName }
 			destroyMethodName?.let { bd.destroyMethodName = destroyMethodName }
 			description?.let { bd.description = description }
-			role?. let { bd.role = role.ordinal }
+			role?.let { bd.role = role.ordinal }
+			order?.let { bd.setAttribute(AbstractBeanDefinition.ORDER_ATTRIBUTE, order) }
 		}
 
-		val beanName = name ?: BeanDefinitionReaderUtils.uniqueBeanName(T::class.java.name, context);
+		val beanName = name ?: BeanDefinitionReaderUtils.uniqueBeanName(T::class.java.name, context)
 		context.registerBean(beanName, T::class.java, customizer)
 	}
 
@@ -206,6 +216,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
 	 * @param function the bean supplier function
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 */
@@ -218,21 +229,24 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 									  destroyMethodName: String? = null,
 									  description: String? = null,
 									  role: Role? = null,
+									  order: Int? = null,
 									  crossinline function: BeanSupplierContext.() -> T) {
 
 		val customizer = BeanDefinitionCustomizer { bd ->
-			scope?.let { bd.scope = scope.name.toLowerCase() }
+			scope?.let { bd.scope = scope.name.lowercase() }
 			isLazyInit?.let { bd.isLazyInit = isLazyInit }
 			isPrimary?.let { bd.isPrimary = isPrimary }
 			isAutowireCandidate?.let { bd.isAutowireCandidate = isAutowireCandidate }
 			initMethodName?.let { bd.initMethodName = initMethodName }
 			destroyMethodName?.let { bd.destroyMethodName = destroyMethodName }
 			description?.let { bd.description = description }
-			role?. let { bd.role = role.ordinal }
+			role?.let { bd.role = role.ordinal }
+			order?.let { bd.setAttribute(AbstractBeanDefinition.ORDER_ATTRIBUTE, order) }
+			bd.setAttribute(BeanRegistrationAotProcessor.IGNORE_REGISTRATION_ATTRIBUTE, true)
 		}
 
 
-		val beanName = name ?: BeanDefinitionReaderUtils.uniqueBeanName(T::class.java.name, context);
+		val beanName = name ?: BeanDefinitionReaderUtils.uniqueBeanName(T::class.java.name, context)
 		context.registerBean(beanName, T::class.java, Supplier { function.invoke(BeanSupplierContext(context)) }, customizer)
 	}
 
@@ -251,6 +265,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2.3
@@ -258,16 +273,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	inline fun <reified T: Any>
 			bean(crossinline f: () -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke()
 		}
 	}
@@ -287,6 +303,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -294,16 +311,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	inline fun <reified T: Any, reified A: Any>
 			bean(crossinline f: (A) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref())
 		}
 	}
@@ -323,6 +341,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -330,16 +349,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	inline fun <reified T: Any, reified A: Any, reified B: Any>
 			bean(crossinline f: (A, B) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref())
 		}
 	}
@@ -359,6 +379,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -366,16 +387,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	inline fun <reified T: Any, reified A: Any, reified B: Any, reified C: Any>
 			bean(crossinline f: (A, B, C) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref())
 		}
 	}
@@ -395,6 +417,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -402,16 +425,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	inline fun <reified T: Any, reified A: Any, reified B: Any, reified C: Any, reified D: Any>
 			bean(crossinline f: (A, B, C, D) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref())
 		}
 	}
@@ -431,6 +455,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -438,16 +463,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	inline fun <reified T: Any, reified A: Any, reified B: Any, reified C: Any, reified D: Any, reified E: Any>
 			bean(crossinline f: (A, B, C, D, E) -> T,
 				 name: String? = null,
-								   scope: BeanDefinitionDsl.Scope? = null,
-								   isLazyInit: Boolean? = null,
-								   isPrimary: Boolean? = null,
-								   isAutowireCandidate: Boolean? = null,
-								   initMethodName: String? = null,
-								   destroyMethodName: String? = null,
-								   description: String? = null,
-								   role: BeanDefinitionDsl.Role? = null) {
+				 scope: Scope? = null,
+				 isLazyInit: Boolean? = null,
+				 isPrimary: Boolean? = null,
+				 isAutowireCandidate: Boolean? = null,
+				 initMethodName: String? = null,
+				 destroyMethodName: String? = null,
+				 description: String? = null,
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -467,6 +493,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -474,16 +501,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	inline fun <reified T: Any, reified A: Any, reified B: Any, reified C: Any, reified D: Any, reified E: Any, reified F: Any>
 			bean(crossinline f: (A, B, C, D, E, F) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -503,6 +531,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -511,16 +540,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified G: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -540,6 +570,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -548,16 +579,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified G: Any, reified H: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -577,6 +609,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -585,16 +618,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified G: Any, reified H: Any, reified I: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -614,6 +648,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -622,16 +657,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified G: Any, reified H: Any, reified I: Any, reified J: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -651,6 +687,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -659,16 +696,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified G: Any, reified H: Any, reified I: Any, reified J: Any, reified K: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -688,6 +726,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -696,16 +735,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified G: Any, reified H: Any, reified I: Any, reified J: Any, reified K: Any, reified L: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -725,6 +765,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -733,16 +774,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified G: Any, reified H: Any, reified I: Any, reified J: Any, reified K: Any, reified L: Any, reified M: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -762,6 +804,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -771,16 +814,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified N: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -800,6 +844,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -809,16 +854,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified N: Any, reified O: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -838,6 +884,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -847,16 +894,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified N: Any, reified O: Any, reified P: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -876,6 +924,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -885,16 +934,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified N: Any, reified O: Any, reified P: Any, reified Q: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -914,6 +964,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -923,16 +974,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified N: Any, reified O: Any, reified P: Any, reified Q: Any, reified R: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -952,6 +1004,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -961,16 +1014,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified N: Any, reified O: Any, reified P: Any, reified Q: Any, reified R: Any, reified S: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -990,6 +1044,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -999,16 +1054,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified N: Any, reified O: Any, reified P: Any, reified Q: Any, reified R: Any, reified S: Any, reified U: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, U) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -1028,6 +1084,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -1038,16 +1095,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified V: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, U, V) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -1067,6 +1125,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 	 * @param destroyMethodName Set the name of the destroy method
 	 * @param description Set a human-readable description of this bean definition
 	 * @param role Set the role hint for this bean definition
+	 * @param order Set the sort order for the targeted bean
 	 * @see GenericApplicationContext.registerBean
 	 * @see org.springframework.beans.factory.config.BeanDefinition
 	 * @since 5.2
@@ -1077,16 +1136,17 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 			reified V: Any, reified W: Any>
 			bean(crossinline f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, U, V, W) -> T,
 				 name: String? = null,
-				 scope: BeanDefinitionDsl.Scope? = null,
+				 scope: Scope? = null,
 				 isLazyInit: Boolean? = null,
 				 isPrimary: Boolean? = null,
 				 isAutowireCandidate: Boolean? = null,
 				 initMethodName: String? = null,
 				 destroyMethodName: String? = null,
 				 description: String? = null,
-				 role: BeanDefinitionDsl.Role? = null) {
+				 role: Role? = null,
+				 order: Int? = null) {
 
-		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role) {
+		bean(name, scope, isLazyInit, isPrimary, isAutowireCandidate, initMethodName, destroyMethodName, description, role, order) {
 			f.invoke(ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref(), ref())
 		}
 	}
@@ -1110,7 +1170,7 @@ open class BeanDefinitionDsl internal constructor (private val init: BeanDefinit
 		}
 
 		/**
-		 * Return an provider for the specified bean, allowing for lazy on-demand retrieval
+		 * Return a provider for the specified bean, allowing for lazy on-demand retrieval
 		 * of instances, including availability and uniqueness options.
 		 * @see org.springframework.beans.factory.BeanFactory.getBeanProvider
 		 */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
  * @author Arjen Poutsma
  * @author Sebastien Deleuze
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({ "deprecation" })
 class ListenableFutureTaskTests {
 
 	@Test
@@ -42,11 +42,12 @@ class ListenableFutureTaskTests {
 		Callable<String> callable = () -> s;
 
 		ListenableFutureTask<String> task = new ListenableFutureTask<>(callable);
-		task.addCallback(new ListenableFutureCallback<String>() {
+		task.addCallback(new ListenableFutureCallback<>() {
 			@Override
 			public void onSuccess(String result) {
 				assertThat(result).isEqualTo(s);
 			}
+
 			@Override
 			public void onFailure(Throwable ex) {
 				throw new AssertionError(ex.getMessage(), ex);
@@ -60,18 +61,19 @@ class ListenableFutureTaskTests {
 	}
 
 	@Test
-	void failure() throws Exception {
+	void failure() {
 		final String s = "Hello World";
 		Callable<String> callable = () -> {
 			throw new IOException(s);
 		};
 
 		ListenableFutureTask<String> task = new ListenableFutureTask<>(callable);
-		task.addCallback(new ListenableFutureCallback<String>() {
+		task.addCallback(new ListenableFutureCallback<>() {
 			@Override
 			public void onSuccess(String result) {
 				fail("onSuccess not expected");
 			}
+
 			@Override
 			public void onFailure(Throwable ex) {
 				assertThat(ex.getMessage()).isEqualTo(s);
@@ -94,8 +96,8 @@ class ListenableFutureTaskTests {
 		final String s = "Hello World";
 		Callable<String> callable = () -> s;
 
-		SuccessCallback<String> successCallback = mock(SuccessCallback.class);
-		FailureCallback failureCallback = mock(FailureCallback.class);
+		SuccessCallback<String> successCallback = mock();
+		FailureCallback failureCallback = mock();
 		ListenableFutureTask<String> task = new ListenableFutureTask<>(callable);
 		task.addCallback(successCallback, failureCallback);
 		task.run();
@@ -108,27 +110,29 @@ class ListenableFutureTaskTests {
 	}
 
 	@Test
-	void failureWithLambdas() throws Exception {
+	void failureWithLambdas() {
 		final String s = "Hello World";
 		IOException ex = new IOException(s);
 		Callable<String> callable = () -> {
 			throw ex;
 		};
 
-		SuccessCallback<String> successCallback = mock(SuccessCallback.class);
-		FailureCallback failureCallback = mock(FailureCallback.class);
+		SuccessCallback<String> successCallback = mock();
+		FailureCallback failureCallback = mock();
 		ListenableFutureTask<String> task = new ListenableFutureTask<>(callable);
 		task.addCallback(successCallback, failureCallback);
 		task.run();
 		verify(failureCallback).onFailure(ex);
 		verifyNoInteractions(successCallback);
 
-		assertThatExceptionOfType(ExecutionException.class).isThrownBy(
-				task::get)
-			.satisfies(e -> assertThat(e.getCause().getMessage()).isEqualTo(s));
-		assertThatExceptionOfType(ExecutionException.class).isThrownBy(
-				task.completable()::get)
-			.satisfies(e -> assertThat(e.getCause().getMessage()).isEqualTo(s));
+		assertThatExceptionOfType(ExecutionException.class)
+				.isThrownBy(task::get)
+				.havingCause()
+				.withMessage(s);
+		assertThatExceptionOfType(ExecutionException.class)
+				.isThrownBy(task.completable()::get)
+				.havingCause()
+				.withMessage(s);
 	}
 
 }

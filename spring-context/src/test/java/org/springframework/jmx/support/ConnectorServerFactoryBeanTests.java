@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.jmx.support;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
@@ -30,8 +29,8 @@ import javax.management.remote.JMXServiceURL;
 
 import org.junit.jupiter.api.Test;
 
+import org.springframework.core.testfixture.net.TestSocketUtils;
 import org.springframework.jmx.AbstractMBeanServerTests;
-import org.springframework.util.SocketUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -47,7 +46,7 @@ class ConnectorServerFactoryBeanTests extends AbstractMBeanServerTests {
 
 	private static final String OBJECT_NAME = "spring:type=connector,name=test";
 
-	private final String serviceUrl = "service:jmx:jmxmp://localhost:" + SocketUtils.findAvailableTcpPort();
+	private final String serviceUrl = "service:jmx:jmxmp://localhost:" + TestSocketUtils.findAvailableTcpPort();
 
 
 	@Test
@@ -111,7 +110,7 @@ class ConnectorServerFactoryBeanTests extends AbstractMBeanServerTests {
 		}
 	}
 
-	private void checkServerConnection(MBeanServer hostedServer) throws IOException, MalformedURLException {
+	private void checkServerConnection(MBeanServer hostedServer) throws IOException {
 		// Try to connect using client.
 		JMXServiceURL serviceURL = new JMXServiceURL(this.serviceUrl);
 		JMXConnector connector = JMXConnectorFactory.connect(serviceURL);

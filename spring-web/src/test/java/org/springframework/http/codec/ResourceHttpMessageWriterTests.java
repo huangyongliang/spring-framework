@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,16 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import org.springframework.core.ResolvableType;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpRange;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.web.testfixture.http.client.reactive.MockClientHttpRequest;
 import org.springframework.web.testfixture.http.server.reactive.MockServerHttpRequest;
 import org.springframework.web.testfixture.http.server.reactive.MockServerHttpResponse;
 
@@ -40,12 +43,12 @@ import static org.springframework.http.MediaType.TEXT_PLAIN;
 import static org.springframework.web.testfixture.http.server.reactive.MockServerHttpRequest.get;
 
 /**
- * Unit tests for {@link ResourceHttpMessageWriter}.
+ * Tests for {@link ResourceHttpMessageWriter}.
  *
  * @author Brian Clozel
  * @author Rossen Stoyanchev
  */
-public class ResourceHttpMessageWriterTests {
+class ResourceHttpMessageWriterTests {
 
 	private static final Map<String, Object> HINTS = Collections.emptyMap();
 
@@ -60,13 +63,13 @@ public class ResourceHttpMessageWriterTests {
 
 	@Test
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public void getWritableMediaTypes() throws Exception {
+	public void getWritableMediaTypes() {
 		assertThat((List) this.writer.getWritableMediaTypes())
 				.containsExactlyInAnyOrder(MimeTypeUtils.APPLICATION_OCTET_STREAM, MimeTypeUtils.ALL);
 	}
 
 	@Test
-	public void writeResource() throws Exception {
+	void writeResourceServer() {
 
 		testWrite(get("/").build());
 
@@ -79,7 +82,22 @@ public class ResourceHttpMessageWriterTests {
 	}
 
 	@Test
-	public void writeSingleRegion() throws Exception {
+	void writeResourceClient() {
+
+		MockClientHttpRequest request = new MockClientHttpRequest(HttpMethod.GET, "/");
+		Mono<Void> mono = this.writer.write(this.input, ResolvableType.forClass(Resource.class), TEXT_PLAIN, request, HINTS);
+		StepVerifier.create(mono).expectComplete().verify();
+
+		assertThat(request.getHeaders().getContentType()).isEqualTo(TEXT_PLAIN);
+		assertThat(request.getHeaders().getContentLength()).isEqualTo(39L);
+		assertThat(request.getHeaders().getFirst(HttpHeaders.ACCEPT_RANGES)).isNull();
+
+		String content = "Spring Framework test resource content.";
+		StepVerifier.create(request.getBodyAsString()).expectNext(content).expectComplete().verify();
+	}
+
+	@Test
+	void writeSingleRegion() {
 
 		testWrite(get("/").range(of(0, 5)).build());
 
@@ -91,7 +109,7 @@ public class ResourceHttpMessageWriterTests {
 	}
 
 	@Test
-	public void writeMultipleRegions() throws Exception {
+	void writeMultipleRegions() {
 
 		testWrite(get("/").range(of(0,5), of(7,15), of(17,20), of(22,38)).build());
 
@@ -130,7 +148,7 @@ public class ResourceHttpMessageWriterTests {
 	}
 
 	@Test
-	public void invalidRange() throws Exception {
+	void invalidRange() {
 
 		testWrite(get("/").header(HttpHeaders.RANGE, "invalid").build());
 

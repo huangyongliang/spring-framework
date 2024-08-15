@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,10 @@ import static org.mockito.Mockito.verify;
  * @author Juergen Hoeller
  * @author Chris Beams
  */
-public class FailFastProblemReporterTests {
+class FailFastProblemReporterTests {
 
 	@Test
-	public void testError() throws Exception {
+	void testError() {
 		FailFastProblemReporter reporter = new FailFastProblemReporter();
 		assertThatExceptionOfType(BeanDefinitionParsingException.class).isThrownBy(() ->
 				reporter.error(new Problem("VGER", new Location(new DescriptiveResource("here")),
@@ -43,11 +43,11 @@ public class FailFastProblemReporterTests {
 	}
 
 	@Test
-	public void testWarn() throws Exception {
+	void testWarn() {
 		Problem problem = new Problem("VGER", new Location(new DescriptiveResource("here")),
 				null, new IllegalArgumentException());
 
-		Log log = mock(Log.class);
+		Log log = mock();
 
 		FailFastProblemReporter reporter = new FailFastProblemReporter();
 		reporter.setLogger(log);

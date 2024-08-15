@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.web.servlet.resource;
 
 import java.io.IOException;
@@ -20,11 +21,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,11 +37,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit tests for {@code ResourceUrlEncodingFilter}.
+ * Tests for {@link ResourceUrlEncodingFilter}.
  *
  * @author Brian Clozel
  */
-public class ResourceUrlEncodingFilterTests {
+class ResourceUrlEncodingFilterTests {
 
 	private ResourceUrlEncodingFilter filter;
 
@@ -49,7 +49,7 @@ public class ResourceUrlEncodingFilterTests {
 
 
 	@BeforeEach
-	public void createFilter() {
+	void createFilter() {
 		VersionResourceResolver versionResolver = new VersionResourceResolver();
 		versionResolver.setStrategyMap(Collections.singletonMap("/**", new ContentVersionStrategy()));
 		PathResourceResolver pathResolver = new PathResourceResolver();
@@ -74,13 +74,13 @@ public class ResourceUrlEncodingFilterTests {
 
 
 	@Test
-	public void encodeURL() throws Exception {
+	void encodeURL() throws Exception {
 		testEncodeUrl(new MockHttpServletRequest("GET", "/"),
 				"/resources/bar.css", "/resources/bar-11e16cf79faee7ac698c805cf28248d2.css");
 	}
 
 	@Test
-	public void encodeUrlWithContext() throws Exception {
+	void encodeUrlWithContext() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/context/foo");
 		request.setContextPath("/context");
 
@@ -90,7 +90,7 @@ public class ResourceUrlEncodingFilterTests {
 
 
 	@Test
-	public void encodeUrlWithContextAndForwardedRequest() throws Exception {
+	void encodeUrlWithContextAndForwardedRequest() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/context/foo");
 		request.setContextPath("/context");
 
@@ -113,7 +113,7 @@ public class ResourceUrlEncodingFilterTests {
 	}
 
 	@Test
-	public void encodeContextPathUrlWithSuffix() throws Exception {
+	void encodeContextPathUrlWithSuffix() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/context/");
 		request.setContextPath("/context");
 

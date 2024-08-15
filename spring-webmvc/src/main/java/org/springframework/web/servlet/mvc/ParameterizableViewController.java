@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,12 @@
 
 package org.springframework.web.servlet.mvc;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.lang.Nullable;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.View;
@@ -42,7 +43,7 @@ public class ParameterizableViewController extends AbstractController {
 	private Object view;
 
 	@Nullable
-	private HttpStatus statusCode;
+	private HttpStatusCode statusCode;
 
 	private boolean statusOnly;
 
@@ -67,8 +68,7 @@ public class ParameterizableViewController extends AbstractController {
 	 */
 	@Nullable
 	public String getViewName() {
-		if (this.view instanceof String) {
-			String viewName = (String) this.view;
+		if (this.view instanceof String viewName) {
 			if (getStatusCode() != null && getStatusCode().is3xxRedirection()) {
 				return viewName.startsWith("redirect:") ? viewName : "redirect:" + viewName;
 			}
@@ -95,21 +95,21 @@ public class ParameterizableViewController extends AbstractController {
 	 */
 	@Nullable
 	public View getView() {
-		return (this.view instanceof View ? (View) this.view : null);
+		return (this.view instanceof View v ? v : null);
 	}
 
 	/**
 	 * Configure the HTTP status code that this controller should set on the
 	 * response.
 	 * <p>When a "redirect:" prefixed view name is configured, there is no need
-	 * to set this property since RedirectView will do that. However this property
+	 * to set this property since RedirectView will do that. However, this property
 	 * may still be used to override the 3xx status code of {@code RedirectView}.
 	 * For full control over redirecting provide a {@code RedirectView} instance.
 	 * <p>If the status code is 204 and no view is configured, the request is
 	 * fully handled within the controller.
 	 * @since 4.1
 	 */
-	public void setStatusCode(@Nullable HttpStatus statusCode) {
+	public void setStatusCode(@Nullable HttpStatusCode statusCode) {
 		this.statusCode = statusCode;
 	}
 
@@ -118,7 +118,7 @@ public class ParameterizableViewController extends AbstractController {
 	 * @since 4.1
 	 */
 	@Nullable
-	public HttpStatus getStatusCode() {
+	public HttpStatusCode getStatusCode() {
 		return this.statusCode;
 	}
 
@@ -149,6 +149,7 @@ public class ParameterizableViewController extends AbstractController {
 	 * @see #getViewName()
 	 */
 	@Override
+	@Nullable
 	protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response)
 			throws Exception {
 

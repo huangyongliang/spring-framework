@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.http.client.reactive;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import org.reactivestreams.Publisher;
@@ -32,7 +33,7 @@ import org.springframework.util.MultiValueMap;
 
 /**
  * Wraps another {@link ClientHttpRequest} and delegates all methods to it.
- * Sub-classes can override specific methods selectively.
+ * Subclasses can override specific methods selectively.
  *
  * @author Rossen Stoyanchev
  * @since 5.0
@@ -73,6 +74,11 @@ public class ClientHttpRequestDecorator implements ClientHttpRequest {
 	@Override
 	public MultiValueMap<String, HttpCookie> getCookies() {
 		return this.delegate.getCookies();
+	}
+
+	@Override
+	public Map<String, Object> getAttributes() {
+		return this.delegate.getAttributes();
 	}
 
 	@Override

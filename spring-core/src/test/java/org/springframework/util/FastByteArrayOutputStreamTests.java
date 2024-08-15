@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,15 +29,13 @@ import static org.assertj.core.api.Assertions.assertThatIOException;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
- * Test suite for {@link FastByteArrayOutputStream}.
+ * Tests for {@link FastByteArrayOutputStream}.
  *
  * @author Craig Andrews
  */
 class FastByteArrayOutputStreamTests {
 
-	private static final int INITIAL_CAPACITY = 256;
-
-	private final FastByteArrayOutputStream os = new FastByteArrayOutputStream(INITIAL_CAPACITY);
+	private final FastByteArrayOutputStream os = new FastByteArrayOutputStream();
 
 	private final byte[] helloBytes = "Hello World".getBytes(StandardCharsets.UTF_8);
 
@@ -45,7 +43,7 @@ class FastByteArrayOutputStreamTests {
 	@Test
 	void size() throws Exception {
 		this.os.write(this.helloBytes);
-		assertThat(this.helloBytes.length).isEqualTo(this.os.size());
+		assertThat(this.helloBytes).hasSize(this.os.size());
 	}
 
 	@Test
@@ -55,6 +53,26 @@ class FastByteArrayOutputStreamTests {
 		this.os.resize(64);
 		assertByteArrayEqualsString(this.os);
 		assertThat(this.os.size()).isEqualTo(sizeBefore);
+	}
+
+	@Test
+	void stringConversion() throws Exception {
+		this.os.write(this.helloBytes);
+		assertThat(this.os.toString()).isEqualTo("Hello World");
+		assertThat(this.os.toString(StandardCharsets.UTF_8)).isEqualTo("Hello World");
+
+		@SuppressWarnings("resource")
+		FastByteArrayOutputStream empty = new FastByteArrayOutputStream();
+		assertThat(empty.toString()).isEqualTo("");
+		assertThat(empty.toString(StandardCharsets.US_ASCII)).isEqualTo("");
+
+		@SuppressWarnings("resource")
+		FastByteArrayOutputStream outputStream = new FastByteArrayOutputStream(5);
+		// Add bytes in multiple writes to ensure we get more than one buffer internally
+		outputStream.write(this.helloBytes, 0, 5);
+		outputStream.write(this.helloBytes, 5, 6);
+		assertThat(outputStream.toString()).isEqualTo("Hello World");
+		assertThat(outputStream.toString(StandardCharsets.UTF_8)).isEqualTo("Hello World");
 	}
 
 	@Test
@@ -84,10 +102,9 @@ class FastByteArrayOutputStreamTests {
 	}
 
 	@Test
-	void close() throws Exception {
+	void close() {
 		this.os.close();
-		assertThatIOException().isThrownBy(() ->
-				this.os.write(this.helloBytes));
+		assertThatIOException().isThrownBy(() -> this.os.write(this.helloBytes));
 	}
 
 	@Test
@@ -110,8 +127,9 @@ class FastByteArrayOutputStreamTests {
 	@Test
 	void failResize() throws Exception {
 		this.os.write(this.helloBytes);
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				this.os.resize(5));
+		assertThatIllegalArgumentException()
+			.isThrownBy(() -> this.os.resize(5))
+			.withMessage("New capacity must not be smaller than current size");
 	}
 
 	@Test
@@ -123,7 +141,7 @@ class FastByteArrayOutputStreamTests {
 	@Test
 	void getInputStreamAvailable() throws Exception {
 		this.os.write(this.helloBytes);
-		assertThat(this.helloBytes.length).isEqualTo(this.os.getInputStream().available());
+		assertThat(this.helloBytes).hasSize(this.os.getInputStream().available());
 	}
 
 	@Test
@@ -138,7 +156,7 @@ class FastByteArrayOutputStreamTests {
 
 	@Test
 	void getInputStreamReadBytePromotion() throws Exception {
-		byte[] bytes = new byte[] { -1 };
+		byte[] bytes = { -1 };
 		this.os.write(bytes);
 		InputStream inputStream = this.os.getInputStream();
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
@@ -194,7 +212,7 @@ class FastByteArrayOutputStreamTests {
 		this.os.write(this.helloBytes);
 		InputStream inputStream = this.os.getInputStream();
 		DigestUtils.appendMd5DigestAsHex(inputStream, builder);
-		builder.append("\"");
+		builder.append('"');
 		String actual = builder.toString();
 		assertThat(actual).isEqualTo("\"0b10a8db164e0754105b7a99be72e3fe5\"");
 	}
@@ -208,7 +226,7 @@ class FastByteArrayOutputStreamTests {
 		}
 		InputStream inputStream = this.os.getInputStream();
 		DigestUtils.appendMd5DigestAsHex(inputStream, builder);
-		builder.append("\"");
+		builder.append('"');
 		String actual = builder.toString();
 		assertThat(actual).isEqualTo("\"06225ca1e4533354c516e74512065331d\"");
 	}

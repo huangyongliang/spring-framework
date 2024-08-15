@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,11 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageListener;
+import jakarta.jms.Session;
+import jakarta.jms.TextMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +47,7 @@ import static org.mockito.Mockito.mock;
 /**
  * @author Stephane Nicoll
  */
-public class JmsListenerContainerFactoryIntegrationTests {
+class JmsListenerContainerFactoryIntegrationTests {
 
 	private final DefaultJmsListenerContainerFactory containerFactory = new DefaultJmsListenerContainerFactory();
 
@@ -60,19 +59,19 @@ public class JmsListenerContainerFactoryIntegrationTests {
 
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		initializeFactory(factory);
 	}
 
 
 	@Test
-	public void messageConverterUsedIfSet() throws JMSException {
+	void messageConverterUsedIfSet() throws JMSException {
 		this.containerFactory.setMessageConverter(new UpperCaseMessageConverter());
 		testMessageConverterIsUsed();
 	}
 
 	@Test
-	public void messagingMessageConverterCanBeUsed() throws JMSException {
+	void messagingMessageConverterCanBeUsed() throws JMSException {
 		MessagingMessageConverter converter = new MessagingMessageConverter();
 		converter.setPayloadConverter(new UpperCaseMessageConverter());
 		this.containerFactory.setMessageConverter(converter);
@@ -90,7 +89,7 @@ public class JmsListenerContainerFactoryIntegrationTests {
 	}
 
 	@Test
-	public void parameterAnnotationWithJdkProxy() throws JMSException {
+	void parameterAnnotationWithJdkProxy() throws JMSException {
 		ProxyFactory pf = new ProxyFactory(sample);
 		listener = (JmsEndpointSampleInterface) pf.getProxy();
 
@@ -106,7 +105,7 @@ public class JmsListenerContainerFactoryIntegrationTests {
 	}
 
 	@Test
-	public void parameterAnnotationWithCglibProxy() throws JMSException {
+	void parameterAnnotationWithCglibProxy() throws JMSException {
 		ProxyFactory pf = new ProxyFactory(sample);
 		pf.setProxyTargetClass(true);
 		listener = (JmsEndpointSampleBean) pf.getProxy();
@@ -128,7 +127,7 @@ public class JmsListenerContainerFactoryIntegrationTests {
 		DefaultMessageListenerContainer messageListenerContainer = containerFactory.createListenerContainer(endpoint);
 		Object listener = messageListenerContainer.getMessageListener();
 		if (listener instanceof SessionAwareMessageListener) {
-			((SessionAwareMessageListener<Message>) listener).onMessage(message, mock(Session.class));
+			((SessionAwareMessageListener<Message>) listener).onMessage(message, mock());
 		}
 		else {
 			((MessageListener) listener).onMessage(message);
@@ -179,7 +178,7 @@ public class JmsListenerContainerFactoryIntegrationTests {
 	private static class UpperCaseMessageConverter implements MessageConverter {
 
 		@Override
-		public Message toMessage(Object object, Session session) throws JMSException, MessageConversionException {
+		public Message toMessage(Object object, Session session) throws MessageConversionException {
 			return new StubTextMessage(object.toString().toUpperCase());
 		}
 

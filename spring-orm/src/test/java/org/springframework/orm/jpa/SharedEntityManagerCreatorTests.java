@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,12 @@
 
 package org.springframework.orm.jpa;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.ParameterMode;
-import javax.persistence.Query;
-import javax.persistence.StoredProcedureQuery;
-import javax.persistence.TransactionRequiredException;
-
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.ParameterMode;
+import jakarta.persistence.Query;
+import jakarta.persistence.StoredProcedureQuery;
+import jakarta.persistence.TransactionRequiredException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -38,16 +37,16 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.withSettings;
 
 /**
- * Unit tests for {@link SharedEntityManagerCreator}.
+ * Tests for {@link SharedEntityManagerCreator}.
  *
  * @author Oliver Gierke
  * @author Juergen Hoeller
  */
 @ExtendWith(MockitoExtension.class)
-public class SharedEntityManagerCreatorTests {
+class SharedEntityManagerCreatorTests {
 
 	@Test
-	public void proxyingWorksIfInfoReturnsNullEntityManagerInterface() {
+	void proxyingWorksIfInfoReturnsNullEntityManagerInterface() {
 		EntityManagerFactory emf = mock(EntityManagerFactory.class,
 				withSettings().extraInterfaces(EntityManagerFactoryInfo.class));
 		// EntityManagerFactoryInfo.getEntityManagerInterface returns null
@@ -55,126 +54,146 @@ public class SharedEntityManagerCreatorTests {
 	}
 
 	@Test
-	public void transactionRequiredExceptionOnJoinTransaction() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
+	void transactionRequiredExceptionOnJoinTransaction() {
+		EntityManagerFactory emf = mock();
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
 		assertThatExceptionOfType(TransactionRequiredException.class).isThrownBy(
 				em::joinTransaction);
 	}
 
 	@Test
-	public void transactionRequiredExceptionOnFlush() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
+	void transactionRequiredExceptionOnFlush() {
+		EntityManagerFactory emf = mock();
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
 		assertThatExceptionOfType(TransactionRequiredException.class).isThrownBy(
 				em::flush);
 	}
 
 	@Test
-	public void transactionRequiredExceptionOnPersist() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
+	void transactionRequiredExceptionOnPersist() {
+		EntityManagerFactory emf = mock();
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
 		assertThatExceptionOfType(TransactionRequiredException.class).isThrownBy(() ->
 				em.persist(new Object()));
 	}
 
 	@Test
-	public void transactionRequiredExceptionOnMerge() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
+	void transactionRequiredExceptionOnMerge() {
+		EntityManagerFactory emf = mock();
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
 		assertThatExceptionOfType(TransactionRequiredException.class).isThrownBy(() ->
 				em.merge(new Object()));
 	}
 
 	@Test
-	public void transactionRequiredExceptionOnRemove() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
+	void transactionRequiredExceptionOnRemove() {
+		EntityManagerFactory emf = mock();
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
 		assertThatExceptionOfType(TransactionRequiredException.class).isThrownBy(() ->
 				em.remove(new Object()));
 	}
 
 	@Test
-	public void transactionRequiredExceptionOnRefresh() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
+	void transactionRequiredExceptionOnRefresh() {
+		EntityManagerFactory emf = mock();
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
 		assertThatExceptionOfType(TransactionRequiredException.class).isThrownBy(() ->
 				em.refresh(new Object()));
 	}
 
 	@Test
-	public void deferredQueryWithUpdate() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
-		EntityManager targetEm = mock(EntityManager.class);
-		Query query = mock(Query.class);
+	void deferredQueryWithUpdate() {
+		EntityManagerFactory emf = mock();
+		EntityManager targetEm = mock();
+		Query targetQuery = mock();
 		given(emf.createEntityManager()).willReturn(targetEm);
-		given(targetEm.createQuery("x")).willReturn(query);
+		given(targetEm.createQuery("x")).willReturn(targetQuery);
 		given(targetEm.isOpen()).willReturn(true);
+		given((Query) targetQuery.unwrap(targetQuery.getClass())).willReturn(targetQuery);
 
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
-		em.createQuery("x").executeUpdate();
+		Query query = em.createQuery("x");
+		assertThat((Query) query.unwrap(null)).isSameAs(targetQuery);
+		assertThat((Query) query.unwrap(targetQuery.getClass())).isSameAs(targetQuery);
+		assertThat(query.unwrap(Query.class)).isSameAs(query);
+		query.executeUpdate();
 
-		verify(query).executeUpdate();
+		verify(targetQuery).executeUpdate();
 		verify(targetEm).close();
 	}
 
 	@Test
-	public void deferredQueryWithSingleResult() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
-		EntityManager targetEm = mock(EntityManager.class);
-		Query query = mock(Query.class);
+	void deferredQueryWithSingleResult() {
+		EntityManagerFactory emf = mock();
+		EntityManager targetEm = mock();
+		Query targetQuery = mock();
 		given(emf.createEntityManager()).willReturn(targetEm);
-		given(targetEm.createQuery("x")).willReturn(query);
+		given(targetEm.createQuery("x")).willReturn(targetQuery);
 		given(targetEm.isOpen()).willReturn(true);
+		given((Query) targetQuery.unwrap(targetQuery.getClass())).willReturn(targetQuery);
 
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
-		em.createQuery("x").getSingleResult();
+		Query query = em.createQuery("x");
+		assertThat((Query) query.unwrap(null)).isSameAs(targetQuery);
+		assertThat((Query) query.unwrap(targetQuery.getClass())).isSameAs(targetQuery);
+		assertThat(query.unwrap(Query.class)).isSameAs(query);
+		query.getSingleResult();
 
-		verify(query).getSingleResult();
+		verify(targetQuery).getSingleResult();
 		verify(targetEm).close();
 	}
 
 	@Test
-	public void deferredQueryWithResultList() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
-		EntityManager targetEm = mock(EntityManager.class);
-		Query query = mock(Query.class);
+	void deferredQueryWithResultList() {
+		EntityManagerFactory emf = mock();
+		EntityManager targetEm = mock();
+		Query targetQuery = mock();
 		given(emf.createEntityManager()).willReturn(targetEm);
-		given(targetEm.createQuery("x")).willReturn(query);
+		given(targetEm.createQuery("x")).willReturn(targetQuery);
 		given(targetEm.isOpen()).willReturn(true);
+		given((Query) targetQuery.unwrap(targetQuery.getClass())).willReturn(targetQuery);
 
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
-		em.createQuery("x").getResultList();
+		Query query = em.createQuery("x");
+		assertThat((Query) query.unwrap(null)).isSameAs(targetQuery);
+		assertThat((Query) query.unwrap(targetQuery.getClass())).isSameAs(targetQuery);
+		assertThat(query.unwrap(Query.class)).isSameAs(query);
+		query.getResultList();
 
-		verify(query).getResultList();
+		verify(targetQuery).getResultList();
 		verify(targetEm).close();
 	}
 
 	@Test
-	public void deferredQueryWithResultStream() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
-		EntityManager targetEm = mock(EntityManager.class);
-		Query query = mock(Query.class);
+	void deferredQueryWithResultStream() {
+		EntityManagerFactory emf = mock();
+		EntityManager targetEm = mock();
+		Query targetQuery = mock();
 		given(emf.createEntityManager()).willReturn(targetEm);
-		given(targetEm.createQuery("x")).willReturn(query);
+		given(targetEm.createQuery("x")).willReturn(targetQuery);
 		given(targetEm.isOpen()).willReturn(true);
+		given((Query) targetQuery.unwrap(targetQuery.getClass())).willReturn(targetQuery);
 
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
-		em.createQuery("x").getResultStream();
+		Query query = em.createQuery("x");
+		assertThat((Query) query.unwrap(null)).isSameAs(targetQuery);
+		assertThat((Query) query.unwrap(targetQuery.getClass())).isSameAs(targetQuery);
+		assertThat(query.unwrap(Query.class)).isSameAs(query);
+		query.getResultStream();
 
-		verify(query).getResultStream();
+		verify(targetQuery).getResultStream();
 		verify(targetEm).close();
 	}
 
 	@Test
-	public void deferredStoredProcedureQueryWithIndexedParameters() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
-		EntityManager targetEm = mock(EntityManager.class);
-		StoredProcedureQuery query = mock(StoredProcedureQuery.class);
+	void deferredStoredProcedureQueryWithIndexedParameters() {
+		EntityManagerFactory emf = mock();
+		EntityManager targetEm = mock();
+		StoredProcedureQuery targetQuery = mock();
 		given(emf.createEntityManager()).willReturn(targetEm);
-		given(targetEm.createStoredProcedureQuery("x")).willReturn(query);
-		willReturn("y").given(query).getOutputParameterValue(0);
-		willReturn("z").given(query).getOutputParameterValue(2);
+		given(targetEm.createStoredProcedureQuery("x")).willReturn(targetQuery);
+		willReturn("y").given(targetQuery).getOutputParameterValue(0);
+		willReturn("z").given(targetQuery).getOutputParameterValue(2);
 		given(targetEm.isOpen()).willReturn(true);
 
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
@@ -188,24 +207,24 @@ public class SharedEntityManagerCreatorTests {
 				spq.getOutputParameterValue(1));
 		assertThat(spq.getOutputParameterValue(2)).isEqualTo("z");
 
-		verify(query).registerStoredProcedureParameter(0, String.class, ParameterMode.OUT);
-		verify(query).registerStoredProcedureParameter(1, Number.class, ParameterMode.IN);
-		verify(query).registerStoredProcedureParameter(2, Object.class, ParameterMode.INOUT);
-		verify(query).execute();
+		verify(targetQuery).registerStoredProcedureParameter(0, String.class, ParameterMode.OUT);
+		verify(targetQuery).registerStoredProcedureParameter(1, Number.class, ParameterMode.IN);
+		verify(targetQuery).registerStoredProcedureParameter(2, Object.class, ParameterMode.INOUT);
+		verify(targetQuery).execute();
 		verify(targetEm).close();
-		verifyNoMoreInteractions(query);
+		verifyNoMoreInteractions(targetQuery);
 		verifyNoMoreInteractions(targetEm);
 	}
 
 	@Test
-	public void deferredStoredProcedureQueryWithNamedParameters() {
-		EntityManagerFactory emf = mock(EntityManagerFactory.class);
-		EntityManager targetEm = mock(EntityManager.class);
-		StoredProcedureQuery query = mock(StoredProcedureQuery.class);
+	void deferredStoredProcedureQueryWithNamedParameters() {
+		EntityManagerFactory emf = mock();
+		EntityManager targetEm = mock();
+		StoredProcedureQuery targetQuery = mock();
 		given(emf.createEntityManager()).willReturn(targetEm);
-		given(targetEm.createStoredProcedureQuery("x")).willReturn(query);
-		willReturn("y").given(query).getOutputParameterValue("a");
-		willReturn("z").given(query).getOutputParameterValue("c");
+		given(targetEm.createStoredProcedureQuery("x")).willReturn(targetQuery);
+		willReturn("y").given(targetQuery).getOutputParameterValue("a");
+		willReturn("z").given(targetQuery).getOutputParameterValue("c");
 		given(targetEm.isOpen()).willReturn(true);
 
 		EntityManager em = SharedEntityManagerCreator.createSharedEntityManager(emf);
@@ -219,12 +238,12 @@ public class SharedEntityManagerCreatorTests {
 				spq.getOutputParameterValue("b"));
 		assertThat(spq.getOutputParameterValue("c")).isEqualTo("z");
 
-		verify(query).registerStoredProcedureParameter("a", String.class, ParameterMode.OUT);
-		verify(query).registerStoredProcedureParameter("b", Number.class, ParameterMode.IN);
-		verify(query).registerStoredProcedureParameter("c", Object.class, ParameterMode.INOUT);
-		verify(query).execute();
+		verify(targetQuery).registerStoredProcedureParameter("a", String.class, ParameterMode.OUT);
+		verify(targetQuery).registerStoredProcedureParameter("b", Number.class, ParameterMode.IN);
+		verify(targetQuery).registerStoredProcedureParameter("c", Object.class, ParameterMode.INOUT);
+		verify(targetQuery).execute();
 		verify(targetEm).close();
-		verifyNoMoreInteractions(query);
+		verifyNoMoreInteractions(targetQuery);
 		verifyNoMoreInteractions(targetEm);
 	}
 

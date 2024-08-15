@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,12 +28,13 @@ import static org.mockito.Mockito.mock;
 /**
  * @author Rod Johnson
  */
-public class DriverManagerDataSourceTests {
+class DriverManagerDataSourceTests {
 
-	private Connection connection = mock(Connection.class);
+	private final Connection connection = mock();
+
 
 	@Test
-	public void testStandardUsage() throws Exception {
+	void standardUsage() throws Exception {
 		final String jdbcUrl = "url";
 		final String uname = "uname";
 		final String pwd = "pwd";
@@ -55,15 +56,15 @@ public class DriverManagerDataSourceTests {
 		ds.setPassword(pwd);
 
 		Connection actualCon = ds.getConnection();
-		assertThat(actualCon == connection).isTrue();
+		assertThat(actualCon).isSameAs(connection);
 
-		assertThat(ds.getUrl().equals(jdbcUrl)).isTrue();
-		assertThat(ds.getPassword().equals(pwd)).isTrue();
-		assertThat(ds.getUsername().equals(uname)).isTrue();
+		assertThat(ds.getUrl()).isEqualTo(jdbcUrl);
+		assertThat(ds.getPassword()).isEqualTo(pwd);
+		assertThat(ds.getUsername()).isEqualTo(uname);
 	}
 
 	@Test
-	public void testUsageWithConnectionProperties() throws Exception {
+	void usageWithConnectionProperties() throws Exception {
 		final String jdbcUrl = "url";
 
 		final Properties connProps = new Properties();
@@ -90,13 +91,13 @@ public class DriverManagerDataSourceTests {
 		ds.setConnectionProperties(connProps);
 
 		Connection actualCon = ds.getConnection();
-		assertThat(actualCon == connection).isTrue();
+		assertThat(actualCon).isSameAs(connection);
 
-		assertThat(ds.getUrl().equals(jdbcUrl)).isTrue();
+		assertThat(ds.getUrl()).isEqualTo(jdbcUrl);
 	}
 
 	@Test
-	public void testUsageWithConnectionPropertiesAndUserCredentials() throws Exception {
+	void usageWithConnectionPropertiesAndUserCredentials() throws Exception {
 		final String jdbcUrl = "url";
 		final String uname = "uname";
 		final String pwd = "pwd";
@@ -127,20 +128,20 @@ public class DriverManagerDataSourceTests {
 		ds.setConnectionProperties(connProps);
 
 		Connection actualCon = ds.getConnection();
-		assertThat(actualCon == connection).isTrue();
+		assertThat(actualCon).isSameAs(connection);
 
-		assertThat(ds.getUrl().equals(jdbcUrl)).isTrue();
-		assertThat(ds.getPassword().equals(pwd)).isTrue();
-		assertThat(ds.getUsername().equals(uname)).isTrue();
+		assertThat(ds.getUrl()).isEqualTo(jdbcUrl);
+		assertThat(ds.getPassword()).isEqualTo(pwd);
+		assertThat(ds.getUsername()).isEqualTo(uname);
 	}
 
 	@Test
-	public void testInvalidClassName() throws Exception {
+	void invalidClassName() {
 		String bogusClassName = "foobar";
 		DriverManagerDataSource ds = new DriverManagerDataSource();
-		assertThatIllegalStateException().isThrownBy(() ->
-				ds.setDriverClassName(bogusClassName))
-			.withCauseInstanceOf(ClassNotFoundException.class);
+		assertThatIllegalStateException().isThrownBy(
+				() -> ds.setDriverClassName(bogusClassName))
+				.withCauseInstanceOf(ClassNotFoundException.class);
 	}
 
 }

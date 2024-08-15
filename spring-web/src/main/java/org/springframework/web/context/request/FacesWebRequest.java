@@ -21,14 +21,14 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.faces.context.ExternalContext;
-import javax.faces.context.FacesContext;
+import jakarta.faces.context.ExternalContext;
+import jakarta.faces.context.FacesContext;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /**
- * {@link WebRequest} adapter for a JSF {@link javax.faces.context.FacesContext}.
+ * {@link WebRequest} adapter for a JSF {@link jakarta.faces.context.FacesContext}.
  *
  * <p>Requires JSF 2.0 or higher, as of Spring 4.0.
  *
@@ -40,7 +40,7 @@ public class FacesWebRequest extends FacesRequestAttributes implements NativeWeb
 	/**
 	 * Create a new FacesWebRequest adapter for the given FacesContext.
 	 * @param facesContext the current FacesContext
-	 * @see javax.faces.context.FacesContext#getCurrentInstance()
+	 * @see jakarta.faces.context.FacesContext#getCurrentInstance()
 	 */
 	public FacesWebRequest(FacesContext facesContext) {
 		super(facesContext);
@@ -58,6 +58,7 @@ public class FacesWebRequest extends FacesRequestAttributes implements NativeWeb
 	}
 
 	@Override
+	@Nullable
 	@SuppressWarnings("unchecked")
 	public <T> T getNativeRequest(@Nullable Class<T> requiredType) {
 		if (requiredType != null) {
@@ -70,6 +71,7 @@ public class FacesWebRequest extends FacesRequestAttributes implements NativeWeb
 	}
 
 	@Override
+	@Nullable
 	@SuppressWarnings("unchecked")
 	public <T> T getNativeResponse(@Nullable Class<T> requiredType) {
 		if (requiredType != null) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,28 +30,28 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Ramnivas Laddad
  * @author Chris Beams
+ * @author Sam Brannen
  */
-public class AspectImplementingInterfaceTests {
+class AspectImplementingInterfaceTests {
 
 	@Test
-	public void testProxyCreation() {
+	void proxyCreation() {
 		ClassPathXmlApplicationContext ctx =
 			new ClassPathXmlApplicationContext(getClass().getSimpleName() + "-context.xml", getClass());
 
-		ITestBean testBean = (ITestBean) ctx.getBean("testBean");
-		AnInterface interfaceExtendingAspect = (AnInterface) ctx.getBean("interfaceExtendingAspect");
+		ITestBean testBean = ctx.getBean("testBean", ITestBean.class);
+		AnInterface interfaceExtendingAspect = ctx.getBean("interfaceExtendingAspect", AnInterface.class);
 
-		boolean condition = testBean instanceof Advised;
-		assertThat(condition).isTrue();
-		boolean condition1 = interfaceExtendingAspect instanceof Advised;
-		assertThat(condition1).isFalse();
+		assertThat(testBean).isInstanceOf(Advised.class);
+		assertThat(interfaceExtendingAspect).isNotInstanceOf(Advised.class);
+		ctx.close();
 	}
 
 }
 
 
 interface AnInterface {
-	public void interfaceMethod();
+	void interfaceMethod();
 }
 
 

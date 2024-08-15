@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,24 +59,6 @@ class AttributeMethodsTests {
 	}
 
 	@Test
-	void hasOnlyValueAttributeWhenHasOnlyValueAttributeReturnsTrue() {
-		AttributeMethods methods = AttributeMethods.forAnnotationType(ValueOnly.class);
-		assertThat(methods.hasOnlyValueAttribute()).isTrue();
-	}
-
-	@Test
-	void hasOnlyValueAttributeWhenHasOnlySingleNonValueAttributeReturnsFalse() {
-		AttributeMethods methods = AttributeMethods.forAnnotationType(NonValueOnly.class);
-		assertThat(methods.hasOnlyValueAttribute()).isFalse();
-	}
-
-	@Test
-	void hasOnlyValueAttributeWhenHasOnlyMultipleAttributesIncludingValueReturnsFalse() {
-		AttributeMethods methods = AttributeMethods.forAnnotationType(MultipleAttributes.class);
-		assertThat(methods.hasOnlyValueAttribute()).isFalse();
-	}
-
-	@Test
 	void indexOfNameReturnsIndex() {
 		AttributeMethods methods = AttributeMethods.forAnnotationType(MultipleAttributes.class);
 		assertThat(methods.indexOf("value")).isEqualTo(1);
@@ -130,16 +112,16 @@ class AttributeMethodsTests {
 		ClassValue annotation = mockAnnotation(ClassValue.class);
 		given(annotation.value()).willThrow(TypeNotPresentException.class);
 		AttributeMethods attributes = AttributeMethods.forAnnotationType(annotation.annotationType());
-		assertThat(attributes.isValid(annotation)).isFalse();
+		assertThat(attributes.canLoad(annotation)).isFalse();
 	}
 
 	@Test
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void isValidWhenDoesNotHaveTypeNotPresentExceptionReturnsTrue() {
-		ClassValue annotation = mock(ClassValue.class);
+		ClassValue annotation = mock();
 		given(annotation.value()).willReturn((Class) InputStream.class);
 		AttributeMethods attributes = AttributeMethods.forAnnotationType(annotation.annotationType());
-		assertThat(attributes.isValid(annotation)).isTrue();
+		assertThat(attributes.canLoad(annotation)).isTrue();
 	}
 
 	@Test

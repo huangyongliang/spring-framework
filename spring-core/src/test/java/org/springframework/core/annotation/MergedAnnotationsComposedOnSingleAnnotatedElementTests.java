@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -161,8 +161,7 @@ class MergedAnnotationsComposedOnSingleAnnotatedElementTests {
 	}
 
 	@Test
-	void typeHierarchyStrategyMultipleComposedAnnotationsOnBridgeMethod()
-			throws Exception {
+	void typeHierarchyStrategyMultipleComposedAnnotationsOnBridgeMethod() {
 		assertTypeHierarchyStrategyBehavior(getBridgeMethod());
 	}
 
@@ -173,16 +172,14 @@ class MergedAnnotationsComposedOnSingleAnnotatedElementTests {
 		assertThat(stream(annotations, "value")).containsExactly("fooCache", "barCache");
 	}
 
-	Method getBridgeMethod() throws NoSuchMethodException {
+	Method getBridgeMethod() {
 		List<Method> methods = new ArrayList<>();
 		ReflectionUtils.doWithLocalMethods(StringGenericParameter.class, method -> {
 			if ("getFor".equals(method.getName())) {
 				methods.add(method);
 			}
 		});
-		Method bridgeMethod = methods.get(0).getReturnType().equals(Object.class)
-				? methods.get(0)
-				: methods.get(1);
+		Method bridgeMethod = methods.get(0).getReturnType() == Object.class ? methods.get(0) : methods.get(1);
 		assertThat(bridgeMethod.isBridge()).isTrue();
 		return bridgeMethod;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.persistence.PersistenceException;
-
+import jakarta.persistence.PersistenceException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.Criteria;
@@ -370,8 +369,8 @@ public class HibernateTemplate implements HibernateOperations, InitializingBean 
 			throw SessionFactoryUtils.convertHibernateAccessException(ex);
 		}
 		catch (PersistenceException ex) {
-			if (ex.getCause() instanceof HibernateException) {
-				throw SessionFactoryUtils.convertHibernateAccessException((HibernateException) ex.getCause());
+			if (ex.getCause() instanceof HibernateException hibernateEx) {
+				throw SessionFactoryUtils.convertHibernateAccessException(hibernateEx);
 			}
 			throw ex;
 		}
@@ -948,6 +947,7 @@ public class HibernateTemplate implements HibernateOperations, InitializingBean 
 
 	@Deprecated
 	@Override
+	@SuppressWarnings("NullAway")
 	public List<?> findByNamedQueryAndNamedParam(
 			String queryName, @Nullable String[] paramNames, @Nullable Object[] values)
 			throws DataAccessException {
@@ -983,6 +983,7 @@ public class HibernateTemplate implements HibernateOperations, InitializingBean 
 	// Convenience query methods for iteration and bulk updates/deletes
 	//-------------------------------------------------------------------------
 
+	@SuppressWarnings("deprecation")
 	@Deprecated
 	@Override
 	public Iterator<?> iterate(String queryString, @Nullable Object... values) throws DataAccessException {
@@ -1115,11 +1116,11 @@ public class HibernateTemplate implements HibernateOperations, InitializingBean 
 	protected void applyNamedParameterToQuery(Query<?> queryObject, String paramName, Object value)
 			throws HibernateException {
 
-		if (value instanceof Collection) {
-			queryObject.setParameterList(paramName, (Collection<?>) value);
+		if (value instanceof Collection<?> collection) {
+			queryObject.setParameterList(paramName, collection);
 		}
-		else if (value instanceof Object[]) {
-			queryObject.setParameterList(paramName, (Object[]) value);
+		else if (value instanceof Object[] array) {
+			queryObject.setParameterList(paramName, array);
 		}
 		else {
 			queryObject.setParameter(paramName, value);
@@ -1150,36 +1151,34 @@ public class HibernateTemplate implements HibernateOperations, InitializingBean 
 		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 			// Invocation on Session interface coming in...
 
-			switch (method.getName()) {
-				case "equals":
-					// Only consider equal when proxies are identical.
-					return (proxy == args[0]);
-				case "hashCode":
-					// Use hashCode of Session proxy.
-					return System.identityHashCode(proxy);
-				case "close":
-					// Handle close method: suppress, not valid.
-					return null;
-			}
+			return switch (method.getName()) {
+				// Only consider equal when proxies are identical.
+				case "equals" -> (proxy == args[0]);
+				// Use hashCode of Session proxy.
+				case "hashCode" -> System.identityHashCode(proxy);
+				// Handle close method: suppress, not valid.
+				case "close" -> null;
+				default -> {
+					try {
+						// Invoke method on target Session.
+						Object retVal = method.invoke(this.target, args);
 
-			// Invoke method on target Session.
-			try {
-				Object retVal = method.invoke(this.target, args);
+						// If return value is a Query or Criteria, apply transaction timeout.
+						// Applies to createQuery, getNamedQuery, createCriteria.
+						if (retVal instanceof Criteria criteria) {
+							prepareCriteria(criteria);
+						}
+						else if (retVal instanceof Query<?> query) {
+							prepareQuery(query);
+						}
 
-				// If return value is a Query or Criteria, apply transaction timeout.
-				// Applies to createQuery, getNamedQuery, createCriteria.
-				if (retVal instanceof Criteria) {
-					prepareCriteria(((Criteria) retVal));
+						yield retVal;
+					}
+					catch (InvocationTargetException ex) {
+						throw ex.getTargetException();
+					}
 				}
-				else if (retVal instanceof Query) {
-					prepareQuery(((Query<?>) retVal));
-				}
-
-				return retVal;
-			}
-			catch (InvocationTargetException ex) {
-				throw ex.getTargetException();
-			}
+			};
 		}
 	}
 

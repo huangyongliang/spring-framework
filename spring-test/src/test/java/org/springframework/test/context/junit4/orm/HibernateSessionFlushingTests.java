@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 
 package org.springframework.test.context.junit4.orm;
 
-import javax.persistence.PersistenceException;
-
+import jakarta.persistence.PersistenceException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.exception.ConstraintViolationException;
@@ -44,6 +43,7 @@ import static org.springframework.test.transaction.TransactionAssert.assertThatT
  * @author Juergen Hoeller
  * @author Vlad Mihalcea
  * @since 3.0
+ * @see org.springframework.test.context.junit.jupiter.orm.JpaEntityListenerTests
  */
 @ContextConfiguration
 public class HibernateSessionFlushingTests extends AbstractTransactionalJUnit4SpringContextTests {
@@ -113,7 +113,7 @@ public class HibernateSessionFlushingTests extends AbstractTransactionalJUnit4Sp
 	}
 
 	@Test
-	public void updateSamWithNullDriversLicenseWithSessionFlush() throws Throwable {
+	public void updateSamWithNullDriversLicenseWithSessionFlush() {
 		updateSamWithNullDriversLicense();
 		assertThatExceptionOfType(ConstraintViolationException.class).isThrownBy(() -> {
 			// Manual flush is required to avoid false positive in test

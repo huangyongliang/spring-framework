@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Juergen Hoeller
  * @author Sam Brannen
  */
-public class DateFormattingTests {
+class DateFormattingTests {
 
 	private final FormattingConversionService conversionService = new FormattingConversionService();
 
@@ -61,12 +61,11 @@ public class DateFormattingTests {
 
 	@BeforeEach
 	void setup() {
-		DateFormatterRegistrar registrar = new DateFormatterRegistrar();
-		setup(registrar);
+		DefaultConversionService.addDefaultConverters(conversionService);
+		setup(new DateFormatterRegistrar());
 	}
 
 	private void setup(DateFormatterRegistrar registrar) {
-		DefaultConversionService.addDefaultConverters(conversionService);
 		registrar.registerFormatters(conversionService);
 
 		SimpleDateBean bean = new SimpleDateBean();
@@ -132,11 +131,11 @@ public class DateFormattingTests {
 		TypeMismatchException exception = fieldError.unwrap(TypeMismatchException.class);
 		assertThat(exception)
 			.hasMessageContaining("for property 'styleDate'")
-			.hasCauseInstanceOf(ConversionFailedException.class).getCause()
-				.hasMessageContaining("for value '99/01/01'")
-				.hasCauseInstanceOf(IllegalArgumentException.class).getCause()
+			.hasCauseInstanceOf(ConversionFailedException.class).cause()
+				.hasMessageContaining("for value [99/01/01]")
+				.hasCauseInstanceOf(IllegalArgumentException.class).cause()
 					.hasMessageContaining("Parse attempt failed for value [99/01/01]")
-					.hasCauseInstanceOf(ParseException.class).getCause()
+					.hasCauseInstanceOf(ParseException.class).cause()
 						// Unable to parse date time value "99/01/01" using configuration from
 						// @org.springframework.format.annotation.DateTimeFormat(pattern=, style=S-, iso=NONE, fallbackPatterns=[])
 						// We do not check "fallbackPatterns=[]", since the array representation in the toString()
@@ -147,7 +146,7 @@ public class DateFormattingTests {
 							"Unable to parse date time value \"99/01/01\" using configuration from",
 							"@org.springframework.format.annotation.DateTimeFormat",
 							"style=", "S-", "iso=NONE")
-						.hasCauseInstanceOf(ParseException.class).getCause()
+						.hasCauseInstanceOf(ParseException.class).cause()
 							.hasMessageStartingWith("Unparseable date: \"99/01/01\"")
 							.hasNoCause();
 	}
@@ -172,7 +171,7 @@ public class DateFormattingTests {
 	@Test
 	@Disabled
 	void testBindDateAnnotatedWithFallbackError() {
-		// TODO This currently passes because of the Date(String) constructor fallback is used
+		// TODO This currently passes because the Date(String) constructor fallback is used
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("styleDate", "Oct 031, 2009");
 		binder.bind(propertyValues);
@@ -181,7 +180,7 @@ public class DateFormattingTests {
 	}
 
 	@Test
-	void testBindDateAnnotatedPattern() {
+	void testBindDateTimePatternAnnotated() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("patternDate", "10/31/09 1:05");
 		binder.bind(propertyValues);
@@ -190,7 +189,7 @@ public class DateFormattingTests {
 	}
 
 	@Test
-	void testBindDateAnnotatedPatternWithGlobalFormat() {
+	void testBindDateTimePatternAnnotatedWithGlobalFormat() {
 		DateFormatterRegistrar registrar = new DateFormatterRegistrar();
 		DateFormatter dateFormatter = new DateFormatter();
 		dateFormatter.setIso(ISO.DATE_TIME);
@@ -205,7 +204,7 @@ public class DateFormattingTests {
 	}
 
 	@Test
-	void testBindDateTimeOverflow() {
+	void testBindDateTimePatternAnnotatedWithOverflow() {
 		MutablePropertyValues propertyValues = new MutablePropertyValues();
 		propertyValues.add("patternDate", "02/29/09 12:00 PM");
 		binder.bind(propertyValues);
@@ -352,11 +351,11 @@ public class DateFormattingTests {
 			FieldError fieldError = bindingResult.getFieldError(propertyName);
 			assertThat(fieldError.unwrap(TypeMismatchException.class))
 				.hasMessageContaining("for property 'patternDateWithFallbackPatterns'")
-				.hasCauseInstanceOf(ConversionFailedException.class).getCause()
-					.hasMessageContaining("for value '210302'")
-					.hasCauseInstanceOf(IllegalArgumentException.class).getCause()
+				.hasCauseInstanceOf(ConversionFailedException.class).cause()
+					.hasMessageContaining("for value [210302]")
+					.hasCauseInstanceOf(IllegalArgumentException.class).cause()
 						.hasMessageContaining("Parse attempt failed for value [210302]")
-						.hasCauseInstanceOf(ParseException.class).getCause()
+						.hasCauseInstanceOf(ParseException.class).cause()
 							// Unable to parse date time value "210302" using configuration from
 							// @org.springframework.format.annotation.DateTimeFormat(
 							// pattern=yyyy-MM-dd, style=SS, iso=NONE, fallbackPatterns=[M/d/yy, yyyyMMdd, yyyy.MM.dd])
@@ -364,7 +363,7 @@ public class DateFormattingTests {
 								"Unable to parse date time value \"210302\" using configuration from",
 								"@org.springframework.format.annotation.DateTimeFormat",
 								"yyyy-MM-dd", "M/d/yy", "yyyyMMdd", "yyyy.MM.dd")
-							.hasCauseInstanceOf(ParseException.class).getCause()
+							.hasCauseInstanceOf(ParseException.class).cause()
 								.hasMessageStartingWith("Unparseable date: \"210302\"")
 								.hasNoCause();
 		}

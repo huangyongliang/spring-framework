@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,23 +70,23 @@ public abstract class AbstractTypeHierarchyTraversingFilter implements TypeFilte
 		if (this.considerInherited) {
 			String superClassName = metadata.getSuperClassName();
 			if (superClassName != null) {
-				// Optimization to avoid creating ClassReader for super class.
+				// Optimization to avoid creating ClassReader for superclass.
 				Boolean superClassMatch = matchSuperClass(superClassName);
 				if (superClassMatch != null) {
-					if (superClassMatch.booleanValue()) {
+					if (superClassMatch) {
 						return true;
 					}
 				}
 				else {
-					// Need to read super class to determine a match...
+					// Need to read superclass to determine a match...
 					try {
-						if (match(metadata.getSuperClassName(), metadataReaderFactory)) {
+						if (match(superClassName, metadataReaderFactory)) {
 							return true;
 						}
 					}
 					catch (IOException ex) {
 						if (logger.isDebugEnabled()) {
-							logger.debug("Could not read super class [" + metadata.getSuperClassName() +
+							logger.debug("Could not read superclass [" + superClassName +
 									"] of type-filtered class [" + metadata.getClassName() + "]");
 						}
 					}
@@ -96,10 +96,10 @@ public abstract class AbstractTypeHierarchyTraversingFilter implements TypeFilte
 
 		if (this.considerInterfaces) {
 			for (String ifc : metadata.getInterfaceNames()) {
-				// Optimization to avoid creating ClassReader for super class
+				// Optimization to avoid creating ClassReader for superclass
 				Boolean interfaceMatch = matchInterface(ifc);
 				if (interfaceMatch != null) {
-					if (interfaceMatch.booleanValue()) {
+					if (interfaceMatch) {
 						return true;
 					}
 				}
@@ -144,7 +144,7 @@ public abstract class AbstractTypeHierarchyTraversingFilter implements TypeFilte
 	}
 
 	/**
-	 * Override this to match on super type name.
+	 * Override this to match on supertype name.
 	 */
 	@Nullable
 	protected Boolean matchSuperClass(String superClassName) {

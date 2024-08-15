@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,17 +31,16 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterRegistration;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRegistration;
-import javax.servlet.SessionCookieConfig;
-import javax.servlet.SessionTrackingMode;
-import javax.servlet.descriptor.JspConfigDescriptor;
-
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterRegistration;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRegistration;
+import jakarta.servlet.SessionCookieConfig;
+import jakarta.servlet.SessionTrackingMode;
+import jakarta.servlet.descriptor.JspConfigDescriptor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -53,15 +52,16 @@ import org.springframework.http.MediaTypeFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.MimeType;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.WebUtils;
 
 /**
- * Mock implementation of the {@link javax.servlet.ServletContext} interface.
+ * Mock implementation of the {@link jakarta.servlet.ServletContext} interface.
  *
- * <p>As of Spring 5.0, this set of mocks is designed on a Servlet 4.0 baseline.
+ * <p>As of Spring 6.0, this set of mocks is designed on a Servlet 6.0 baseline.
  *
  * <p>Compatible with Servlet 3.1 but can be configured to expose a specific version
  * through {@link #setMajorVersion}/{@link #setMinorVersion}; default is 3.1.
@@ -93,7 +93,7 @@ public class MockServletContext implements ServletContext {
 
 	private static final String TEMP_DIR_SYSTEM_PROPERTY = "java.io.tmpdir";
 
-	private static final Set<SessionTrackingMode> DEFAULT_SESSION_TRACKING_MODES = new LinkedHashSet<>(4);
+	private static final Set<SessionTrackingMode> DEFAULT_SESSION_TRACKING_MODES = CollectionUtils.newLinkedHashSet(3);
 
 	static {
 		DEFAULT_SESSION_TRACKING_MODES.add(SessionTrackingMode.COOKIE);
@@ -112,13 +112,13 @@ public class MockServletContext implements ServletContext {
 
 	private final Map<String, ServletContext> contexts = new HashMap<>();
 
-	private int majorVersion = 3;
+	private int majorVersion = 6;
 
-	private int minorVersion = 1;
+	private int minorVersion = 0;
 
-	private int effectiveMajorVersion = 3;
+	private int effectiveMajorVersion = 6;
 
-	private int effectiveMinorVersion = 1;
+	private int effectiveMinorVersion = 0;
 
 	private final Map<String, RequestDispatcher> namedRequestDispatchers = new HashMap<>();
 
@@ -144,6 +144,8 @@ public class MockServletContext implements ServletContext {
 
 	@Nullable
 	private String responseCharacterEncoding;
+
+	private final Map<String, FilterRegistration> filterRegistrations = new LinkedHashMap<>();
 
 	private final Map<String, MediaType> mimeTypes = new LinkedHashMap<>();
 
@@ -224,6 +226,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public ServletContext getContext(String contextPath) {
 		if (this.contextPath.equals(contextPath)) {
 			return this;
@@ -304,7 +307,7 @@ public class MockServletContext implements ServletContext {
 			if (ObjectUtils.isEmpty(fileList)) {
 				return null;
 			}
-			Set<String> resourcePaths = new LinkedHashSet<>(fileList.length);
+			Set<String> resourcePaths = CollectionUtils.newLinkedHashSet(fileList.length);
 			for (String fileEntry : fileList) {
 				String resultPath = actualPath + fileEntry;
 				if (resource.createRelative(fileEntry).getFile().isDirectory()) {
@@ -315,8 +318,8 @@ public class MockServletContext implements ServletContext {
 			return resourcePaths;
 		}
 		catch (InvalidPathException | IOException ex ) {
-			if (logger.isWarnEnabled()) {
-				logger.warn("Could not get resource paths for " +
+			if (logger.isDebugEnabled()) {
+				logger.debug("Could not get resource paths for " +
 						(resource != null ? resource : resourceLocation), ex);
 			}
 			return null;
@@ -339,8 +342,8 @@ public class MockServletContext implements ServletContext {
 			throw ex;
 		}
 		catch (InvalidPathException | IOException ex) {
-			if (logger.isWarnEnabled()) {
-				logger.warn("Could not get URL for resource " +
+			if (logger.isDebugEnabled()) {
+				logger.debug("Could not get URL for resource " +
 						(resource != null ? resource : resourceLocation), ex);
 			}
 			return null;
@@ -360,8 +363,8 @@ public class MockServletContext implements ServletContext {
 			return resource.getInputStream();
 		}
 		catch (InvalidPathException | IOException ex) {
-			if (logger.isWarnEnabled()) {
-				logger.warn("Could not open InputStream for resource " +
+			if (logger.isDebugEnabled()) {
+				logger.debug("Could not open InputStream for resource " +
 						(resource != null ? resource : resourceLocation), ex);
 			}
 			return null;
@@ -376,6 +379,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public RequestDispatcher getNamedDispatcher(String path) {
 		return this.namedRequestDispatchers.get(path);
 	}
@@ -431,34 +435,9 @@ public class MockServletContext implements ServletContext {
 		registerNamedDispatcher(this.defaultServletName, new MockRequestDispatcher(this.defaultServletName));
 	}
 
-	@Deprecated
-	@Override
-	@Nullable
-	public Servlet getServlet(String name) {
-		return null;
-	}
-
-	@Override
-	@Deprecated
-	public Enumeration<Servlet> getServlets() {
-		return Collections.enumeration(Collections.emptySet());
-	}
-
-	@Override
-	@Deprecated
-	public Enumeration<String> getServletNames() {
-		return Collections.enumeration(Collections.emptySet());
-	}
-
 	@Override
 	public void log(String message) {
 		logger.info(message);
-	}
-
-	@Override
-	@Deprecated
-	public void log(Exception ex, String message) {
-		logger.info(message, ex);
 	}
 
 	@Override
@@ -476,8 +455,8 @@ public class MockServletContext implements ServletContext {
 			return resource.getFile().getAbsolutePath();
 		}
 		catch (InvalidPathException | IOException ex) {
-			if (logger.isWarnEnabled()) {
-				logger.warn("Could not determine real path of resource " +
+			if (logger.isDebugEnabled()) {
+				logger.debug("Could not determine real path of resource " +
 						(resource != null ? resource : resourceLocation), ex);
 			}
 			return null;
@@ -490,6 +469,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public String getInitParameter(String name) {
 		Assert.notNull(name, "Parameter name must not be null");
 		return this.initParameters.get(name);
@@ -626,6 +606,25 @@ public class MockServletContext implements ServletContext {
 		return this.responseCharacterEncoding;
 	}
 
+	/**
+	 * Add a {@link FilterRegistration}.
+	 * @since 6.2
+	 */
+	public void addFilterRegistration(FilterRegistration registration) {
+		this.filterRegistrations.put(registration.getName(), registration);
+	}
+
+	@Override
+	@Nullable
+	public FilterRegistration getFilterRegistration(String filterName) {
+		return this.filterRegistrations.get(filterName);
+	}
+
+	@Override
+	public Map<String, ? extends FilterRegistration> getFilterRegistrations() {
+		return Collections.unmodifiableMap(this.filterRegistrations);
+	}
+
 
 	//---------------------------------------------------------------------
 	// Unsupported Servlet 3.0 registration methods
@@ -663,7 +662,7 @@ public class MockServletContext implements ServletContext {
 
 	/**
 	 * This method always returns {@code null}.
-	 * @see javax.servlet.ServletContext#getServletRegistration(java.lang.String)
+	 * @see jakarta.servlet.ServletContext#getServletRegistration(java.lang.String)
 	 */
 	@Override
 	@Nullable
@@ -673,7 +672,7 @@ public class MockServletContext implements ServletContext {
 
 	/**
 	 * This method always returns an {@linkplain Collections#emptyMap empty map}.
-	 * @see javax.servlet.ServletContext#getServletRegistrations()
+	 * @see jakarta.servlet.ServletContext#getServletRegistrations()
 	 */
 	@Override
 	public Map<String, ? extends ServletRegistration> getServletRegistrations() {
@@ -698,25 +697,6 @@ public class MockServletContext implements ServletContext {
 	@Override
 	public <T extends Filter> T createFilter(Class<T> c) throws ServletException {
 		throw new UnsupportedOperationException();
-	}
-
-	/**
-	 * This method always returns {@code null}.
-	 * @see javax.servlet.ServletContext#getFilterRegistration(java.lang.String)
-	 */
-	@Override
-	@Nullable
-	public FilterRegistration getFilterRegistration(String filterName) {
-		return null;
-	}
-
-	/**
-	 * This method always returns an {@linkplain Collections#emptyMap empty map}.
-	 * @see javax.servlet.ServletContext#getFilterRegistrations()
-	 */
-	@Override
-	public Map<String, ? extends FilterRegistration> getFilterRegistrations() {
-		return Collections.emptyMap();
 	}
 
 	@Override

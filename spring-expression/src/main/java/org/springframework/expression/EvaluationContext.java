@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,9 @@
 
 package org.springframework.expression;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.springframework.lang.Nullable;
 
@@ -24,37 +26,65 @@ import org.springframework.lang.Nullable;
  * Expressions are executed in an evaluation context. It is in this context that
  * references are resolved when encountered during expression evaluation.
  *
- * <p>There is a default implementation of this EvaluationContext interface:
- * {@link org.springframework.expression.spel.support.StandardEvaluationContext}
- * which can be extended, rather than having to implement everything manually.
+ * <p>There are two default implementations of this interface.
+ * <ul>
+ * <li>{@link org.springframework.expression.spel.support.SimpleEvaluationContext
+ * SimpleEvaluationContext}: a simpler builder-style {@code EvaluationContext}
+ * variant for data-binding purposes, which allows for opting into several SpEL
+ * features as needed.</li>
+ * <li>{@link org.springframework.expression.spel.support.StandardEvaluationContext
+ * StandardEvaluationContext}: a powerful and highly configurable {@code EvaluationContext}
+ * implementation, which can be extended, rather than having to implement everything
+ * manually.</li>
+ * </ul>
  *
  * @author Andy Clement
  * @author Juergen Hoeller
+ * @author Sam Brannen
  * @since 3.0
  */
 public interface EvaluationContext {
 
 	/**
 	 * Return the default root context object against which unqualified
-	 * properties/methods/etc should be resolved. This can be overridden
-	 * when evaluating an expression.
+	 * properties, methods, etc. should be resolved.
+	 * <p>This can be overridden when evaluating an expression.
 	 */
 	TypedValue getRootObject();
 
 	/**
 	 * Return a list of accessors that will be asked in turn to read/write a property.
+	 * <p>The default implementation returns an empty list.
 	 */
-	List<PropertyAccessor> getPropertyAccessors();
+	default List<PropertyAccessor> getPropertyAccessors() {
+		return Collections.emptyList();
+	}
+
+	/**
+	 * Return a list of index accessors that will be asked in turn to access or
+	 * set an indexed value.
+	 * <p>The default implementation returns an empty list.
+	 * @since 6.2
+	 */
+	default List<IndexAccessor> getIndexAccessors() {
+		return Collections.emptyList();
+	}
 
 	/**
 	 * Return a list of resolvers that will be asked in turn to locate a constructor.
+	 * <p>The default implementation returns an empty list.
 	 */
-	List<ConstructorResolver> getConstructorResolvers();
+	default List<ConstructorResolver> getConstructorResolvers() {
+		return Collections.emptyList();
+	}
 
 	/**
 	 * Return a list of resolvers that will be asked in turn to locate a method.
+	 * <p>The default implementation returns an empty list.
 	 */
-	List<MethodResolver> getMethodResolvers();
+	default List<MethodResolver> getMethodResolvers() {
+		return Collections.emptyList();
+	}
 
 	/**
 	 * Return a bean resolver that can look up beans by name.
@@ -85,18 +115,56 @@ public interface EvaluationContext {
 	OperatorOverloader getOperatorOverloader();
 
 	/**
-	 * Set a named variable within this evaluation context to a specified value.
+	 * Assign the value created by the specified {@link Supplier} to a named variable
+	 * within this evaluation context.
+	 * <p>In contrast to {@link #setVariable(String, Object)}, this method should only
+	 * be invoked to support the assignment operator ({@code =}) within an expression.
+	 * <p>By default, this method delegates to {@code setVariable(String, Object)},
+	 * providing the value created by the {@code valueSupplier}. Concrete implementations
+	 * may override this <em>default</em> method to provide different semantics.
+	 * @param name the name of the variable to assign
+	 * @param valueSupplier the supplier of the value to be assigned to the variable
+	 * @return a {@link TypedValue} wrapping the assigned value
+	 * @since 5.2.24
+	 */
+	default TypedValue assignVariable(String name, Supplier<TypedValue> valueSupplier) {
+		TypedValue typedValue = valueSupplier.get();
+		setVariable(name, typedValue.getValue());
+		return typedValue;
+	}
+
+	/**
+	 * Set a named variable in this evaluation context to a specified value.
+	 * <p>In contrast to {@link #assignVariable(String, Supplier)}, this method
+	 * should only be invoked programmatically when interacting directly with the
+	 * {@code EvaluationContext} &mdash; for example, to provide initial
+	 * configuration for the context.
 	 * @param name the name of the variable to set
 	 * @param value the value to be placed in the variable
+	 * @see #lookupVariable(String)
 	 */
 	void setVariable(String name, @Nullable Object value);
 
 	/**
 	 * Look up a named variable within this evaluation context.
-	 * @param name variable to lookup
+	 * @param name the name of the variable to look up
 	 * @return the value of the variable, or {@code null} if not found
 	 */
 	@Nullable
 	Object lookupVariable(String name);
+
+	/**
+	 * Determine if assignment is enabled within expressions evaluated by this evaluation
+	 * context.
+	 * <p>If this method returns {@code false}, the assignment ({@code =}), increment
+	 * ({@code ++}), and decrement ({@code --}) operators are disabled.
+	 * <p>By default, this method returns {@code true}. Concrete implementations may override
+	 * this <em>default</em> method to disable assignment.
+	 * @return {@code true} if assignment is enabled; {@code false} otherwise
+	 * @since 5.3.38
+	 */
+	default boolean isAssignmentEnabled() {
+		return true;
+	}
 
 }

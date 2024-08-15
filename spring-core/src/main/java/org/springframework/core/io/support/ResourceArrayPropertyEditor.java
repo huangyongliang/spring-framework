@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /**
  * Editor for {@link org.springframework.core.io.Resource} arrays, to
@@ -50,6 +51,8 @@ import org.springframework.util.Assert;
  *
  * @author Juergen Hoeller
  * @author Chris Beams
+ * @author Yanming Zhou
+ * @author Stephane Nicoll
  * @since 1.1.2
  * @see org.springframework.core.io.Resource
  * @see ResourcePatternResolver
@@ -108,34 +111,47 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 
 
 	/**
-	 * Treat the given text as a location pattern and convert it to a Resource array.
+	 * Treat the given text as a location pattern or comma delimited location patterns
+	 * and convert it to a Resource array.
 	 */
 	@Override
 	public void setAsText(String text) {
 		String pattern = resolvePath(text).trim();
+		String[] locationPatterns = StringUtils.commaDelimitedListToStringArray(pattern);
+		if (locationPatterns.length == 1) {
+			setValue(getResources(locationPatterns[0]));
+		}
+		else {
+			Resource[] resources = Arrays.stream(locationPatterns).map(String::trim)
+					.map(this::getResources).flatMap(Arrays::stream).toArray(Resource[]::new);
+			setValue(resources);
+		}
+	}
+
+	private Resource[] getResources(String locationPattern) {
 		try {
-			setValue(this.resourcePatternResolver.getResources(pattern));
+			return this.resourcePatternResolver.getResources(locationPattern);
 		}
 		catch (IOException ex) {
 			throw new IllegalArgumentException(
-					"Could not resolve resource location pattern [" + pattern + "]: " + ex.getMessage());
+					"Could not resolve resource location pattern [" + locationPattern + "]: " + ex.getMessage());
 		}
 	}
 
 	/**
 	 * Treat the given value as a collection or array and convert it to a Resource array.
-	 * Considers String elements as location patterns and takes Resource elements as-is.
+	 * <p>Considers String elements as location patterns and takes Resource elements as-is.
 	 */
 	@Override
 	public void setValue(Object value) throws IllegalArgumentException {
 		if (value instanceof Collection || (value instanceof Object[] && !(value instanceof Resource[]))) {
-			Collection<?> input = (value instanceof Collection ? (Collection<?>) value : Arrays.asList((Object[]) value));
+			Collection<?> input = (value instanceof Collection<?> collection ? collection : Arrays.asList((Object[]) value));
 			Set<Resource> merged = new LinkedHashSet<>();
 			for (Object element : input) {
-				if (element instanceof String) {
+				if (element instanceof String path) {
 					// A location pattern: resolve it into a Resource array.
 					// Might point to a single resource or to multiple resources.
-					String pattern = resolvePath((String) element).trim();
+					String pattern = resolvePath(path.trim());
 					try {
 						Resource[] resources = this.resourcePatternResolver.getResources(pattern);
 						Collections.addAll(merged, resources);
@@ -147,9 +163,9 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 						}
 					}
 				}
-				else if (element instanceof Resource) {
+				else if (element instanceof Resource resource) {
 					// A Resource object: add it to the result.
-					merged.add((Resource) element);
+					merged.add(resource);
 				}
 				else {
 					throw new IllegalArgumentException("Cannot convert element [" + element + "] to [" +

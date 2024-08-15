@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,48 +45,45 @@ import static org.mockito.Mockito.verify;
  * @author Thomas Risberg
  * @author Juergen Hoeller
  */
-public class GenericSqlQueryTests {
+class GenericSqlQueryTests {
 
 	private static final String SELECT_ID_FORENAME_NAMED_PARAMETERS_PARSED =
 			"select id, forename from custmr where id = ? and country = ?";
 
-	private DefaultListableBeanFactory beanFactory;
 
-	private Connection connection;
+	private DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
 
-	private PreparedStatement preparedStatement;
+	private Connection connection = mock();
 
-	private ResultSet resultSet;
+	private PreparedStatement preparedStatement = mock();
+
+	private ResultSet resultSet = mock();
 
 
 	@BeforeEach
-	public void setUp() throws Exception {
-		this.beanFactory = new DefaultListableBeanFactory();
+	void setUp() throws Exception {
 		new XmlBeanDefinitionReader(this.beanFactory).loadBeanDefinitions(
 				new ClassPathResource("org/springframework/jdbc/object/GenericSqlQueryTests-context.xml"));
-		DataSource dataSource = mock(DataSource.class);
-		this.connection = mock(Connection.class);
-		this.preparedStatement = mock(PreparedStatement.class);
-		this.resultSet = mock(ResultSet.class);
+		DataSource dataSource = mock();
 		given(dataSource.getConnection()).willReturn(connection);
 		TestDataSourceWrapper testDataSource = (TestDataSourceWrapper) beanFactory.getBean("dataSource");
 		testDataSource.setTarget(dataSource);
 	}
 
 	@Test
-	public void testCustomerQueryWithPlaceholders() throws SQLException {
+	void testCustomerQueryWithPlaceholders() throws SQLException {
 		SqlQuery<?> query = (SqlQuery<?>) beanFactory.getBean("queryWithPlaceholders");
 		doTestCustomerQuery(query, false);
 	}
 
 	@Test
-	public void testCustomerQueryWithNamedParameters() throws SQLException {
+	void testCustomerQueryWithNamedParameters() throws SQLException {
 		SqlQuery<?> query = (SqlQuery<?>) beanFactory.getBean("queryWithNamedParameters");
 		doTestCustomerQuery(query, true);
 	}
 
 	@Test
-	public void testCustomerQueryWithRowMapperInstance() throws SQLException {
+	void testCustomerQueryWithRowMapperInstance() throws SQLException {
 		SqlQuery<?> query = (SqlQuery<?>) beanFactory.getBean("queryWithRowMapperBean");
 		doTestCustomerQuery(query, true);
 	}
@@ -110,10 +107,10 @@ public class GenericSqlQueryTests {
 			Object[] params = new Object[] {1, "UK"};
 			queryResults = query.execute(params);
 		}
-		assertThat(queryResults.size() == 1).as("Customer was returned correctly").isTrue();
+		assertThat(queryResults).as("Customer was returned correctly").hasSize(1);
 		Customer cust = (Customer) queryResults.get(0);
-		assertThat(cust.getId() == 1).as("Customer id was assigned correctly").isTrue();
-		assertThat(cust.getForename().equals("rod")).as("Customer forename was assigned correctly").isTrue();
+		assertThat(cust.getId()).as("Customer id was assigned correctly").isEqualTo(1);
+		assertThat(cust.getForename()).as("Customer forename was assigned correctly").isEqualTo("rod");
 
 		verify(resultSet).close();
 		verify(preparedStatement).setObject(1, 1, Types.INTEGER);

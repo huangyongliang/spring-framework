@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.util.LinkedMultiValueMap;
@@ -49,7 +48,7 @@ import static org.springframework.core.CollectionFactory.createCollection;
 import static org.springframework.core.CollectionFactory.createMap;
 
 /**
- * Unit tests for {@link CollectionFactory}.
+ * Tests for {@link CollectionFactory}.
  *
  * @author Oliver Gierke
  * @author Sam Brannen
@@ -155,8 +154,8 @@ class CollectionFactoryTests {
 
 	@Test
 	void createApproximateCollectionFromEmptyHashSet() {
-		Collection<String> set = createApproximateCollection(new HashSet<String>(), 2);
-		Assertions.assertThat(set).isEmpty();
+		Collection<String> set = createApproximateCollection(new HashSet<>(), 2);
+		assertThat(set).isEmpty();
 	}
 
 	@Test
@@ -181,7 +180,7 @@ class CollectionFactoryTests {
 
 	@Test
 	void createApproximateMapFromEmptyHashMap() {
-		Map<String, String> map = createApproximateMap(new HashMap<String, String>(), 2);
+		Map<String, String> map = createApproximateMap(new HashMap<>(), 2);
 		assertThat(map).isEmpty();
 	}
 
@@ -195,7 +194,7 @@ class CollectionFactoryTests {
 
 	@Test
 	void createApproximateMapFromEmptyEnumMap() {
-		Map<Color, String> colors = createApproximateMap(new EnumMap<Color, String>(Color.class), 2);
+		Map<Color, String> colors = createApproximateMap(new EnumMap<>(Color.class), 2);
 		assertThat(colors).isEmpty();
 	}
 
@@ -210,21 +209,25 @@ class CollectionFactoryTests {
 	@Test
 	void createsCollectionsCorrectly() {
 		// interfaces
-		assertThat(createCollection(List.class, 0)).isInstanceOf(ArrayList.class);
-		assertThat(createCollection(Set.class, 0)).isInstanceOf(LinkedHashSet.class);
-		assertThat(createCollection(Collection.class, 0)).isInstanceOf(LinkedHashSet.class);
-		assertThat(createCollection(SortedSet.class, 0)).isInstanceOf(TreeSet.class);
-		assertThat(createCollection(NavigableSet.class, 0)).isInstanceOf(TreeSet.class);
-
-		assertThat(createCollection(List.class, String.class, 0)).isInstanceOf(ArrayList.class);
-		assertThat(createCollection(Set.class, String.class, 0)).isInstanceOf(LinkedHashSet.class);
-		assertThat(createCollection(Collection.class, String.class, 0)).isInstanceOf(LinkedHashSet.class);
-		assertThat(createCollection(SortedSet.class, String.class, 0)).isInstanceOf(TreeSet.class);
-		assertThat(createCollection(NavigableSet.class, String.class, 0)).isInstanceOf(TreeSet.class);
+		testCollection(List.class, ArrayList.class);
+		testCollection(Set.class, LinkedHashSet.class);
+		testCollection(Collection.class, LinkedHashSet.class);
+		// on JDK 21: testCollection(SequencedSet.class, LinkedHashSet.class);
+		// on JDK 21: testCollection(SequencedCollection.class, LinkedHashSet.class);
+		testCollection(SortedSet.class, TreeSet.class);
+		testCollection(NavigableSet.class, TreeSet.class);
 
 		// concrete types
-		assertThat(createCollection(HashSet.class, 0)).isInstanceOf(HashSet.class);
-		assertThat(createCollection(HashSet.class, String.class, 0)).isInstanceOf(HashSet.class);
+		testCollection(ArrayList.class, ArrayList.class);
+		testCollection(HashSet.class, HashSet.class);
+		testCollection(LinkedHashSet.class, LinkedHashSet.class);
+		testCollection(TreeSet.class, TreeSet.class);
+	}
+
+	private void testCollection(Class<?> collectionType, Class<?> resultType) {
+		assertThat(CollectionFactory.isApproximableCollectionType(collectionType)).isTrue();
+		assertThat(createCollection(collectionType, 0)).isExactlyInstanceOf(resultType);
+		assertThat(createCollection(collectionType, String.class, 0)).isExactlyInstanceOf(resultType);
 	}
 
 	@Test
@@ -259,20 +262,23 @@ class CollectionFactoryTests {
 	@Test
 	void createsMapsCorrectly() {
 		// interfaces
-		assertThat(createMap(Map.class, 0)).isInstanceOf(LinkedHashMap.class);
-		assertThat(createMap(SortedMap.class, 0)).isInstanceOf(TreeMap.class);
-		assertThat(createMap(NavigableMap.class, 0)).isInstanceOf(TreeMap.class);
-		assertThat(createMap(MultiValueMap.class, 0)).isInstanceOf(LinkedMultiValueMap.class);
-
-		assertThat(createMap(Map.class, String.class, 0)).isInstanceOf(LinkedHashMap.class);
-		assertThat(createMap(SortedMap.class, String.class, 0)).isInstanceOf(TreeMap.class);
-		assertThat(createMap(NavigableMap.class, String.class, 0)).isInstanceOf(TreeMap.class);
-		assertThat(createMap(MultiValueMap.class, String.class, 0)).isInstanceOf(LinkedMultiValueMap.class);
+		testMap(Map.class, LinkedHashMap.class);
+		// on JDK 21: testMap(SequencedMap.class, LinkedHashMap.class);
+		testMap(SortedMap.class, TreeMap.class);
+		testMap(NavigableMap.class, TreeMap.class);
+		testMap(MultiValueMap.class, LinkedMultiValueMap.class);
 
 		// concrete types
-		assertThat(createMap(HashMap.class, 0)).isInstanceOf(HashMap.class);
+		testMap(HashMap.class, HashMap.class);
+		testMap(LinkedHashMap.class, LinkedHashMap.class);
+		testMap(TreeMap.class, TreeMap.class);
+		testMap(LinkedMultiValueMap.class, LinkedMultiValueMap.class);
+	}
 
-		assertThat(createMap(HashMap.class, String.class, 0)).isInstanceOf(HashMap.class);
+	private void testMap(Class<?> mapType, Class<?> resultType) {
+		assertThat(CollectionFactory.isApproximableMapType(mapType)).isTrue();
+		assertThat(createMap(mapType, 0)).isExactlyInstanceOf(resultType);
+		assertThat(createMap(mapType, String.class, 0)).isExactlyInstanceOf(resultType);
 	}
 
 	@Test
@@ -300,7 +306,7 @@ class CollectionFactoryTests {
 
 
 	enum Color {
-		RED, BLUE;
+		RED, BLUE
 	}
 
 }

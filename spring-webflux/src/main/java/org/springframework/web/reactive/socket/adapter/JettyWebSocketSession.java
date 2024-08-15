@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,23 @@
 
 package org.springframework.web.reactive.socket.adapter;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.jetty.util.BufferUtil;
+import org.eclipse.jetty.util.IteratingCallback;
+import org.eclipse.jetty.websocket.api.Callback;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.SuspendToken;
-import org.eclipse.jetty.websocket.api.WriteCallback;
+import org.eclipse.jetty.websocket.api.StatusCode;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -37,80 +44,119 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
  * Spring {@link WebSocketSession} implementation that adapts to a Jetty
- * WebSocket {@link org.eclipse.jetty.websocket.api.Session}.
+ * WebSocket {@link Session}.
  *
  * @author Violeta Georgieva
  * @author Rossen Stoyanchev
  * @since 5.0
  */
-public class JettyWebSocketSession extends AbstractListenerWebSocketSession<Session> {
+public class JettyWebSocketSession extends AbstractWebSocketSession<Session> {
+
+	private final Flux<WebSocketMessage> flux;
+
+	private final Sinks.One<CloseStatus> closeStatusSink = Sinks.one();
+
+	private final Lock lock = new ReentrantLock();
+
+	private long requested = 0;
+
+	private boolean awaitingMessage = false;
 
 	@Nullable
-	private volatile SuspendToken suspendToken;
+	private FluxSink<WebSocketMessage> sink;
 
+	@Nullable
+	private final Sinks.Empty<Void> handlerCompletionSink;
 
 	public JettyWebSocketSession(Session session, HandshakeInfo info, DataBufferFactory factory) {
-		this(session, info, factory, (Sinks.Empty<Void>) null);
+		this(session, info, factory, null);
 	}
 
 	public JettyWebSocketSession(Session session, HandshakeInfo info, DataBufferFactory factory,
 			@Nullable Sinks.Empty<Void> completionSink) {
 
-		super(session, ObjectUtils.getIdentityHexString(session), info, factory, completionSink);
-		// TODO: suspend causes failures if invoked at this stage
-		// suspendReceiving();
+		super(session, ObjectUtils.getIdentityHexString(session), info, factory);
+		this.handlerCompletionSink = completionSink;
+		this.flux = Flux.create(emitter -> {
+			this.sink = emitter;
+			emitter.onRequest(n -> {
+				boolean demand = false;
+				this.lock.lock();
+				try {
+					this.requested = Math.addExact(this.requested, n);
+					if (this.requested < 0L) {
+						this.requested = Long.MAX_VALUE;
+					}
+
+					if (!this.awaitingMessage && this.requested > 0) {
+						if (this.requested != Long.MAX_VALUE) {
+							this.requested--;
+						}
+						this.awaitingMessage = true;
+						demand = true;
+					}
+				}
+				finally {
+					this.lock.unlock();
+				}
+
+				if (demand) {
+					getDelegate().demand();
+				}
+			});
+		});
 	}
 
-	@Deprecated
-	public JettyWebSocketSession(Session session, HandshakeInfo info, DataBufferFactory factory,
-			@Nullable reactor.core.publisher.MonoProcessor<Void> completionMono) {
+	void handleMessage(WebSocketMessage message) {
+		Assert.state(this.sink != null, "No sink available");
+		this.sink.next(message);
 
-		super(session, ObjectUtils.getIdentityHexString(session), info, factory, completionMono);
-	}
+		boolean demand = false;
+		this.lock.lock();
+		try {
+			if (!this.awaitingMessage) {
+				throw new IllegalStateException();
+			}
+			this.awaitingMessage = false;
+			if (this.requested > 0) {
+				if (this.requested != Long.MAX_VALUE) {
+					this.requested--;
+				}
+				this.awaitingMessage = true;
+				demand = true;
+			}
+		}
+		finally {
+			this.lock.unlock();
+		}
 
-
-	@Override
-	protected boolean canSuspendReceiving() {
-		return true;
-	}
-
-	@Override
-	protected void suspendReceiving() {
-		Assert.state(this.suspendToken == null, "Already suspended");
-		this.suspendToken = getDelegate().suspend();
-	}
-
-	@Override
-	protected void resumeReceiving() {
-		SuspendToken tokenToUse = this.suspendToken;
-		this.suspendToken = null;
-		if (tokenToUse != null) {
-			tokenToUse.resume();
+		if (demand) {
+			getDelegate().demand();
 		}
 	}
 
-	@Override
-	protected boolean sendMessage(WebSocketMessage message) throws IOException {
-		ByteBuffer buffer = message.getPayload().asByteBuffer();
-		if (WebSocketMessage.Type.TEXT.equals(message.getType())) {
-			getSendProcessor().setReadyToSend(false);
-			String text = new String(buffer.array(), StandardCharsets.UTF_8);
-			getDelegate().getRemote().sendString(text, new SendProcessorCallback());
+	void handleError(Throwable ex) {
+	}
+
+	void handleClose(CloseStatus closeStatus) {
+		this.closeStatusSink.tryEmitValue(closeStatus);
+		if (this.sink != null) {
+			this.sink.complete();
 		}
-		else if (WebSocketMessage.Type.BINARY.equals(message.getType())) {
-			getSendProcessor().setReadyToSend(false);
-			getDelegate().getRemote().sendBytes(buffer, new SendProcessorCallback());
+	}
+
+	void onHandlerError(Throwable error) {
+		if (JettyWebSocketSession.this.handlerCompletionSink != null) {
+			JettyWebSocketSession.this.handlerCompletionSink.tryEmitError(error);
 		}
-		else if (WebSocketMessage.Type.PING.equals(message.getType())) {
-			getDelegate().getRemote().sendPing(buffer);
+		getDelegate().close(StatusCode.SERVER_ERROR, error.getMessage(), Callback.NOOP);
+	}
+
+	void onHandleComplete() {
+		if (JettyWebSocketSession.this.handlerCompletionSink != null) {
+			JettyWebSocketSession.this.handlerCompletionSink.tryEmitEmpty();
 		}
-		else if (WebSocketMessage.Type.PONG.equals(message.getType())) {
-			getDelegate().getRemote().sendPong(buffer);
-		}
-		else {
-			throw new IllegalArgumentException("Unexpected message type: " + message.getType());
-		}
-		return true;
+		getDelegate().close(StatusCode.NORMAL, null, Callback.NOOP);
 	}
 
 	@Override
@@ -120,25 +166,83 @@ public class JettyWebSocketSession extends AbstractListenerWebSocketSession<Sess
 
 	@Override
 	public Mono<Void> close(CloseStatus status) {
-		getDelegate().close(status.getCode(), status.getReason());
-		return Mono.empty();
+		Callback.Completable callback = new Callback.Completable();
+		getDelegate().close(status.getCode(), status.getReason(), callback);
+		return Mono.fromFuture(callback);
 	}
 
-
-	private final class SendProcessorCallback implements WriteCallback {
-
-		@Override
-		public void writeFailed(Throwable x) {
-			getSendProcessor().cancel();
-			getSendProcessor().onError(x);
-		}
-
-		@Override
-		public void writeSuccess() {
-			getSendProcessor().setReadyToSend(true);
-			getSendProcessor().onWritePossible();
-		}
-
+	@Override
+	public Mono<CloseStatus> closeStatus() {
+		return this.closeStatusSink.asMono();
 	}
 
+	@Override
+	public Flux<WebSocketMessage> receive() {
+		return this.flux;
+	}
+
+	@Override
+	public Mono<Void> send(Publisher<WebSocketMessage> messages) {
+		return Flux.from(messages)
+				.flatMap(this::sendMessage, 1)
+				.then();
+	}
+
+	protected Mono<Void> sendMessage(WebSocketMessage message) {
+
+		Callback.Completable completable = new Callback.Completable();
+		DataBuffer dataBuffer = message.getPayload();
+		Session session = getDelegate();
+		if (WebSocketMessage.Type.TEXT.equals(message.getType())) {
+			String text = dataBuffer.toString(StandardCharsets.UTF_8);
+			session.sendText(text, completable);
+		}
+		else {
+			switch (message.getType()) {
+				case BINARY -> {
+					@SuppressWarnings("resource")
+					DataBuffer.ByteBufferIterator iterator = dataBuffer.readableByteBuffers();
+					new IteratingCallback() {
+						@Override
+						protected Action process() {
+							if (!iterator.hasNext()) {
+								return Action.SUCCEEDED;
+							}
+
+							ByteBuffer buffer = iterator.next();
+							boolean last = iterator.hasNext();
+							session.sendPartialBinary(buffer, last, Callback.from(this::succeeded, this::failed));
+							return Action.SCHEDULED;
+						}
+
+						@Override
+						protected void onCompleteSuccess() {
+							iterator.close();
+							completable.succeed();
+						}
+
+						@Override
+						protected void onCompleteFailure(Throwable cause) {
+							iterator.close();
+							completable.fail(cause);
+						}
+					}.iterate();
+				}
+				case PING -> {
+					// Maximum size of Control frame payload is 125, per RFC 6455.
+					ByteBuffer buffer = BufferUtil.allocate(125);
+					dataBuffer.toByteBuffer(buffer);
+					session.sendPing(buffer, completable);
+				}
+				case PONG -> {
+					// Maximum size of Control frame payload is 125, per RFC 6455.
+					ByteBuffer buffer = BufferUtil.allocate(125);
+					dataBuffer.toByteBuffer(buffer);
+					session.sendPong(buffer, completable);
+				}
+				default -> throw new IllegalArgumentException("Unexpected message type: " + message.getType());
+			}
+		}
+		return Mono.fromFuture(completable);
+	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package org.springframework.web.servlet.tags.form;
 
 import java.beans.PropertyEditor;
 
-import javax.servlet.jsp.JspException;
+import jakarta.servlet.jsp.JspException;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
@@ -32,8 +32,8 @@ import org.springframework.web.servlet.tags.HtmlEscapingAwareTag;
  * actual tag rendering.
  *
  * <p>Subclasses (or test classes) can override the {@link #createTagWriter()} method to
- * redirect output to a {@link java.io.Writer} other than the {@link javax.servlet.jsp.JspWriter}
- * associated with the current {@link javax.servlet.jsp.PageContext}.
+ * redirect output to a {@link java.io.Writer} other than the {@link jakarta.servlet.jsp.JspWriter}
+ * associated with the current {@link jakarta.servlet.jsp.PageContext}.
  *
  * @author Rob Harrop
  * @author Juergen Hoeller
@@ -69,8 +69,8 @@ public abstract class AbstractFormTag extends HtmlEscapingAwareTag {
 
 	/**
 	 * Create the {@link TagWriter} which all output will be written to. By default,
-	 * the {@link TagWriter} writes its output to the {@link javax.servlet.jsp.JspWriter}
-	 * for the current {@link javax.servlet.jsp.PageContext}. Subclasses may choose to
+	 * the {@link TagWriter} writes its output to the {@link jakarta.servlet.jsp.JspWriter}
+	 * for the current {@link jakarta.servlet.jsp.PageContext}. Subclasses may choose to
 	 * change the {@link java.io.Writer} to which output is actually written.
 	 */
 	protected TagWriter createTagWriter() {
@@ -92,7 +92,8 @@ public abstract class AbstractFormTag extends HtmlEscapingAwareTag {
 	 * as required. This version is <strong>not</strong> {@link PropertyEditor}-aware.
 	 */
 	protected String getDisplayString(@Nullable Object value) {
-		return ValueFormatter.getDisplayString(value, isHtmlEscape());
+		String displayString = ValueFormatter.getDisplayString(value, false);
+		return isHtmlEscape() ? htmlEscape(displayString) : displayString;
 	}
 
 	/**
@@ -102,7 +103,8 @@ public abstract class AbstractFormTag extends HtmlEscapingAwareTag {
 	 * to obtain the display value.
 	 */
 	protected String getDisplayString(@Nullable Object value, @Nullable PropertyEditor propertyEditor) {
-		return ValueFormatter.getDisplayString(value, propertyEditor, isHtmlEscape());
+		String displayString = ValueFormatter.getDisplayString(value, propertyEditor, false);
+		return isHtmlEscape() ? htmlEscape(displayString) : displayString;
 	}
 
 	/**
@@ -111,13 +113,13 @@ public abstract class AbstractFormTag extends HtmlEscapingAwareTag {
 	@Override
 	protected boolean isDefaultHtmlEscape() {
 		Boolean defaultHtmlEscape = getRequestContext().getDefaultHtmlEscape();
-		return (defaultHtmlEscape == null || defaultHtmlEscape.booleanValue());
+		return (defaultHtmlEscape == null || defaultHtmlEscape);
 	}
 
 
 	/**
 	 * Subclasses should implement this method to perform tag content rendering.
-	 * @return valid tag render instruction as per {@link javax.servlet.jsp.tagext.Tag#doStartTag()}.
+	 * @return valid tag render instruction as per {@link jakarta.servlet.jsp.tagext.Tag#doStartTag()}.
 	 */
 	protected abstract int writeTagContent(TagWriter tagWriter) throws JspException;
 

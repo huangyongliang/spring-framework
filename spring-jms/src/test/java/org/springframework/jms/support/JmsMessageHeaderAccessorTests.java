@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,8 @@ package org.springframework.jms.support;
 
 import java.util.Map;
 
-import javax.jms.Destination;
-import javax.jms.JMSException;
-
+import jakarta.jms.Destination;
+import jakarta.jms.JMSException;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.jms.StubTextMessage;
@@ -33,10 +32,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Stephane Nicoll
  */
-public class JmsMessageHeaderAccessorTests {
+class JmsMessageHeaderAccessorTests {
 
 	@Test
-	public void validateJmsHeaders() throws JMSException {
+	void validateJmsHeaders() throws JMSException {
 		Destination destination = new Destination() {};
 		Destination replyTo = new Destination() {};
 
@@ -65,7 +64,7 @@ public class JmsMessageHeaderAccessorTests {
 		assertThat(headerAccessor.getMessageId()).isEqualTo("abcd-1234");
 		assertThat(headerAccessor.getPriority()).isEqualTo(Integer.valueOf(9));
 		assertThat(headerAccessor.getReplyTo()).isEqualTo(replyTo);
-		assertThat(headerAccessor.getRedelivered()).isEqualTo(true);
+		assertThat(headerAccessor.getRedelivered()).isTrue();
 		assertThat(headerAccessor.getType()).isEqualTo("type");
 		assertThat(headerAccessor.getTimestamp()).isEqualTo(4567);
 

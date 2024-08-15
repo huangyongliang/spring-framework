@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,19 +31,19 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
- * Unit tests for {@link MethodInvokingFactoryBean} and {@link MethodInvokingBean}.
+ * Tests for {@link MethodInvokingFactoryBean} and {@link MethodInvokingBean}.
  *
  * @author Colin Sampaleanu
  * @author Juergen Hoeller
  * @author Chris Beams
  * @since 21.11.2003
  */
-public class MethodInvokingFactoryBeanTests {
+class MethodInvokingFactoryBeanTests {
 
 	@Test
-	public void testParameterValidation() throws Exception {
+	void testParameterValidation() throws Exception {
 
-		// assert that only static OR non static are set, but not both or none
+		// assert that only static OR non-static are set, but not both or none
 		MethodInvokingFactoryBean mcfb = new MethodInvokingFactoryBean();
 		assertThatIllegalArgumentException().isThrownBy(mcfb::afterPropertiesSet);
 
@@ -91,7 +91,7 @@ public class MethodInvokingFactoryBeanTests {
 	}
 
 	@Test
-	public void testGetObjectType() throws Exception {
+	void testGetObjectType() throws Exception {
 		TestClass1 tc1 = new TestClass1();
 		MethodInvokingFactoryBean mcfb = new MethodInvokingFactoryBean();
 		mcfb = new MethodInvokingFactoryBean();
@@ -113,7 +113,7 @@ public class MethodInvokingFactoryBeanTests {
 		mcfb = new MethodInvokingFactoryBean();
 		mcfb.setTargetClass(TestClass1.class);
 		mcfb.setTargetMethod("supertypes");
-		mcfb.setArguments(new ArrayList<>(), new ArrayList<Object>(), "hello");
+		mcfb.setArguments(new ArrayList<>(), new ArrayList<>(), "hello");
 		mcfb.afterPropertiesSet();
 		mcfb.getObjectType();
 
@@ -127,7 +127,7 @@ public class MethodInvokingFactoryBeanTests {
 	}
 
 	@Test
-	public void testGetObject() throws Exception {
+	void testGetObject() throws Exception {
 		// singleton, non-static
 		TestClass1 tc1 = new TestClass1();
 		MethodInvokingFactoryBean mcfb = new MethodInvokingFactoryBean();
@@ -135,9 +135,9 @@ public class MethodInvokingFactoryBeanTests {
 		mcfb.setTargetMethod("method1");
 		mcfb.afterPropertiesSet();
 		Integer i = (Integer) mcfb.getObject();
-		assertThat(i.intValue()).isEqualTo(1);
+		assertThat(i).isEqualTo(1);
 		i = (Integer) mcfb.getObject();
-		assertThat(i.intValue()).isEqualTo(1);
+		assertThat(i).isEqualTo(1);
 
 		// non-singleton, non-static
 		tc1 = new TestClass1();
@@ -147,9 +147,9 @@ public class MethodInvokingFactoryBeanTests {
 		mcfb.setSingleton(false);
 		mcfb.afterPropertiesSet();
 		i = (Integer) mcfb.getObject();
-		assertThat(i.intValue()).isEqualTo(1);
+		assertThat(i).isEqualTo(1);
 		i = (Integer) mcfb.getObject();
-		assertThat(i.intValue()).isEqualTo(2);
+		assertThat(i).isEqualTo(2);
 
 		// singleton, static
 		TestClass1._staticField1 = 0;
@@ -158,9 +158,9 @@ public class MethodInvokingFactoryBeanTests {
 		mcfb.setTargetMethod("staticMethod1");
 		mcfb.afterPropertiesSet();
 		i = (Integer) mcfb.getObject();
-		assertThat(i.intValue()).isEqualTo(1);
+		assertThat(i).isEqualTo(1);
 		i = (Integer) mcfb.getObject();
-		assertThat(i.intValue()).isEqualTo(1);
+		assertThat(i).isEqualTo(1);
 
 		// non-singleton, static
 		TestClass1._staticField1 = 0;
@@ -169,9 +169,9 @@ public class MethodInvokingFactoryBeanTests {
 		mcfb.setSingleton(false);
 		mcfb.afterPropertiesSet();
 		i = (Integer) mcfb.getObject();
-		assertThat(i.intValue()).isEqualTo(1);
+		assertThat(i).isEqualTo(1);
 		i = (Integer) mcfb.getObject();
-		assertThat(i.intValue()).isEqualTo(2);
+		assertThat(i).isEqualTo(2);
 
 		// void return value
 		mcfb = new MethodInvokingFactoryBean();
@@ -184,17 +184,17 @@ public class MethodInvokingFactoryBeanTests {
 		mcfb = new MethodInvokingFactoryBean();
 		mcfb.setTargetClass(TestClass1.class);
 		mcfb.setTargetMethod("supertypes");
-		mcfb.setArguments(new ArrayList<>(), new ArrayList<Object>(), "hello");
+		mcfb.setArguments(new ArrayList<>(), new ArrayList<>(), "hello");
 		// should pass
 		mcfb.afterPropertiesSet();
 	}
 
 	@Test
-	public void testArgumentConversion() throws Exception {
+	void testArgumentConversion() throws Exception {
 		MethodInvokingFactoryBean mcfb = new MethodInvokingFactoryBean();
 		mcfb.setTargetClass(TestClass1.class);
 		mcfb.setTargetMethod("supertypes");
-		mcfb.setArguments(new ArrayList<>(), new ArrayList<Object>(), "hello", "bogus");
+		mcfb.setArguments(new ArrayList<>(), new ArrayList<>(), "hello", "bogus");
 		assertThatExceptionOfType(NoSuchMethodException.class).as(
 				"Matched method with wrong number of args").isThrownBy(
 						mcfb::afterPropertiesSet);
@@ -210,21 +210,21 @@ public class MethodInvokingFactoryBeanTests {
 		mcfb = new MethodInvokingFactoryBean();
 		mcfb.setTargetClass(TestClass1.class);
 		mcfb.setTargetMethod("supertypes2");
-		mcfb.setArguments(new ArrayList<>(), new ArrayList<Object>(), "hello", "bogus");
+		mcfb.setArguments(new ArrayList<>(), new ArrayList<>(), "hello", "bogus");
 		mcfb.afterPropertiesSet();
 		assertThat(mcfb.getObject()).isEqualTo("hello");
 
 		mcfb = new MethodInvokingFactoryBean();
 		mcfb.setTargetClass(TestClass1.class);
 		mcfb.setTargetMethod("supertypes2");
-		mcfb.setArguments(new ArrayList<>(), new ArrayList<Object>(), new Object());
+		mcfb.setArguments(new ArrayList<>(), new ArrayList<>(), new Object());
 		assertThatExceptionOfType(NoSuchMethodException.class).as(
 				"Matched method when shouldn't have matched").isThrownBy(
 						mcfb::afterPropertiesSet);
 	}
 
 	@Test
-	public void testInvokeWithNullArgument() throws Exception {
+	void testInvokeWithNullArgument() throws Exception {
 		MethodInvoker methodInvoker = new MethodInvoker();
 		methodInvoker.setTargetClass(TestClass1.class);
 		methodInvoker.setTargetMethod("nullArgument");
@@ -234,7 +234,7 @@ public class MethodInvokingFactoryBeanTests {
 	}
 
 	@Test
-	public void testInvokeWithIntArgument() throws Exception {
+	void testInvokeWithIntArgument() throws Exception {
 		ArgumentConvertingMethodInvoker methodInvoker = new ArgumentConvertingMethodInvoker();
 		methodInvoker.setTargetClass(TestClass1.class);
 		methodInvoker.setTargetMethod("intArgument");
@@ -251,7 +251,7 @@ public class MethodInvokingFactoryBeanTests {
 	}
 
 	@Test
-	public void testInvokeWithIntArguments() throws Exception {
+	void testInvokeWithIntArguments() throws Exception {
 		MethodInvokingBean methodInvoker = new MethodInvokingBean();
 		methodInvoker.setTargetClass(TestClass1.class);
 		methodInvoker.setTargetMethod("intArguments");

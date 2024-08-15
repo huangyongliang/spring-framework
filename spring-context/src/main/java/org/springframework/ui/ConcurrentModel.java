@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public class ConcurrentModel extends ConcurrentHashMap<String, Object> implement
 	}
 
 	/**
-	 * Construct a new {@code ModelMap} containing the supplied attribute
+	 * Construct a new {@code ConcurrentModel} containing the supplied attribute
 	 * under the supplied name.
 	 * @see #addAttribute(String, Object)
 	 */
@@ -55,8 +55,8 @@ public class ConcurrentModel extends ConcurrentHashMap<String, Object> implement
 	}
 
 	/**
-	 * Construct a new {@code ModelMap} containing the supplied attribute.
-	 * Uses attribute name generation to generate the key for the supplied model
+	 * Construct a new {@code ConcurrentModel} containing the supplied attribute.
+	 * <p>Uses attribute name generation to generate the key for the supplied model
 	 * object.
 	 * @see #addAttribute(Object)
 	 */
@@ -66,7 +66,8 @@ public class ConcurrentModel extends ConcurrentHashMap<String, Object> implement
 
 
 	@Override
-	public Object put(String key, Object value) {
+	@Nullable
+	public Object put(String key, @Nullable Object value) {
 		if (value != null) {
 			return super.put(key, value);
 		}
@@ -107,7 +108,7 @@ public class ConcurrentModel extends ConcurrentHashMap<String, Object> implement
 	@Override
 	public ConcurrentModel addAttribute(Object attributeValue) {
 		Assert.notNull(attributeValue, "Model attribute value must not be null");
-		if (attributeValue instanceof Collection && ((Collection<?>) attributeValue).isEmpty()) {
+		if (attributeValue instanceof Collection<?> collection && collection.isEmpty()) {
 			return this;
 		}
 		return addAttribute(Conventions.getVariableName(attributeValue), attributeValue);

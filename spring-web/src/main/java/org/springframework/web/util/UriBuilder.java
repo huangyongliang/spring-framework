@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ public interface UriBuilder {
 	UriBuilder port(int port);
 
 	/**
-	 * Set the URI port . Use this method only when the port needs to be
+	 * Set the URI port. Use this method only when the port needs to be
 	 * parameterized with a URI variable. Otherwise use {@link #port(int)}.
 	 * Passing {@code null} will clear the port of this builder.
 	 * @param port the URI port
@@ -269,5 +269,14 @@ public interface UriBuilder {
 	 * @return the URI
 	 */
 	URI build(Map<String, ?> uriVariables);
+
+	/**
+	 * Return a String representation of the URI by concatenating all URI
+	 * component values into the fully formed URI String. Implementing classes
+	 * should perform simple String concatenation of current URI component
+	 * values to preserve URI template placeholders.
+	 * @since 6.1.2
+	 */
+	String toUriString();
 
 }

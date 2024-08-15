@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,16 +37,16 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-///CLOVER:OFF
 /**
- * Spring Security scenarios from https://wiki.springsource.com/display/SECURITY/Spring+Security+Expression-based+Authorization
+ * SpEL expression tests for Spring Security scenarios.
  *
  * @author Andy Clement
+ * @see <a href="https://docs.spring.io/spring-security/reference/servlet/authorization/authorize-http-requests.html#authorization-expressions">Expressing Authorization with SpEL</a>
  */
-public class ScenariosForSpringSecurityExpressionTests extends AbstractExpressionTests {
+class ScenariosForSpringSecurityExpressionTests extends AbstractExpressionTests {
 
 	@Test
-	public void testScenario01_Roles() throws Exception {
+	void testScenario01_Roles() {
 		SpelExpressionParser parser = new SpelExpressionParser();
 		StandardEvaluationContext ctx = new StandardEvaluationContext();
 		Expression expr = parser.parseRaw("hasAnyRole('MANAGER','TELLER')");
@@ -61,7 +61,7 @@ public class ScenariosForSpringSecurityExpressionTests extends AbstractExpressio
 	}
 
 	@Test
-	public void testScenario02_ComparingNames() throws Exception {
+	void testScenario02_ComparingNames() {
 		SpelExpressionParser parser = new SpelExpressionParser();
 		StandardEvaluationContext ctx = new StandardEvaluationContext();
 
@@ -96,7 +96,7 @@ public class ScenariosForSpringSecurityExpressionTests extends AbstractExpressio
 	}
 
 	@Test
-	public void testScenario03_Arithmetic() throws Exception {
+	void testScenario03_Arithmetic() {
 		SpelExpressionParser parser = new SpelExpressionParser();
 		StandardEvaluationContext ctx = new StandardEvaluationContext();
 
@@ -119,11 +119,11 @@ public class ScenariosForSpringSecurityExpressionTests extends AbstractExpressio
 
 	// Here i'm going to change which hasRole() executes and make it one of my own Java methods
 	@Test
-	public void testScenario04_ControllingWhichMethodsRun() throws Exception {
+	void testScenario04_ControllingWhichMethodsRun() {
 		SpelExpressionParser parser = new SpelExpressionParser();
 		StandardEvaluationContext ctx = new StandardEvaluationContext();
 
-		ctx.setRootObject(new Supervisor("Ben")); // so non-qualified references 'hasRole()' 'hasIpAddress()' are invoked against it);
+		ctx.setRootObject(new Supervisor("Ben")); // so non-qualified references 'hasRole()' 'hasIpAddress()' are invoked against it;
 
 		ctx.addMethodResolver(new MyMethodResolver()); // NEEDS TO OVERRIDE THE REFLECTION ONE - SHOW REORDERING MECHANISM
 		// Might be better with a as a variable although it would work as a property too...
@@ -153,11 +153,15 @@ public class ScenariosForSpringSecurityExpressionTests extends AbstractExpressio
 		public String[] getRoles() { return new String[]{"NONE"}; }
 
 		public boolean hasAnyRole(String... roles) {
-			if (roles == null) return true;
+			if (roles == null) {
+				return true;
+			}
 			String[] myRoles = getRoles();
-			for (int i = 0; i < myRoles.length; i++) {
-				for (int j = 0; j < roles.length; j++) {
-					if (myRoles[i].equals(roles[j])) return true;
+			for (String myRole : myRoles) {
+				for (String role : roles) {
+					if (myRole.equals(role)) {
+						return true;
+					}
 				}
 			}
 			return false;
@@ -215,23 +219,22 @@ public class ScenariosForSpringSecurityExpressionTests extends AbstractExpressio
 		}
 
 		@Override
-		public boolean canRead(EvaluationContext context, Object target, String name) throws AccessException {
+		public boolean canRead(EvaluationContext context, Object target, String name) {
 			return name.equals("principal");
 		}
 
 		@Override
-		public TypedValue read(EvaluationContext context, Object target, String name) throws AccessException {
+		public TypedValue read(EvaluationContext context, Object target, String name) {
 			return new TypedValue(new Principal());
 		}
 
 		@Override
-		public boolean canWrite(EvaluationContext context, Object target, String name) throws AccessException {
+		public boolean canWrite(EvaluationContext context, Object target, String name) {
 			return false;
 		}
 
 		@Override
-		public void write(EvaluationContext context, Object target, String name, Object newValue)
-				throws AccessException {
+		public void write(EvaluationContext context, Object target, String name, Object newValue) {
 		}
 
 		@Override
@@ -250,23 +253,22 @@ public class ScenariosForSpringSecurityExpressionTests extends AbstractExpressio
 		void setPerson(Person p) { this.activePerson = p; }
 
 		@Override
-		public boolean canRead(EvaluationContext context, Object target, String name) throws AccessException {
+		public boolean canRead(EvaluationContext context, Object target, String name) {
 			return name.equals("p");
 		}
 
 		@Override
-		public TypedValue read(EvaluationContext context, Object target, String name) throws AccessException {
+		public TypedValue read(EvaluationContext context, Object target, String name) {
 			return new TypedValue(activePerson);
 		}
 
 		@Override
-		public boolean canWrite(EvaluationContext context, Object target, String name) throws AccessException {
+		public boolean canWrite(EvaluationContext context, Object target, String name) {
 			return false;
 		}
 
 		@Override
-		public void write(EvaluationContext context, Object target, String name, Object newValue)
-				throws AccessException {
+		public void write(EvaluationContext context, Object target, String name, Object newValue) {
 		}
 
 		@Override
@@ -312,8 +314,7 @@ public class ScenariosForSpringSecurityExpressionTests extends AbstractExpressio
 		}
 
 		@Override
-		public MethodExecutor resolve(EvaluationContext context, Object targetObject, String name, List<TypeDescriptor> arguments)
-				throws AccessException {
+		public MethodExecutor resolve(EvaluationContext context, Object targetObject, String name, List<TypeDescriptor> arguments) {
 			if (name.equals("hasRole")) {
 				return new HasRoleExecutor(context.getTypeConverter());
 			}

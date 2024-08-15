@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import reactor.netty.DisposableServer;
-import reactor.netty.tcp.SslProvider.DefaultConfigurationType;
+import reactor.netty.http.Http11SslContextSpec;
+import reactor.netty.tcp.SslProvider.GenericSslContextSpec;
 
 import org.springframework.http.server.reactive.ReactorHttpHandlerAdapter;
 
@@ -40,15 +41,15 @@ public class ReactorHttpsServer extends AbstractHttpServer {
 
 	@Override
 	protected void initServer() throws Exception {
-
 		SelfSignedCertificate cert = new SelfSignedCertificate();
-		SslContextBuilder builder = SslContextBuilder.forServer(cert.certificate(), cert.privateKey());
+		GenericSslContextSpec<SslContextBuilder> http11SslContextSpec =
+				Http11SslContextSpec.forServer(cert.certificate(), cert.privateKey());
 
 		this.reactorHandler = createHttpHandlerAdapter();
 		this.reactorServer = reactor.netty.http.server.HttpServer.create()
 			.host(getHost())
 			.port(getPort())
-			.secure(spec -> spec.sslContext(builder).defaultConfiguration(DefaultConfigurationType.TCP));
+			.secure(sslContextSpec -> sslContextSpec.sslContext(http11SslContextSpec));
 	}
 
 	private ReactorHttpHandlerAdapter createHttpHandlerAdapter() {

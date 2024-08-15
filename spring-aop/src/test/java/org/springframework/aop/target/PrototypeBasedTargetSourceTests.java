@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +36,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rod Johnson
  * @author Chris Beams
  */
-public class PrototypeBasedTargetSourceTests {
+class PrototypeBasedTargetSourceTests {
 
 	@Test
-	public void testSerializability() throws Exception {
+	void testSerializability() throws Exception {
 		MutablePropertyValues tsPvs = new MutablePropertyValues();
 		tsPvs.add("targetBeanName", "person");
 		RootBeanDefinition tsBd = new RootBeanDefinition(TestTargetSource.class);
@@ -56,10 +56,8 @@ public class PrototypeBasedTargetSourceTests {
 
 		TestTargetSource cpts = (TestTargetSource) bf.getBean("ts");
 		TargetSource serialized = SerializationTestUtils.serializeAndDeserialize(cpts);
-		boolean condition = serialized instanceof SingletonTargetSource;
-		assertThat(condition).as("Changed to SingletonTargetSource on deserialization").isTrue();
-		SingletonTargetSource sts = (SingletonTargetSource) serialized;
-		assertThat(sts.getTarget()).isNotNull();
+		assertThat(serialized).isInstanceOfSatisfying(SingletonTargetSource.class,
+				sts -> assertThat(sts.getTarget()).isNotNull());
 	}
 
 
@@ -71,17 +69,12 @@ public class PrototypeBasedTargetSourceTests {
 		 * Nonserializable test field to check that subclass
 		 * state can't prevent serialization from working
 		 */
-		@SuppressWarnings("unused")
-		private TestBean thisFieldIsNotSerializable = new TestBean();
+		@SuppressWarnings({"unused", "serial"})
+		private final TestBean thisFieldIsNotSerializable = new TestBean();
 
 		@Override
-		public Object getTarget() throws Exception {
+		public Object getTarget() {
 			return newPrototypeInstance();
-		}
-
-		@Override
-		public void releaseTarget(Object target) throws Exception {
-			// Do nothing
 		}
 	}
 

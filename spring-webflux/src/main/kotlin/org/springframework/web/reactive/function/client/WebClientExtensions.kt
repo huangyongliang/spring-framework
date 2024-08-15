@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@ package org.springframework.web.reactive.function.client
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
-import kotlinx.coroutines.reactive.awaitSingle
-import kotlinx.coroutines.reactive.awaitSingle
-import kotlinx.coroutines.reactive.awaitSingleOrNull
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.asFlux
 import kotlinx.coroutines.reactor.mono
 import org.reactivestreams.Publisher
@@ -70,6 +69,18 @@ inline fun <reified T : Any> RequestBodySpec.body(producer: Any): RequestHeaders
 		body(producer, object : ParameterizedTypeReference<T>() {})
 
 /**
+ * Extension for [WebClient.RequestBodySpec.bodyValue] providing a `bodyValueWithType<T>(Any)` variant
+ * leveraging Kotlin reified type parameters. This extension is not subject to type
+ * erasure and retains actual generic type arguments.
+ * @param body the value to write to the request body
+ * @param T the type of the body
+ * @author Sebastien Deleuze
+ * @since 6.2
+ */
+inline fun <reified T : Any> RequestBodySpec.bodyValueWithType(body: T): RequestHeadersSpec<*> =
+	bodyValue(body, object : ParameterizedTypeReference<T>() {})
+
+/**
  * Coroutines variant of [WebClient.RequestHeadersSpec.exchange].
  *
  * @author Sebastien Deleuze
@@ -90,6 +101,14 @@ suspend fun RequestHeadersSpec<out RequestHeadersSpec<*>>.awaitExchange(): Clien
  */
 suspend fun <T: Any> RequestHeadersSpec<out RequestHeadersSpec<*>>.awaitExchange(responseHandler: suspend (ClientResponse) -> T): T =
 		exchangeToMono { mono(Dispatchers.Unconfined) { responseHandler.invoke(it) } }.awaitSingle()
+
+/**
+ * Variant of [WebClient.RequestHeadersSpec.awaitExchange] that allows a nullable return
+ *
+ * @since 5.3.8
+ */
+suspend fun <T: Any> RequestHeadersSpec<out RequestHeadersSpec<*>>.awaitExchangeOrNull(responseHandler: suspend (ClientResponse) -> T?): T? =
+		exchangeToMono { mono(Dispatchers.Unconfined) { responseHandler.invoke(it) } }.awaitSingleOrNull()
 
 /**
  * Coroutines variant of [WebClient.RequestHeadersSpec.exchangeToFlux].
@@ -135,6 +154,7 @@ inline fun <reified T : Any> WebClient.ResponseSpec.bodyToFlow(): Flow<T> =
 /**
  * Coroutines variant of [WebClient.ResponseSpec.bodyToMono].
  *
+ * @throws NoSuchElementException if the underlying [Mono] does not emit any value
  * @author Sebastien Deleuze
  * @since 5.2
  */

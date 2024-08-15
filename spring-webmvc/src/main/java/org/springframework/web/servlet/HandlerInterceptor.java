@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 package org.springframework.web.servlet;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.lang.Nullable;
 import org.springframework.web.method.HandlerMethod;
@@ -30,9 +30,9 @@ import org.springframework.web.method.HandlerMethod;
  *
  * <p>A HandlerInterceptor gets called before the appropriate HandlerAdapter
  * triggers the execution of the handler itself. This mechanism can be used
- * for a large field of preprocessing aspects, e.g. for authorization checks,
- * or common handler behavior like locale or theme changes. Its main purpose
- * is to allow for factoring out repetitive handler code.
+ * for a large field of preprocessing aspects, or common handler behavior
+ * like locale or theme changes. Its main purpose is to allow for factoring
+ * out repetitive handler code.
  *
  * <p>In an asynchronous processing scenario, the handler may be executed in a
  * separate thread while the main thread exits without rendering or invoking the
@@ -63,6 +63,12 @@ import org.springframework.web.method.HandlerMethod;
  * forms and GZIP compression. This typically shows when one needs to map the
  * filter to certain content types (e.g. images), or to all requests.
  *
+ * <p><strong>Note:</strong> Interceptors are not ideally suited as a security
+ * layer due to the potential for a mismatch with annotated controller path matching.
+ * Generally, we recommend using Spring Security, or alternatively a similar
+ * approach integrated with the Servlet filter chain, and applied as early as
+ * possible.
+ *
  * @author Juergen Hoeller
  * @since 20.06.2003
  * @see HandlerExecutionChain#getInterceptors
@@ -70,13 +76,14 @@ import org.springframework.web.method.HandlerMethod;
  * @see org.springframework.web.servlet.handler.UserRoleAuthorizationInterceptor
  * @see org.springframework.web.servlet.i18n.LocaleChangeInterceptor
  * @see org.springframework.web.servlet.theme.ThemeChangeInterceptor
- * @see javax.servlet.Filter
+ * @see jakarta.servlet.Filter
  */
 public interface HandlerInterceptor {
 
 	/**
-	 * Intercept the execution of a handler. Called after HandlerMapping determined
-	 * an appropriate handler object, but before HandlerAdapter invokes the handler.
+	 * Interception point before the execution of a handler. Called after
+	 * HandlerMapping determined an appropriate handler object, but before
+	 * HandlerAdapter invokes the handler.
 	 * <p>DispatcherServlet processes a handler in an execution chain, consisting
 	 * of any number of interceptors, with the handler itself at the end.
 	 * With this method, each interceptor can decide to abort the execution chain,
@@ -100,9 +107,10 @@ public interface HandlerInterceptor {
 	}
 
 	/**
-	 * Intercept the execution of a handler. Called after HandlerAdapter actually
-	 * invoked the handler, but before the DispatcherServlet renders the view.
-	 * Can expose additional model objects to the view via the given ModelAndView.
+	 * Interception point after successful execution of a handler.
+	 * Called after HandlerAdapter actually invoked the handler, but before the
+	 * DispatcherServlet renders the view. Can expose additional model objects
+	 * to the view via the given ModelAndView.
 	 * <p>DispatcherServlet processes a handler in an execution chain, consisting
 	 * of any number of interceptors, with the handler itself at the end.
 	 * With this method, each interceptor can post-process an execution,

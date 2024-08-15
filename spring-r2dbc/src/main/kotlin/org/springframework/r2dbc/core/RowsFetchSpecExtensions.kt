@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,17 @@ package org.springframework.r2dbc.core
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
-import kotlinx.coroutines.reactive.awaitSingleOrNull
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.dao.EmptyResultDataAccessException
+import reactor.core.publisher.Mono
 
 /**
  * Non-nullable Coroutines variant of [RowsFetchSpec.one].
  *
+ * @throws EmptyResultDataAccessException if the underlying [Mono] does not emit any value
  * @author Sebastien Deleuze
  */
+@Suppress("DEPRECATION")
 suspend fun <T> RowsFetchSpec<T>.awaitOne(): T {
 	return one().awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
 }
@@ -34,14 +37,17 @@ suspend fun <T> RowsFetchSpec<T>.awaitOne(): T {
  *
  * @author Sebastien Deleuze
  */
+@Suppress("DEPRECATION")
 suspend fun <T> RowsFetchSpec<T>.awaitOneOrNull(): T? =
 		one().awaitSingleOrNull()
 
 /**
  * Non-nullable Coroutines variant of [RowsFetchSpec.first].
  *
+ * @throws EmptyResultDataAccessException if the underlying [Mono] does not emit any value
  * @author Sebastien Deleuze
  */
+@Suppress("DEPRECATION")
 suspend fun <T> RowsFetchSpec<T>.awaitSingle(): T {
 	return first().awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
 }
@@ -51,6 +57,7 @@ suspend fun <T> RowsFetchSpec<T>.awaitSingle(): T {
  *
  * @author Sebastien Deleuze
  */
+@Suppress("DEPRECATION")
 suspend fun <T> RowsFetchSpec<T>.awaitSingleOrNull(): T? =
 		first().awaitSingleOrNull()
 

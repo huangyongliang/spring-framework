@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * An "RDBMS operation" is a multi-threaded, reusable object representing a query,
+ * An "RDBMS operation" is a multithreaded, reusable object representing a query,
  * update, or stored procedure call. An RDBMS operation is <b>not</b> a command,
  * as a command is not reusable. However, execute methods may take commands as
  * arguments. Subclasses should be JavaBeans, allowing easy configuration.
@@ -128,8 +128,8 @@ public abstract class RdbmsOperation implements InitializingBean {
 
 	/**
 	 * Set the maximum number of rows for this RDBMS operation. This is important
-	 * for processing subsets of large result sets, avoiding to read and hold
-	 * the entire result set in the database or in the JDBC driver.
+	 * for processing subsets of large result sets, in order to avoid reading and
+	 * holding the entire result set in the database or in the JDBC driver.
 	 * <p>Default is -1, indicating to use the driver's default.
 	 * @see org.springframework.jdbc.core.JdbcTemplate#setMaxRows
 	 */
@@ -175,7 +175,7 @@ public abstract class RdbmsOperation implements InitializingBean {
 	public void setUpdatableResults(boolean updatableResults) {
 		if (isCompiled()) {
 			throw new InvalidDataAccessApiUsageException(
-					"The updateableResults flag must be set before the operation is compiled");
+					"The updatableResults flag must be set before the operation is compiled");
 		}
 		this.updatableResults = updatableResults;
 	}

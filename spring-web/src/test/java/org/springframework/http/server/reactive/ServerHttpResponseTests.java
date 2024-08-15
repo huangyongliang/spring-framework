@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,13 +50,13 @@ import org.springframework.web.testfixture.http.server.reactive.MockServerHttpRe
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link AbstractServerHttpRequest}.
+ * Tests for {@link AbstractServerHttpRequest}.
  *
  * @author Rossen Stoyanchev
  * @author Sebastien Deleuze
  * @author Brian Clozel
  */
-public class ServerHttpResponseTests {
+class ServerHttpResponseTests {
 
 	@Test
 	void writeWith() {
@@ -67,10 +67,10 @@ public class ServerHttpResponseTests {
 		assertThat(response.headersWritten).isTrue();
 		assertThat(response.cookiesWritten).isTrue();
 
-		assertThat(response.body.size()).isEqualTo(3);
-		assertThat(new String(response.body.get(0).asByteBuffer().array(), StandardCharsets.UTF_8)).isEqualTo("a");
-		assertThat(new String(response.body.get(1).asByteBuffer().array(), StandardCharsets.UTF_8)).isEqualTo("b");
-		assertThat(new String(response.body.get(2).asByteBuffer().array(), StandardCharsets.UTF_8)).isEqualTo("c");
+		assertThat(response.body).hasSize(3);
+		assertThat(response.body.get(0).toString(StandardCharsets.UTF_8)).isEqualTo("a");
+		assertThat(response.body.get(1).toString(StandardCharsets.UTF_8)).isEqualTo("b");
+		assertThat(response.body.get(2).toString(StandardCharsets.UTF_8)).isEqualTo("c");
 	}
 
 	@Test  // SPR-14952
@@ -83,8 +83,8 @@ public class ServerHttpResponseTests {
 		assertThat(response.headersWritten).isTrue();
 		assertThat(response.cookiesWritten).isTrue();
 
-		assertThat(response.body.size()).isEqualTo(1);
-		assertThat(new String(response.body.get(0).asByteBuffer().array(), StandardCharsets.UTF_8)).isEqualTo("foo");
+		assertThat(response.body).hasSize(1);
+		assertThat(response.body.get(0).toString(StandardCharsets.UTF_8)).isEqualTo("foo");
 	}
 
 	@Test
@@ -105,14 +105,14 @@ public class ServerHttpResponseTests {
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		headers.set(HttpHeaders.CONTENT_ENCODING, "gzip");
 		headers.setContentLength(12);
-		response.writeWith(body).onErrorResume(ex -> Mono.empty()).block();
+		response.writeWith(body).onErrorComplete().block();
 
 		assertThat(response.statusCodeWritten).isFalse();
 		assertThat(response.headersWritten).isFalse();
 		assertThat(response.cookiesWritten).isFalse();
 		assertThat(headers).doesNotContainKeys(HttpHeaders.CONTENT_TYPE, HttpHeaders.CONTENT_LENGTH,
 				HttpHeaders.CONTENT_ENCODING);
-		assertThat(response.body.isEmpty()).isTrue();
+		assertThat(response.body).isEmpty();
 	}
 
 	@Test
@@ -123,7 +123,7 @@ public class ServerHttpResponseTests {
 		assertThat(response.statusCodeWritten).isTrue();
 		assertThat(response.headersWritten).isTrue();
 		assertThat(response.cookiesWritten).isTrue();
-		assertThat(response.body.isEmpty()).isTrue();
+		assertThat(response.body).isEmpty();
 	}
 
 	@Test
@@ -138,10 +138,10 @@ public class ServerHttpResponseTests {
 		assertThat(response.cookiesWritten).isTrue();
 		assertThat(response.getCookies().getFirst("ID")).isSameAs(cookie);
 
-		assertThat(response.body.size()).isEqualTo(3);
-		assertThat(new String(response.body.get(0).asByteBuffer().array(), StandardCharsets.UTF_8)).isEqualTo("a");
-		assertThat(new String(response.body.get(1).asByteBuffer().array(), StandardCharsets.UTF_8)).isEqualTo("b");
-		assertThat(new String(response.body.get(2).asByteBuffer().array(), StandardCharsets.UTF_8)).isEqualTo("c");
+		assertThat(response.body).hasSize(3);
+		assertThat(response.body.get(0).toString(StandardCharsets.UTF_8)).isEqualTo("a");
+		assertThat(response.body.get(1).toString(StandardCharsets.UTF_8)).isEqualTo("b");
+		assertThat(response.body.get(2).toString(StandardCharsets.UTF_8)).isEqualTo("c");
 	}
 
 	@Test
@@ -157,7 +157,7 @@ public class ServerHttpResponseTests {
 		assertThat(response.statusCodeWritten).isTrue();
 		assertThat(response.headersWritten).isTrue();
 		assertThat(response.cookiesWritten).isTrue();
-		assertThat(response.body.isEmpty()).isTrue();
+		assertThat(response.body).isEmpty();
 		assertThat(response.getCookies().getFirst("ID")).isSameAs(cookie);
 	}
 

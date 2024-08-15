@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ package org.springframework.web.servlet.handler;
 import java.util.Collections;
 import java.util.stream.Stream;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -31,6 +31,7 @@ import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.StaticWebApplicationContext;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.PreFlightRequestHandler;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.support.WebContentGenerator;
@@ -42,7 +43,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 /**
- * Unit tests for CORS-related handling in {@link AbstractHandlerMapping}.
+ * Tests for CORS-related handling in {@link AbstractHandlerMapping}.
+ *
  * @author Sebastien Deleuze
  * @author Rossen Stoyanchev
  */
@@ -71,7 +73,7 @@ class CorsAbstractHandlerMappingTests {
 
 		assertThat(chain).isNotNull();
 		assertThat(chain.getHandler()).isNotNull();
-		assertThat(chain.getHandler().getClass().getSimpleName()).isEqualTo("PreFlightHandler");
+		assertThat(chain.getHandler()).isInstanceOf(PreFlightRequestHandler.class);
 		assertThat(mapping.hasSavedCorsConfig()).isFalse();
 	}
 
@@ -102,7 +104,7 @@ class CorsAbstractHandlerMappingTests {
 
 		assertThat(chain).isNotNull();
 		assertThat(chain.getHandler()).isNotNull();
-		assertThat(chain.getHandler().getClass().getSimpleName()).isEqualTo("PreFlightHandler");
+		assertThat(chain.getHandler()).isInstanceOf(PreFlightRequestHandler.class);
 		assertThat(mapping.getRequiredCorsConfig().getAllowedOrigins()).containsExactly("*");
 	}
 
@@ -143,7 +145,7 @@ class CorsAbstractHandlerMappingTests {
 
 		assertThat(chain).isNotNull();
 		assertThat(chain.getHandler()).isNotNull();
-		assertThat(chain.getHandler().getClass().getSimpleName()).isEqualTo("PreFlightHandler");
+		assertThat(chain.getHandler()).isInstanceOf(PreFlightRequestHandler.class);
 		assertThat(mapping.getRequiredCorsConfig().getAllowedOrigins()).containsExactly("*");
 	}
 
@@ -171,7 +173,7 @@ class CorsAbstractHandlerMappingTests {
 
 		assertThat(chain).isNotNull();
 		assertThat(chain.getHandler()).isNotNull();
-		assertThat(chain.getHandler().getClass().getSimpleName()).isEqualTo("PreFlightHandler");
+		assertThat(chain.getHandler()).isInstanceOf(PreFlightRequestHandler.class);
 
 		CorsConfiguration config = mapping.getRequiredCorsConfig();
 		assertThat(config).isNotNull();

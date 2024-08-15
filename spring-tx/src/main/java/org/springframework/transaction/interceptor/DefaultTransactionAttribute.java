@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,11 @@ package org.springframework.transaction.interceptor;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.springframework.lang.Nullable;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
 
@@ -51,7 +51,7 @@ public class DefaultTransactionAttribute extends DefaultTransactionDefinition im
 
 
 	/**
-	 * Create a new DefaultTransactionAttribute, with default settings.
+	 * Create a new {@code DefaultTransactionAttribute} with default settings.
 	 * Can be modified through bean property setters.
 	 * @see #setPropagationBehavior
 	 * @see #setIsolationLevel
@@ -60,7 +60,6 @@ public class DefaultTransactionAttribute extends DefaultTransactionDefinition im
 	 * @see #setName
 	 */
 	public DefaultTransactionAttribute() {
-		super();
 	}
 
 	/**
@@ -76,7 +75,7 @@ public class DefaultTransactionAttribute extends DefaultTransactionDefinition im
 	}
 
 	/**
-	 * Create a new DefaultTransactionAttribute with the given
+	 * Create a new {@code DefaultTransactionAttribute} with the given
 	 * propagation behavior. Can be modified through bean property setters.
 	 * @param propagationBehavior one of the propagation constants in the
 	 * TransactionDefinition interface
@@ -170,7 +169,7 @@ public class DefaultTransactionAttribute extends DefaultTransactionDefinition im
 
 	/**
 	 * The default behavior is as with EJB: rollback on unchecked exception
-	 * ({@link RuntimeException}), assuming an unexpected outcome outside of any
+	 * ({@link RuntimeException}), assuming an unexpected outcome outside any
 	 * business rules. Additionally, we also attempt to rollback on {@link Error} which
 	 * is clearly an unexpected outcome as well. By contrast, a checked exception is
 	 * considered a business exception and therefore a regular expected outcome of the
@@ -207,7 +206,7 @@ public class DefaultTransactionAttribute extends DefaultTransactionDefinition im
 				}
 				catch (RuntimeException ex) {
 					throw new IllegalArgumentException(
-							"Invalid timeoutString value \"" + timeoutString + "\" - cannot parse into int");
+							"Invalid timeoutString value \"" + timeoutString + "\"; " + ex);
 				}
 			}
 		}
@@ -216,7 +215,7 @@ public class DefaultTransactionAttribute extends DefaultTransactionDefinition im
 			if (this.qualifier != null) {
 				this.qualifier = resolver.resolveStringValue(this.qualifier);
 			}
-			Set<String> resolvedLabels = new LinkedHashSet<>(this.labels.size());
+			Set<String> resolvedLabels = CollectionUtils.newLinkedHashSet(this.labels.size());
 			for (String label : this.labels) {
 				resolvedLabels.add(resolver.resolveStringValue(label));
 			}
@@ -231,7 +230,7 @@ public class DefaultTransactionAttribute extends DefaultTransactionDefinition im
 	protected final StringBuilder getAttributeDescription() {
 		StringBuilder result = getDefinitionDescription();
 		if (StringUtils.hasText(this.qualifier)) {
-			result.append("; '").append(this.qualifier).append("'");
+			result.append("; '").append(this.qualifier).append('\'');
 		}
 		if (!this.labels.isEmpty()) {
 			result.append("; ").append(this.labels);

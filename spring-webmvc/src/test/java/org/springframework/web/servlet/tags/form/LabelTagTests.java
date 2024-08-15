@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,8 @@
 
 package org.springframework.web.servlet.tags.form;
 
-import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.tagext.Tag;
-
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.tagext.Tag;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.testfixture.beans.TestBean;
@@ -33,13 +32,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Juergen Hoeller
  * @author Jeremy Grelle
  */
-public class LabelTagTests extends AbstractFormTagTests {
+class LabelTagTests extends AbstractFormTagTests {
 
 	private LabelTag tag;
 
 
 	@Override
-	@SuppressWarnings("serial")
 	protected void onSetUp() {
 		this.tag = new LabelTag() {
 			@Override
@@ -62,7 +60,7 @@ public class LabelTagTests extends AbstractFormTagTests {
 
 
 	@Test
-	public void simpleRender() throws Exception {
+	void simpleRender() throws Exception {
 		this.tag.setPath("name");
 		int startResult = this.tag.doStartTag();
 		int endResult = this.tag.doEndTag();
@@ -77,12 +75,12 @@ public class LabelTagTests extends AbstractFormTagTests {
 		assertAttributeNotPresent(output, "name");
 		// id attribute is supported, but we don't want it
 		assertAttributeNotPresent(output, "id");
-		assertThat(output.startsWith("<label ")).isTrue();
-		assertThat(output.endsWith("</label>")).isTrue();
+		assertThat(output).startsWith("<label ");
+		assertThat(output).endsWith("</label>");
 	}
 
 	@Test
-	public void simpleRenderWithDynamicAttributes() throws Exception {
+	void simpleRenderWithDynamicAttributes() throws Exception {
 		String dynamicAttribute1 = "attr1";
 		String dynamicAttribute2 = "attr2";
 
@@ -105,12 +103,12 @@ public class LabelTagTests extends AbstractFormTagTests {
 		assertAttributeNotPresent(output, "name");
 		// id attribute is supported, but we don't want it
 		assertAttributeNotPresent(output, "id");
-		assertThat(output.startsWith("<label ")).isTrue();
-		assertThat(output.endsWith("</label>")).isTrue();
+		assertThat(output).startsWith("<label ");
+		assertThat(output).endsWith("</label>");
 	}
 
 	@Test
-	public void simpleRenderWithMapElement() throws Exception {
+	void simpleRenderWithMapElement() throws Exception {
 		this.tag.setPath("someMap[1]");
 		int startResult = this.tag.doStartTag();
 		int endResult = this.tag.doEndTag();
@@ -125,12 +123,12 @@ public class LabelTagTests extends AbstractFormTagTests {
 		assertAttributeNotPresent(output, "name");
 		// id attribute is supported, but we don't want it
 		assertAttributeNotPresent(output, "id");
-		assertThat(output.startsWith("<label ")).isTrue();
-		assertThat(output.endsWith("</label>")).isTrue();
+		assertThat(output).startsWith("<label ");
+		assertThat(output).endsWith("</label>");
 	}
 
 	@Test
-	public void overrideFor() throws Exception {
+	void overrideFor() throws Exception {
 		this.tag.setPath("name");
 		this.tag.setFor("myElement");
 		int startResult = this.tag.doStartTag();
@@ -145,8 +143,8 @@ public class LabelTagTests extends AbstractFormTagTests {
 		assertAttributeNotPresent(output, "name");
 		// id attribute is supported, but we don't want it
 		assertAttributeNotPresent(output, "id");
-		assertThat(output.startsWith("<label ")).isTrue();
-		assertThat(output.endsWith("</label>")).isTrue();
+		assertThat(output).startsWith("<label ");
+		assertThat(output).endsWith("</label>");
 	}
 
 

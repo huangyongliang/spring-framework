@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,15 +23,12 @@ import java.io.Reader;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URL;
-import java.security.AccessControlException;
-import java.security.Permission;
 import java.util.Optional;
 import java.util.Properties;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,32 +37,35 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.Scope;
 import org.springframework.beans.factory.config.TypedStringValue;
 import org.springframework.beans.factory.support.AutowireCandidateQualifier;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.testfixture.beans.TestBean;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigUtils;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.core.SpringProperties;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.EncodedResource;
 import org.springframework.core.testfixture.io.SerializationTestUtils;
+import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.util.FileCopyUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.springframework.context.expression.StandardBeanExpressionResolver.MAX_SPEL_EXPRESSION_LENGTH_PROPERTY_NAME;
 
 /**
+ * Integration tests for SpEL expression support in an {@code ApplicationContext}.
+ *
  * @author Juergen Hoeller
  * @author Sam Brannen
  * @since 3.0
  */
 class ApplicationContextExpressionTests {
-
-	private static final Log factoryLog = LogFactory.getLog(DefaultListableBeanFactory.class);
-
 
 	@Test
 	@SuppressWarnings("deprecation")
@@ -123,7 +123,7 @@ class ApplicationContextExpressionTests {
 		ac.registerBeanDefinition("tb1", bd1);
 
 		GenericBeanDefinition bd2 = new GenericBeanDefinition();
-		bd2.setBeanClassName("#{tb1.class.name}");
+		bd2.setBeanClassName("#{tb1.class}");
 		bd2.setScope("myScope");
 		bd2.getPropertyValues().add("name", "{ XXX#{tb0.name}YYY#{mySpecialAttr}ZZZ }");
 		bd2.getPropertyValues().add("age", "#{mySpecialAttr}");
@@ -168,7 +168,7 @@ class ApplicationContextExpressionTests {
 			ValueTestBean tb3 = ac.getBean("tb3", ValueTestBean.class);
 			assertThat(tb3.name).isEqualTo("XXXmyNameYYY42ZZZ");
 			assertThat(tb3.age).isEqualTo(42);
-			assertThat(tb3.ageFactory.getObject().intValue()).isEqualTo(42);
+			assertThat(tb3.ageFactory.getObject()).isEqualTo(42);
 			assertThat(tb3.country).isEqualTo("123 UK");
 			assertThat(tb3.countryFactory.getObject()).isEqualTo("123 UK");
 			System.getProperties().put("country", "US");
@@ -177,9 +177,9 @@ class ApplicationContextExpressionTests {
 			System.getProperties().put("country", "UK");
 			assertThat(tb3.country).isEqualTo("123 UK");
 			assertThat(tb3.countryFactory.getObject()).isEqualTo("123 UK");
-			assertThat(tb3.optionalValue1.get()).isEqualTo("123");
-			assertThat(tb3.optionalValue2.get()).isEqualTo("123");
-			assertThat(tb3.optionalValue3.isPresent()).isFalse();
+			assertThat(tb3.optionalValue1).contains("123");
+			assertThat(tb3.optionalValue2).contains("123");
+			assertThat(tb3.optionalValue3).isNotPresent();
 			assertThat(tb3.tb).isSameAs(tb0);
 
 			tb3 = SerializationTestUtils.serializeAndDeserialize(tb3);
@@ -204,7 +204,7 @@ class ApplicationContextExpressionTests {
 			assertThat(tb6.tb).isSameAs(tb0);
 		}
 		finally {
-			System.getProperties().remove("country");
+			System.clearProperty("country");
 		}
 	}
 
@@ -238,46 +238,9 @@ class ApplicationContextExpressionTests {
 			assertThat(tb.getCountry2()).isEqualTo("-UK2-");
 		}
 		finally {
-			System.getProperties().remove("name");
-			System.getProperties().remove("country");
+			System.clearProperty("name");
+			System.clearProperty("country");
 		}
-	}
-
-	@Test
-	void systemPropertiesSecurityManager() {
-		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext();
-
-		GenericBeanDefinition bd = new GenericBeanDefinition();
-		bd.setBeanClass(TestBean.class);
-		bd.getPropertyValues().add("country", "#{systemProperties.country}");
-		ac.registerBeanDefinition("tb", bd);
-
-		SecurityManager oldSecurityManager = System.getSecurityManager();
-		try {
-			System.setProperty("country", "NL");
-
-			SecurityManager securityManager = new SecurityManager() {
-				@Override
-				public void checkPropertiesAccess() {
-					throw new AccessControlException("Not Allowed");
-				}
-				@Override
-				public void checkPermission(Permission perm) {
-					// allow everything else
-				}
-			};
-			System.setSecurityManager(securityManager);
-			ac.refresh();
-
-			TestBean tb = ac.getBean("tb", TestBean.class);
-			assertThat(tb.getCountry()).isEqualTo("NL");
-
-		}
-		finally {
-			System.setSecurityManager(oldSecurityManager);
-			System.getProperties().remove("country");
-		}
-		ac.close();
 	}
 
 	@Test
@@ -291,7 +254,7 @@ class ApplicationContextExpressionTests {
 		ac.refresh();
 
 		String str = ac.getBean("str", String.class);
-		assertThat(str.startsWith("test-")).isTrue();
+		assertThat(str).startsWith("test-");
 		ac.close();
 	}
 
@@ -309,7 +272,71 @@ class ApplicationContextExpressionTests {
 			assertThat(FileCopyUtils.copyToString(resourceInjectionBean.reader)).isEqualTo(FileCopyUtils.copyToString(new EncodedResource(resource).getReader()));
 		}
 		finally {
-			System.getProperties().remove("logfile");
+			System.clearProperty("logfile");
+		}
+	}
+
+	@Test
+	void maxSpelExpressionLengthMustBeAnInteger() {
+		doWithMaxSpelExpressionLength("boom", () -> {
+			try (AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext()) {
+				assertThatIllegalArgumentException()
+						.isThrownBy(ac::refresh)
+						.withMessageStartingWith("Failed to parse value for system property [%s]",
+								MAX_SPEL_EXPRESSION_LENGTH_PROPERTY_NAME)
+						.withMessageContaining("boom");
+			}
+		});
+	}
+
+	@Test
+	void maxSpelExpressionLengthMustBePositive() {
+		doWithMaxSpelExpressionLength("-99", () -> {
+			try (AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext()) {
+				assertThatIllegalArgumentException()
+						.isThrownBy(ac::refresh)
+						.withMessage("Value [%d] for system property [%s] must be positive", -99,
+								MAX_SPEL_EXPRESSION_LENGTH_PROPERTY_NAME);
+			}
+		});
+	}
+
+	@Test
+	void maxSpelExpressionLength() {
+		final String expression = "#{ 'xyz' + 'xyz' + 'xyz' }";
+
+		// With the default max length of 10_000, the expression should succeed.
+		evaluateExpressionInBean(expression);
+
+		// With a max length of 20, the expression should fail.
+		doWithMaxSpelExpressionLength("20", () ->
+				assertThatExceptionOfType(BeanCreationException.class)
+					.isThrownBy(() -> evaluateExpressionInBean(expression))
+					.havingRootCause()
+						.isInstanceOf(SpelEvaluationException.class)
+						.withMessageEndingWith("exceeding the threshold of '20' characters"));
+	}
+
+	private static void doWithMaxSpelExpressionLength(String maxLength, Runnable action) {
+		try {
+			SpringProperties.setProperty(MAX_SPEL_EXPRESSION_LENGTH_PROPERTY_NAME, maxLength);
+			action.run();
+		}
+		finally {
+			SpringProperties.setProperty(MAX_SPEL_EXPRESSION_LENGTH_PROPERTY_NAME, null);
+		}
+	}
+
+	private static void evaluateExpressionInBean(String expression) {
+		try (AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext()) {
+			GenericBeanDefinition bd = new GenericBeanDefinition();
+			bd.setBeanClass(String.class);
+			bd.getConstructorArgumentValues().addGenericArgumentValue(expression);
+			ac.registerBeanDefinition("str", bd);
+			ac.refresh();
+
+			String str = ac.getBean("str", String.class);
+			assertThat(str).isEqualTo("xyz".repeat(3)); // "#{ 'xyz' + 'xyz' + 'xyz' }"
 		}
 	}
 

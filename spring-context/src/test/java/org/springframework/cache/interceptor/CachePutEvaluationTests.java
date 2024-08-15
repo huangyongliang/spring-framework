@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CachingConfigurerSupport;
+import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Stephane Nicoll
  */
-public class CachePutEvaluationTests {
+class CachePutEvaluationTests {
 
 	private ConfigurableApplicationContext context;
 
@@ -51,22 +51,22 @@ public class CachePutEvaluationTests {
 
 	private SimpleService service;
 
+
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		this.context = new AnnotationConfigApplicationContext(Config.class);
 		this.cache = this.context.getBean(CacheManager.class).getCache("test");
 		this.service = this.context.getBean(SimpleService.class);
 	}
 
 	@AfterEach
-	public void close() {
-		if (this.context != null) {
-			this.context.close();
-		}
+	void closeContext() {
+		this.context.close();
 	}
 
+
 	@Test
-	public void mutualGetPutExclusion() {
+	void mutualGetPutExclusion() {
 		String key = "1";
 
 		Long first = this.service.getOrPut(key, true);
@@ -83,7 +83,7 @@ public class CachePutEvaluationTests {
 	}
 
 	@Test
-	public void getAndPut() {
+	void getAndPut() {
 		this.cache.clear();
 
 		long key = 1;
@@ -106,7 +106,7 @@ public class CachePutEvaluationTests {
 
 	@Configuration
 	@EnableCaching
-	static class Config extends CachingConfigurerSupport {
+	static class Config implements CachingConfigurer {
 
 		@Bean
 		@Override
@@ -135,7 +135,7 @@ public class CachePutEvaluationTests {
 		}
 
 		/**
-		 * Represent an invalid use case. If the result of the operation is non null, then we put
+		 * Represent an invalid use case. If the result of the operation is non-null, then we put
 		 * the value with a different key. This forces the method to be executed every time.
 		 */
 		@Cacheable

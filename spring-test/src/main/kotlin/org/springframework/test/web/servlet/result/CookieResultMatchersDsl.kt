@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,6 +100,22 @@ class CookieResultMatchersDsl internal constructor (private val actions: ResultA
 	}
 
 	/**
+	 * @see CookieResultMatchers.sameSite
+	 * @since 6.0.8
+	 */
+	fun sameSite(name: String, matcher: Matcher<String>) {
+		actions.andExpect(matchers.sameSite(name, matcher))
+	}
+
+	/**
+	 * @see CookieResultMatchers.sameSite
+	 * @since 6.0.8
+	 */
+	fun sameSite(name: String, sameSite: String) {
+		actions.andExpect(matchers.sameSite(name, sameSite))
+	}
+
+	/**
 	 * @see CookieResultMatchers.comment
 	 */
 	fun comment(name: String, matcher: Matcher<String>) {
@@ -139,5 +155,29 @@ class CookieResultMatchersDsl internal constructor (private val actions: ResultA
 	 */
 	fun httpOnly(name: String, httpOnly: Boolean) {
 		actions.andExpect(matchers.httpOnly(name, httpOnly))
+	}
+
+	/**
+	 * @see CookieResultMatchers.partitioned
+	 * @since 6.2
+	 */
+	fun partitioned(name: String, partitioned: Boolean) {
+		actions.andExpect(matchers.partitioned(name, partitioned))
+	}
+
+	/**
+	 * @see CookieResultMatchers.attribute
+	 * @since 6.0.8
+	 */
+	fun attribute(name: String, attributeName: String, matcher: Matcher<String>) {
+		actions.andExpect(matchers.attribute(name, attributeName, matcher))
+	}
+
+	/**
+	 * @see CookieResultMatchers.attribute
+	 * @since 6.0.8
+	 */
+	fun attribute(name: String, attributeName: String, attributeValue: String) {
+		actions.andExpect(matchers.attribute(name, attributeName, attributeValue))
 	}
 }

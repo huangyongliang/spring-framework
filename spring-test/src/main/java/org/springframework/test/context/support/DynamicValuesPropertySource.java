@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,41 +16,36 @@
 
 package org.springframework.test.context.support;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import org.springframework.core.env.EnumerablePropertySource;
-import org.springframework.util.StringUtils;
+import org.springframework.core.env.MapPropertySource;
+import org.springframework.lang.Nullable;
+import org.springframework.util.function.SupplierUtils;
 
 /**
- * {@link EnumerablePropertySource} backed by a map with dynamically supplied
- * values.
+ * {@link MapPropertySource} backed by a map with dynamically supplied values.
  *
  * @author Phillip Webb
  * @author Sam Brannen
+ * @author Juergen Hoeller
  * @since 5.2.5
  */
-class DynamicValuesPropertySource extends EnumerablePropertySource<Map<String, Supplier<Object>>>  {
+class DynamicValuesPropertySource extends MapPropertySource {
 
-	DynamicValuesPropertySource(String name, Map<String, Supplier<Object>> valueSuppliers) {
-		super(name, valueSuppliers);
+	static final String PROPERTY_SOURCE_NAME = "Dynamic Test Properties";
+
+
+	DynamicValuesPropertySource(Map<String, Supplier<Object>> valueSuppliers) {
+		super(PROPERTY_SOURCE_NAME, Collections.unmodifiableMap(valueSuppliers));
 	}
 
 
 	@Override
+	@Nullable
 	public Object getProperty(String name) {
-		Supplier<Object> valueSupplier = this.source.get(name);
-		return (valueSupplier != null ? valueSupplier.get() : null);
-	}
-
-	@Override
-	public boolean containsProperty(String name) {
-		return this.source.containsKey(name);
-	}
-
-	@Override
-	public String[] getPropertyNames() {
-		return StringUtils.toStringArray(this.source.keySet());
+		return SupplierUtils.resolve(super.getProperty(name));
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,22 @@
 
 package org.springframework.test.web.servlet.result;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletResponse;
 import javax.xml.transform.Source;
 import javax.xml.transform.dom.DOMSource;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.hamcrest.Matcher;
 import org.w3c.dom.Node;
 
 import org.springframework.http.MediaType;
-import org.springframework.test.util.JsonExpectationsHelper;
+import org.springframework.test.json.JsonAssert;
+import org.springframework.test.json.JsonComparator;
+import org.springframework.test.json.JsonCompareMode;
+import org.springframework.test.json.JsonComparison;
 import org.springframework.test.util.XmlExpectationsHelper;
 import org.springframework.test.web.servlet.ResultMatcher;
 
@@ -43,13 +47,12 @@ import static org.springframework.test.util.AssertionErrors.assertTrue;
  * {@link MockMvcResultMatchers#content}.
  *
  * @author Rossen Stoyanchev
+ * @author Sam Brannen
  * @since 3.2
  */
 public class ContentResultMatchers {
 
 	private final XmlExpectationsHelper xmlHelper;
-
-	private final JsonExpectationsHelper jsonHelper;
 
 
 	/**
@@ -58,14 +61,13 @@ public class ContentResultMatchers {
 	 */
 	protected ContentResultMatchers() {
 		this.xmlHelper = new XmlExpectationsHelper();
-		this.jsonHelper = new JsonExpectationsHelper();
 	}
 
 
 	/**
 	 * Assert the ServletResponse content type. The given content type must
-	 * fully match including type, sub-type, and parameters. For checking
-	 * only the type and sub-type see {@link #contentTypeCompatibleWith(String)}.
+	 * fully match including type, subtype, and parameters. For checking
+	 * only the type and subtype see {@link #contentTypeCompatibleWith(String)}.
 	 */
 	public ResultMatcher contentType(String contentType) {
 		return contentType(MediaType.parseMediaType(contentType));
@@ -73,8 +75,8 @@ public class ContentResultMatchers {
 
 	/**
 	 * Assert the ServletResponse content type after parsing it as a MediaType.
-	 * The given content type must fully match including type, sub-type, and
-	 * parameters. For checking only the type and sub-type see
+	 * The given content type must fully match including type, subtype, and
+	 * parameters. For checking only the type and subtype see
 	 * {@link #contentTypeCompatibleWith(MediaType)}.
 	 */
 	public ResultMatcher contentType(MediaType contentType) {
@@ -105,6 +107,16 @@ public class ContentResultMatchers {
 			assertTrue("Content type [" + actual + "] is not compatible with [" + contentType + "]",
 					actualContentType.isCompatibleWith(contentType));
 		};
+	}
+
+	/**
+	 * Assert the character encoding in the ServletResponse.
+	 * @since 5.3.10
+	 * @see StandardCharsets
+	 * @see #encoding(String)
+	 */
+	public ResultMatcher encoding(Charset characterEncoding) {
+		return encoding(characterEncoding.name());
 	}
 
 	/**
@@ -148,7 +160,7 @@ public class ContentResultMatchers {
 	 * are "similar" - i.e. they contain the same elements and attributes
 	 * regardless of order.
 	 * <p>Use of this matcher requires the <a
-	 * href="http://xmlunit.sourceforge.net/">XMLUnit</a> library.
+	 * href="https://www.xmlunit.org/">XMLUnit</a> library.
 	 * @param xmlContent the expected XML content
 	 * @see MockMvcResultMatchers#xpath(String, Object...)
 	 * @see MockMvcResultMatchers#xpath(String, Map, Object...)
@@ -186,13 +198,16 @@ public class ContentResultMatchers {
 	/**
 	 * Parse the expected and actual strings as JSON and assert the two
 	 * are "similar" - i.e. they contain the same attribute-value pairs
-	 * regardless of formatting with a lenient checking (extensible, and non-strict array
-	 * ordering).
+	 * regardless of formatting with a lenient checking (extensible,
+	 * and non-strict array ordering).
+	 * <p>Use of this matcher requires the <a
+	 * href="https://jsonassert.skyscreamer.org/">JSONassert</a> library.
 	 * @param jsonContent the expected JSON content
 	 * @since 4.1
+	 * @see #json(String, JsonCompareMode)
 	 */
 	public ResultMatcher json(String jsonContent) {
-		return json(jsonContent, false);
+		return json(jsonContent, JsonCompareMode.LENIENT);
 	}
 
 	/**
@@ -208,11 +223,42 @@ public class ContentResultMatchers {
 	 * @param jsonContent the expected JSON content
 	 * @param strict enables strict checking
 	 * @since 4.2
+	 * @deprecated in favor of {@link #json(String, JsonCompareMode)}
 	 */
+	@Deprecated(since = "6.2")
 	public ResultMatcher json(String jsonContent, boolean strict) {
+		JsonCompareMode compareMode = (strict ? JsonCompareMode.STRICT : JsonCompareMode.LENIENT);
+		return json(jsonContent, compareMode);
+	}
+
+	/**
+	 * Parse the response content and the given string as JSON and assert the two
+	 * using the given {@linkplain JsonCompareMode mode}. If the comparison failed,
+	 * throws an {@link AssertionError} with the message of the {@link JsonComparison}.
+	 * <p>Use of this matcher requires the <a
+	 * href="https://jsonassert.skyscreamer.org/">JSONassert</a> library.
+	 * @param jsonContent the expected JSON content
+	 * @param compareMode the compare mode
+	 * @since 6.2
+	 */
+	public ResultMatcher json(String jsonContent, JsonCompareMode compareMode) {
+		return json(jsonContent, JsonAssert.comparator(compareMode));
+	}
+
+	/**
+	 * Parse the response content and the given string as JSON and assert the two
+	 * using the given {@link JsonComparator}. If the comparison failed, throws an
+	 * {@link AssertionError} with the message of the {@link JsonComparison}.
+	 * <p>Use this matcher if you require a custom JSONAssert configuration or
+	 * if you desire to use another assertion library.
+	 * @param jsonContent the expected JSON content
+	 * @param comparator the comparator to use
+	 * @since 6.2
+	 */
+	public ResultMatcher json(String jsonContent, JsonComparator comparator) {
 		return result -> {
-			String content = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
-			this.jsonHelper.assertJsonEqual(jsonContent, content, strict);
+			String content = result.getResponse().getContentAsString();
+			comparator.assertIsMatch(jsonContent, content);
 		};
 	}
 

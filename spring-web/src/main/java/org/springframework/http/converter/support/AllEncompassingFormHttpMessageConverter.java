@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,24 @@
 
 package org.springframework.http.converter.support;
 
-import org.springframework.core.SpringProperties;
 import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.cbor.KotlinSerializationCborHttpMessageConverter;
+import org.springframework.http.converter.cbor.MappingJackson2CborHttpMessageConverter;
 import org.springframework.http.converter.json.GsonHttpMessageConverter;
 import org.springframework.http.converter.json.JsonbHttpMessageConverter;
 import org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.protobuf.KotlinSerializationProtobufHttpMessageConverter;
 import org.springframework.http.converter.smile.MappingJackson2SmileHttpMessageConverter;
 import org.springframework.http.converter.xml.Jaxb2RootElementHttpMessageConverter;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
-import org.springframework.http.converter.xml.SourceHttpMessageConverter;
+import org.springframework.http.converter.yaml.MappingJackson2YamlHttpMessageConverter;
 import org.springframework.util.ClassUtils;
 
 /**
  * Extension of {@link org.springframework.http.converter.FormHttpMessageConverter},
- * adding support for XML and JSON-based parts.
+ * adding support for XML, JSON, Smile, CBOR, Protobuf and Yaml based parts when
+ * related libraries are present in the classpath.
  *
  * @author Rossen Stoyanchev
  * @author Juergen Hoeller
@@ -38,13 +41,6 @@ import org.springframework.util.ClassUtils;
  * @since 3.2
  */
 public class AllEncompassingFormHttpMessageConverter extends FormHttpMessageConverter {
-
-	/**
-	 * Boolean flag controlled by a {@code spring.xml.ignore} system property that instructs Spring to
-	 * ignore XML, i.e. to not initialize the XML-related infrastructure.
-	 * <p>The default is "false".
-	 */
-	private static final boolean shouldIgnoreXml = SpringProperties.getFlag("spring.xml.ignore");
 
 	private static final boolean jaxb2Present;
 
@@ -54,39 +50,46 @@ public class AllEncompassingFormHttpMessageConverter extends FormHttpMessageConv
 
 	private static final boolean jackson2SmilePresent;
 
+	private static final boolean jackson2CborPresent;
+
+	private static final boolean jackson2YamlPresent;
+
 	private static final boolean gsonPresent;
 
 	private static final boolean jsonbPresent;
 
+	private static final boolean kotlinSerializationCborPresent;
+
 	private static final boolean kotlinSerializationJsonPresent;
+
+	private static final boolean kotlinSerializationProtobufPresent;
 
 	static {
 		ClassLoader classLoader = AllEncompassingFormHttpMessageConverter.class.getClassLoader();
-		jaxb2Present = ClassUtils.isPresent("javax.xml.bind.Binder", classLoader);
+		jaxb2Present = ClassUtils.isPresent("jakarta.xml.bind.Binder", classLoader);
 		jackson2Present = ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader) &&
 						ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
 		jackson2XmlPresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.xml.XmlMapper", classLoader);
 		jackson2SmilePresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.smile.SmileFactory", classLoader);
+		jackson2CborPresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.cbor.CBORFactory", classLoader);
+		jackson2YamlPresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.yaml.YAMLFactory", classLoader);
 		gsonPresent = ClassUtils.isPresent("com.google.gson.Gson", classLoader);
-		jsonbPresent = ClassUtils.isPresent("javax.json.bind.Jsonb", classLoader);
+		jsonbPresent = ClassUtils.isPresent("jakarta.json.bind.Jsonb", classLoader);
+		kotlinSerializationCborPresent = ClassUtils.isPresent("kotlinx.serialization.cbor.Cbor", classLoader);
 		kotlinSerializationJsonPresent = ClassUtils.isPresent("kotlinx.serialization.json.Json", classLoader);
+		kotlinSerializationProtobufPresent = ClassUtils.isPresent("kotlinx.serialization.protobuf.ProtoBuf", classLoader);
 	}
 
 
 	public AllEncompassingFormHttpMessageConverter() {
-		if (!shouldIgnoreXml) {
-			try {
-				addPartConverter(new SourceHttpMessageConverter<>());
-			}
-			catch (Error err) {
-				// Ignore when no TransformerFactory implementation is available
-			}
 
-			if (jaxb2Present && !jackson2XmlPresent) {
-				addPartConverter(new Jaxb2RootElementHttpMessageConverter());
-			}
+		if (jaxb2Present && !jackson2XmlPresent) {
+			addPartConverter(new Jaxb2RootElementHttpMessageConverter());
 		}
 
+		if (kotlinSerializationJsonPresent) {
+			addPartConverter(new KotlinSerializationJsonHttpMessageConverter());
+		}
 		if (jackson2Present) {
 			addPartConverter(new MappingJackson2HttpMessageConverter());
 		}
@@ -96,16 +99,29 @@ public class AllEncompassingFormHttpMessageConverter extends FormHttpMessageConv
 		else if (jsonbPresent) {
 			addPartConverter(new JsonbHttpMessageConverter());
 		}
-		else if (kotlinSerializationJsonPresent) {
-			addPartConverter(new KotlinSerializationJsonHttpMessageConverter());
-		}
 
-		if (jackson2XmlPresent && !shouldIgnoreXml) {
+		if (jackson2XmlPresent) {
 			addPartConverter(new MappingJackson2XmlHttpMessageConverter());
 		}
 
 		if (jackson2SmilePresent) {
 			addPartConverter(new MappingJackson2SmileHttpMessageConverter());
+		}
+
+		if (jackson2CborPresent) {
+			addPartConverter(new MappingJackson2CborHttpMessageConverter());
+		}
+
+		if (jackson2YamlPresent) {
+			addPartConverter(new MappingJackson2YamlHttpMessageConverter());
+		}
+
+		if (kotlinSerializationCborPresent) {
+			addPartConverter(new KotlinSerializationCborHttpMessageConverter());
+		}
+
+		if (kotlinSerializationProtobufPresent) {
+			addPartConverter(new KotlinSerializationProtobufHttpMessageConverter());
 		}
 	}
 

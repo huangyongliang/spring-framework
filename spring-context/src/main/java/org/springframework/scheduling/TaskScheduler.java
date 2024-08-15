@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import org.springframework.lang.Nullable;
  * {@link Runnable Runnables} based on different kinds of triggers.
  *
  * <p>This interface is separate from {@link SchedulingTaskExecutor} since it
- * usually represents for a different kind of backend, i.e. a thread pool with
+ * usually represents a different kind of backend, i.e. a thread pool with
  * different characteristics and capabilities. Implementations may implement
  * both interfaces if they can handle both kinds of execution characteristics.
  *
@@ -39,7 +39,7 @@ import org.springframework.lang.Nullable;
  * and adding extended trigger capabilities.
  *
  * <p>This interface is roughly equivalent to a JSR-236
- * {@code ManagedScheduledExecutorService} as supported in Java EE 7
+ * {@code ManagedScheduledExecutorService} as supported in Jakarta EE
  * environments but aligned with Spring's {@code TaskExecutor} model.
  *
  * @author Juergen Hoeller
@@ -68,9 +68,9 @@ public interface TaskScheduler {
 	 * @param trigger an implementation of the {@link Trigger} interface,
 	 * e.g. a {@link org.springframework.scheduling.support.CronTrigger} object
 	 * wrapping a cron expression
-	 * @return a {@link ScheduledFuture} representing pending completion of the task,
+	 * @return a {@link ScheduledFuture} representing pending execution of the task,
 	 * or {@code null} if the given Trigger object never fires (i.e. returns
-	 * {@code null} from {@link Trigger#nextExecutionTime})
+	 * {@code null} from {@link Trigger#nextExecution})
 	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
 	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
 	 * @see org.springframework.scheduling.support.CronTrigger
@@ -85,15 +85,12 @@ public interface TaskScheduler {
 	 * @param task the Runnable to execute whenever the trigger fires
 	 * @param startTime the desired execution time for the task
 	 * (if this is in the past, the task will be executed immediately, i.e. as soon as possible)
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
 	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
 	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
 	 * @since 5.0
-	 * @see #schedule(Runnable, Date)
 	 */
-	default ScheduledFuture<?> schedule(Runnable task, Instant startTime) {
-		return schedule(task, Date.from(startTime));
-	}
+	ScheduledFuture<?> schedule(Runnable task, Instant startTime);
 
 	/**
 	 * Schedule the given {@link Runnable}, invoking it at the specified execution time.
@@ -102,29 +99,14 @@ public interface TaskScheduler {
 	 * @param task the Runnable to execute whenever the trigger fires
 	 * @param startTime the desired execution time for the task
 	 * (if this is in the past, the task will be executed immediately, i.e. as soon as possible)
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
 	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
 	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
+	 * @deprecated as of 6.0, in favor of {@link #schedule(Runnable, Instant)}
 	 */
-	ScheduledFuture<?> schedule(Runnable task, Date startTime);
-
-	/**
-	 * Schedule the given {@link Runnable}, invoking it at the specified execution time
-	 * and subsequently with the given period.
-	 * <p>Execution will end once the scheduler shuts down or the returned
-	 * {@link ScheduledFuture} gets cancelled.
-	 * @param task the Runnable to execute whenever the trigger fires
-	 * @param startTime the desired first execution time for the task
-	 * (if this is in the past, the task will be executed immediately, i.e. as soon as possible)
-	 * @param period the interval between successive executions of the task
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
-	 * @throws org.springframework.core.task.TaskRejectedException if  the given task was not accepted
-	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
-	 * @since 5.0
-	 * @see #scheduleAtFixedRate(Runnable, Date, long)
-	 */
-	default ScheduledFuture<?> scheduleAtFixedRate(Runnable task, Instant startTime, Duration period) {
-		return scheduleAtFixedRate(task, Date.from(startTime), period.toMillis());
+	@Deprecated(since = "6.0")
+	default ScheduledFuture<?> schedule(Runnable task, Date startTime) {
+		return schedule(task, startTime.toInstant());
 	}
 
 	/**
@@ -135,28 +117,31 @@ public interface TaskScheduler {
 	 * @param task the Runnable to execute whenever the trigger fires
 	 * @param startTime the desired first execution time for the task
 	 * (if this is in the past, the task will be executed immediately, i.e. as soon as possible)
-	 * @param period the interval between successive executions of the task (in milliseconds)
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
+	 * @param period the interval between successive executions of the task
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
 	 * @throws org.springframework.core.task.TaskRejectedException if  the given task was not accepted
 	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
+	 * @since 5.0
 	 */
-	ScheduledFuture<?> scheduleAtFixedRate(Runnable task, Date startTime, long period);
+	ScheduledFuture<?> scheduleAtFixedRate(Runnable task, Instant startTime, Duration period);
 
 	/**
-	 * Schedule the given {@link Runnable}, starting as soon as possible and
-	 * invoking it with the given period.
+	 * Schedule the given {@link Runnable}, invoking it at the specified execution time
+	 * and subsequently with the given period.
 	 * <p>Execution will end once the scheduler shuts down or the returned
 	 * {@link ScheduledFuture} gets cancelled.
 	 * @param task the Runnable to execute whenever the trigger fires
-	 * @param period the interval between successive executions of the task
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
-	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
+	 * @param startTime the desired first execution time for the task
+	 * (if this is in the past, the task will be executed immediately, i.e. as soon as possible)
+	 * @param period the interval between successive executions of the task (in milliseconds)
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
+	 * @throws org.springframework.core.task.TaskRejectedException if  the given task was not accepted
 	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
-	 * @since 5.0
-	 * @see #scheduleAtFixedRate(Runnable, long)
+	 * @deprecated as of 6.0, in favor of {@link #scheduleAtFixedRate(Runnable, Instant, Duration)}
 	 */
-	default ScheduledFuture<?> scheduleAtFixedRate(Runnable task, Duration period) {
-		return scheduleAtFixedRate(task, period.toMillis());
+	@Deprecated(since = "6.0")
+	default ScheduledFuture<?> scheduleAtFixedRate(Runnable task, Date startTime, long period) {
+		return scheduleAtFixedRate(task, startTime.toInstant(), Duration.ofMillis(period));
 	}
 
 	/**
@@ -165,31 +150,29 @@ public interface TaskScheduler {
 	 * <p>Execution will end once the scheduler shuts down or the returned
 	 * {@link ScheduledFuture} gets cancelled.
 	 * @param task the Runnable to execute whenever the trigger fires
-	 * @param period the interval between successive executions of the task (in milliseconds)
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
-	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
-	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
-	 */
-	ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long period);
-
-	/**
-	 * Schedule the given {@link Runnable}, invoking it at the specified execution time
-	 * and subsequently with the given delay between the completion of one execution
-	 * and the start of the next.
-	 * <p>Execution will end once the scheduler shuts down or the returned
-	 * {@link ScheduledFuture} gets cancelled.
-	 * @param task the Runnable to execute whenever the trigger fires
-	 * @param startTime the desired first execution time for the task
-	 * (if this is in the past, the task will be executed immediately, i.e. as soon as possible)
-	 * @param delay the delay between the completion of one execution and the start of the next
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
+	 * @param period the interval between successive executions of the task
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
 	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
 	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
 	 * @since 5.0
-	 * @see #scheduleWithFixedDelay(Runnable, Date, long)
 	 */
-	default ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, Instant startTime, Duration delay) {
-		return scheduleWithFixedDelay(task, Date.from(startTime), delay.toMillis());
+	ScheduledFuture<?> scheduleAtFixedRate(Runnable task, Duration period);
+
+	/**
+	 * Schedule the given {@link Runnable}, starting as soon as possible and
+	 * invoking it with the given period.
+	 * <p>Execution will end once the scheduler shuts down or the returned
+	 * {@link ScheduledFuture} gets cancelled.
+	 * @param task the Runnable to execute whenever the trigger fires
+	 * @param period the interval between successive executions of the task (in milliseconds)
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
+	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
+	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
+	 * @deprecated as of 6.0, in favor of {@link #scheduleAtFixedRate(Runnable, Duration)}
+	 */
+	@Deprecated(since = "6.0")
+	default ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long period) {
+		return scheduleAtFixedRate(task, Duration.ofMillis(period));
 	}
 
 	/**
@@ -202,28 +185,32 @@ public interface TaskScheduler {
 	 * @param startTime the desired first execution time for the task
 	 * (if this is in the past, the task will be executed immediately, i.e. as soon as possible)
 	 * @param delay the delay between the completion of one execution and the start of the next
-	 * (in milliseconds)
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
-	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
-	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
-	 */
-	ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, Date startTime, long delay);
-
-	/**
-	 * Schedule the given {@link Runnable}, starting as soon as possible and invoking it with
-	 * the given delay between the completion of one execution and the start of the next.
-	 * <p>Execution will end once the scheduler shuts down or the returned
-	 * {@link ScheduledFuture} gets cancelled.
-	 * @param task the Runnable to execute whenever the trigger fires
-	 * @param delay the delay between the completion of one execution and the start of the next
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
 	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
 	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
 	 * @since 5.0
-	 * @see #scheduleWithFixedDelay(Runnable, long)
 	 */
-	default ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, Duration delay) {
-		return scheduleWithFixedDelay(task, delay.toMillis());
+	ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, Instant startTime, Duration delay);
+
+	/**
+	 * Schedule the given {@link Runnable}, invoking it at the specified execution time
+	 * and subsequently with the given delay between the completion of one execution
+	 * and the start of the next.
+	 * <p>Execution will end once the scheduler shuts down or the returned
+	 * {@link ScheduledFuture} gets cancelled.
+	 * @param task the Runnable to execute whenever the trigger fires
+	 * @param startTime the desired first execution time for the task
+	 * (if this is in the past, the task will be executed immediately, i.e. as soon as possible)
+	 * @param delay the delay between the completion of one execution and the start of the next
+	 * (in milliseconds)
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
+	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
+	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
+	 * @deprecated as of 6.0, in favor of {@link #scheduleWithFixedDelay(Runnable, Instant, Duration)}
+	 */
+	@Deprecated(since = "6.0")
+	default ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, Date startTime, long delay) {
+		return scheduleWithFixedDelay(task, startTime.toInstant(), Duration.ofMillis(delay));
 	}
 
 	/**
@@ -233,11 +220,29 @@ public interface TaskScheduler {
 	 * {@link ScheduledFuture} gets cancelled.
 	 * @param task the Runnable to execute whenever the trigger fires
 	 * @param delay the delay between the completion of one execution and the start of the next
-	 * (in milliseconds)
-	 * @return a {@link ScheduledFuture} representing pending completion of the task
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
 	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
 	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
+	 * @since 5.0
 	 */
-	ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, long delay);
+	ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, Duration delay);
+
+	/**
+	 * Schedule the given {@link Runnable}, starting as soon as possible and invoking it with
+	 * the given delay between the completion of one execution and the start of the next.
+	 * <p>Execution will end once the scheduler shuts down or the returned
+	 * {@link ScheduledFuture} gets cancelled.
+	 * @param task the Runnable to execute whenever the trigger fires
+	 * @param delay the delay between the completion of one execution and the start of the next
+	 * (in milliseconds)
+	 * @return a {@link ScheduledFuture} representing pending execution of the task
+	 * @throws org.springframework.core.task.TaskRejectedException if the given task was not accepted
+	 * for internal reasons (e.g. a pool overload handling policy or a pool shutdown in progress)
+	 * @deprecated as of 6.0, in favor of {@link #scheduleWithFixedDelay(Runnable, Duration)}
+	 */
+	@Deprecated(since = "6.0")
+	default ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, long delay) {
+		return scheduleWithFixedDelay(task, Duration.ofMillis(delay));
+	}
 
 }

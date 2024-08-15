@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,12 +29,12 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.lang.Nullable;
 
 /**
- * {@code @NestedTestConfiguration} is a type-level annotation that is used to
- * configure how Spring test configuration annotations are processed within
- * enclosing class hierarchies (i.e., for <em>inner</em> test classes).
+ * {@code @NestedTestConfiguration} is an annotation that can be applied to a test
+ * class to configure how Spring test configuration annotations are processed
+ * within enclosing class hierarchies (i.e., for <em>inner</em> test classes).
  *
  * <p>If {@code @NestedTestConfiguration} is not <em>present</em> or
- * <em>meta-present</em> on a test class, in its super type hierarchy, or in its
+ * <em>meta-present</em> on a test class, in its supertype hierarchy, or in its
  * enclosing class hierarchy, the default <em>enclosing configuration inheritance
  * mode</em> will be used. A {@code @NestedTestConfiguration} declaration on an
  * enclosing class for a nested interface will be ignored when searching for the
@@ -98,7 +98,7 @@ public @interface NestedTestConfiguration {
 
 	/**
 	 * JVM system property used to change the default <em>enclosing configuration
-	 * inheritance mode</em>: {@value #ENCLOSING_CONFIGURATION_PROPERTY_NAME}.
+	 * inheritance mode</em>: {@value}.
 	 * <p>Supported values include enum constants defined in
 	 * {@link EnclosingConfiguration}, ignoring case. For example, the default
 	 * may be changed to {@link EnclosingConfiguration#OVERRIDE} by supplying

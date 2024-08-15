@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,46 +21,43 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import org.springframework.beans.factory.ObjectFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Unit tests for {@link org.springframework.messaging.simp.SimpSessionScope}.
+ * Tests for {@link SimpSessionScope}.
  *
  * @author Rossen Stoyanchev
  * @since 4.1
  */
-public class SimpSessionScopeTests {
+class SimpSessionScopeTests {
 
-	private SimpSessionScope scope;
+	private SimpSessionScope scope = new SimpSessionScope();
 
 	@SuppressWarnings("rawtypes")
-	private ObjectFactory objectFactory;
+	private ObjectFactory objectFactory = mock();
 
-	private SimpAttributes simpAttributes;
+	private SimpAttributes simpAttributes = new SimpAttributes("session1", new ConcurrentHashMap<>());
 
 
 	@BeforeEach
-	public void setUp() {
-		this.scope = new SimpSessionScope();
-		this.objectFactory = Mockito.mock(ObjectFactory.class);
-		this.simpAttributes = new SimpAttributes("session1", new ConcurrentHashMap<>());
+	void setUp() {
 		SimpAttributesContextHolder.setAttributes(this.simpAttributes);
 	}
 
 	@AfterEach
-	public void tearDown() {
+	void tearDown() {
 		SimpAttributesContextHolder.resetAttributes();
 	}
 
 	@Test
-	public void get() {
+	void get() {
 		this.simpAttributes.setAttribute("name", "value");
 		Object actual = this.scope.get("name", this.objectFactory);
 
@@ -68,7 +65,7 @@ public class SimpSessionScopeTests {
 	}
 
 	@Test
-	public void getWithObjectFactory() {
+	void getWithObjectFactory() {
 		given(this.objectFactory.getObject()).willReturn("value");
 		Object actual = this.scope.get("name", this.objectFactory);
 
@@ -77,7 +74,7 @@ public class SimpSessionScopeTests {
 	}
 
 	@Test
-	public void remove() {
+	void remove() {
 		this.simpAttributes.setAttribute("name", "value");
 
 		Object removed = this.scope.remove("name");
@@ -89,8 +86,8 @@ public class SimpSessionScopeTests {
 	}
 
 	@Test
-	public void registerDestructionCallback() {
-		Runnable runnable = Mockito.mock(Runnable.class);
+	void registerDestructionCallback() {
+		Runnable runnable = mock();
 		this.scope.registerDestructionCallback("name", runnable);
 
 		this.simpAttributes.sessionCompleted();
@@ -98,9 +95,8 @@ public class SimpSessionScopeTests {
 	}
 
 	@Test
-	public void getSessionId() {
+	void getSessionId() {
 		assertThat(this.scope.getConversationId()).isEqualTo("session1");
 	}
-
 
 }

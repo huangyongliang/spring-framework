@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ import static org.springframework.transaction.support.TransactionSynchronization
  * @since 3.1
  */
 @ContextConfiguration
-public class AnnotationConfigTransactionalTestNGSpringContextTests
+class AnnotationConfigTransactionalTestNGSpringContextTests
 		extends AbstractTransactionalTestNGSpringContextTests {
 
 	private static final String JANE = "jane";
@@ -127,7 +127,7 @@ public class AnnotationConfigTransactionalTestNGSpringContextTests
 	}
 
 	@BeforeMethod
-	void setUp() throws Exception {
+	void setUp() {
 		numSetUpCalls++;
 		if (isActualTransactionActive()) {
 			numSetUpCallsInTransaction++;
@@ -144,7 +144,7 @@ public class AnnotationConfigTransactionalTestNGSpringContextTests
 	}
 
 	@AfterMethod
-	void tearDown() throws Exception {
+	void tearDown() {
 		numTearDownCalls++;
 		if (isActualTransactionActive()) {
 			numTearDownCallsInTransaction++;
@@ -183,10 +183,11 @@ public class AnnotationConfigTransactionalTestNGSpringContextTests
 
 		@Bean
 		DataSource dataSource() {
-			return new EmbeddedDatabaseBuilder()//
-			.addScript("classpath:/org/springframework/test/jdbc/schema.sql")//
-			.addScript("classpath:/org/springframework/test/jdbc/data.sql")//
-			.build();
+			return new EmbeddedDatabaseBuilder()
+					.generateUniqueName(true)
+					.addScript("classpath:/org/springframework/test/jdbc/schema.sql")
+					.addScript("classpath:/org/springframework/test/jdbc/data.sql")
+					.build();
 		}
 
 	}

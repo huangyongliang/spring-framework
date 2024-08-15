@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import org.springframework.lang.Nullable;
  * proxy since the {@link FactoryBean} will manage the initialization and destruction
  * lifecycle of the embedded database instance.
  *
- * <p>Implements {@link DisposableBean} to shutdown the embedded database when the
+ * <p>Implements {@link DisposableBean} to shut down the embedded database when the
  * managing Spring container is being closed.
  *
  * @author Keith Donald
@@ -84,8 +84,9 @@ public class EmbeddedDatabaseFactoryBean extends EmbeddedDatabaseFactory
 
 	@Override
 	public void destroy() {
-		if (this.databaseCleaner != null && getDataSource() != null) {
-			DatabasePopulatorUtils.execute(this.databaseCleaner, getDataSource());
+		DatabasePopulator cleaner = this.databaseCleaner;
+		if (cleaner != null && getDataSource() != null) {
+			DatabasePopulatorUtils.execute(cleaner, getDataSource());
 		}
 		shutdownDatabase();
 	}

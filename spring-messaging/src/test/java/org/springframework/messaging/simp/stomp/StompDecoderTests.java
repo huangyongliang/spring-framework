@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,33 +34,33 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * @author Andy Wilkinson
  * @author Stephane Maldini
  */
-public class StompDecoderTests {
+class StompDecoderTests {
 
 	private final StompDecoder decoder = new StompDecoder();
 
 
 	@Test
-	public void decodeFrameWithCrLfEols() {
+	void decodeFrameWithCrLfEols() {
 		Message<byte[]> frame = decode("DISCONNECT\r\n\r\n\0");
 		StompHeaderAccessor headers = StompHeaderAccessor.wrap(frame);
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.DISCONNECT);
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(0);
-		assertThat(frame.getPayload().length).isEqualTo(0);
+		assertThat(headers.toNativeHeaderMap()).isEmpty();
+		assertThat(frame.getPayload()).isEmpty();
 	}
 
 	@Test
-	public void decodeFrameWithNoHeadersAndNoBody() {
+	void decodeFrameWithNoHeadersAndNoBody() {
 		Message<byte[]> frame = decode("DISCONNECT\n\n\0");
 		StompHeaderAccessor headers = StompHeaderAccessor.wrap(frame);
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.DISCONNECT);
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(0);
-		assertThat(frame.getPayload().length).isEqualTo(0);
+		assertThat(headers.toNativeHeaderMap()).isEmpty();
+		assertThat(frame.getPayload()).isEmpty();
 	}
 
 	@Test
-	public void decodeFrameWithNoBody() {
+	void decodeFrameWithNoBody() {
 		String accept = "accept-version:1.1\n";
 		String host = "host:github.org\n";
 
@@ -69,15 +69,15 @@ public class StompDecoderTests {
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.CONNECT);
 
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(2);
+		assertThat(headers.toNativeHeaderMap()).hasSize(2);
 		assertThat(headers.getFirstNativeHeader("accept-version")).isEqualTo("1.1");
 		assertThat(headers.getHost()).isEqualTo("github.org");
 
-		assertThat(frame.getPayload().length).isEqualTo(0);
+		assertThat(frame.getPayload()).isEmpty();
 	}
 
 	@Test
-	public void decodeFrame() {
+	void decodeFrame() {
 		Message<byte[]> frame = decode("SEND\ndestination:test\n\nThe body of the message\0");
 		StompHeaderAccessor headers = StompHeaderAccessor.wrap(frame);
 
@@ -91,13 +91,13 @@ public class StompDecoderTests {
 	}
 
 	@Test
-	public void decodeFrameWithContentLength() {
+	void decodeFrameWithContentLength() {
 		Message<byte[]> message = decode("SEND\ncontent-length:23\n\nThe body of the message\0");
 		StompHeaderAccessor headers = StompHeaderAccessor.wrap(message);
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.SEND);
 
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(1);
+		assertThat(headers.toNativeHeaderMap()).hasSize(1);
 		assertThat(headers.getContentLength()).isEqualTo(Integer.valueOf(23));
 
 		String bodyText = new String(message.getPayload());
@@ -107,13 +107,13 @@ public class StompDecoderTests {
 	// SPR-11528
 
 	@Test
-	public void decodeFrameWithInvalidContentLength() {
+	void decodeFrameWithInvalidContentLength() {
 		Message<byte[]> message = decode("SEND\ncontent-length:-1\n\nThe body of the message\0");
 		StompHeaderAccessor headers = StompHeaderAccessor.wrap(message);
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.SEND);
 
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(1);
+		assertThat(headers.toNativeHeaderMap()).hasSize(1);
 		assertThat(headers.getContentLength()).isEqualTo(Integer.valueOf(-1));
 
 		String bodyText = new String(message.getPayload());
@@ -121,27 +121,27 @@ public class StompDecoderTests {
 	}
 
 	@Test
-	public void decodeFrameWithContentLengthZero() {
+	void decodeFrameWithContentLengthZero() {
 		Message<byte[]> frame = decode("SEND\ncontent-length:0\n\n\0");
 		StompHeaderAccessor headers = StompHeaderAccessor.wrap(frame);
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.SEND);
 
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(1);
+		assertThat(headers.toNativeHeaderMap()).hasSize(1);
 		assertThat(headers.getContentLength()).isEqualTo(Integer.valueOf(0));
 
 		String bodyText = new String(frame.getPayload());
-		assertThat(bodyText).isEqualTo("");
+		assertThat(bodyText).isEmpty();
 	}
 
 	@Test
-	public void decodeFrameWithNullOctectsInTheBody() {
+	void decodeFrameWithNullOctectsInTheBody() {
 		Message<byte[]> frame = decode("SEND\ncontent-length:23\n\nThe b\0dy \0f the message\0");
 		StompHeaderAccessor headers = StompHeaderAccessor.wrap(frame);
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.SEND);
 
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(1);
+		assertThat(headers.toNativeHeaderMap()).hasSize(1);
 		assertThat(headers.getContentLength()).isEqualTo(Integer.valueOf(23));
 
 		String bodyText = new String(frame.getPayload());
@@ -149,18 +149,35 @@ public class StompDecoderTests {
 	}
 
 	@Test
-	public void decodeFrameWithEscapedHeaders() {
+	void decodeFrameWithEscapedHeaders() {
 		Message<byte[]> frame = decode("DISCONNECT\na\\c\\r\\n\\\\b:alpha\\cbravo\\r\\n\\\\\n\n\0");
 		StompHeaderAccessor headers = StompHeaderAccessor.wrap(frame);
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.DISCONNECT);
 
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(1);
+		assertThat(headers.toNativeHeaderMap()).hasSize(1);
 		assertThat(headers.getFirstNativeHeader("a:\r\n\\b")).isEqualTo("alpha:bravo\r\n\\");
 	}
 
+	@Test // gh-27722
+	public void decodeFrameWithHeaderWithBackslashValue() {
+		String accept = "accept-version:1.1\n";
+		String keyAndValueWithBackslash = "key:\\value\n";
+
+		Message<byte[]> frame = decode("CONNECT\n" + accept + keyAndValueWithBackslash + "\n\0");
+		StompHeaderAccessor headers = StompHeaderAccessor.wrap(frame);
+
+		assertThat(headers.getCommand()).isEqualTo(StompCommand.CONNECT);
+
+		assertThat(headers.toNativeHeaderMap()).hasSize(2);
+		assertThat(headers.getFirstNativeHeader("accept-version")).isEqualTo("1.1");
+		assertThat(headers.getFirstNativeHeader("key")).isEqualTo("\\value");
+
+		assertThat(frame.getPayload()).isEmpty();
+	}
+
 	@Test
-	public void decodeFrameBodyNotAllowed() {
+	void decodeFrameBodyNotAllowed() {
 		assertThatExceptionOfType(StompConversionException.class).isThrownBy(() ->
 				decode("CONNECT\naccept-version:1.2\n\nThe body of the message\0"));
 	}
@@ -172,19 +189,19 @@ public class StompDecoderTests {
 
 		final List<Message<byte[]>> messages = decoder.decode(buffer);
 
-		assertThat(messages.size()).isEqualTo(1);
+		assertThat(messages).hasSize(1);
 		assertThat(StompHeaderAccessor.wrap(messages.get(0)).getCommand()).isEqualTo(StompCommand.SEND);
 	}
 
 	@Test
-	public void decodeMultipleFramesFromSameBuffer() {
+	void decodeMultipleFramesFromSameBuffer() {
 		String frame1 = "SEND\ndestination:test\n\nThe body of the message\0";
 		String frame2 = "DISCONNECT\n\n\0";
 		ByteBuffer buffer = ByteBuffer.wrap((frame1 + frame2).getBytes());
 
 		final List<Message<byte[]>> messages = decoder.decode(buffer);
 
-		assertThat(messages.size()).isEqualTo(2);
+		assertThat(messages).hasSize(2);
 		assertThat(StompHeaderAccessor.wrap(messages.get(0)).getCommand()).isEqualTo(StompCommand.SEND);
 		assertThat(StompHeaderAccessor.wrap(messages.get(1)).getCommand()).isEqualTo(StompCommand.DISCONNECT);
 	}
@@ -199,63 +216,63 @@ public class StompDecoderTests {
 
 		assertThat(headers.getCommand()).isEqualTo(StompCommand.CONNECT);
 
-		assertThat(headers.toNativeHeaderMap().size()).isEqualTo(2);
+		assertThat(headers.toNativeHeaderMap()).hasSize(2);
 		assertThat(headers.getFirstNativeHeader("accept-version")).isEqualTo("1.1");
-		assertThat(headers.getFirstNativeHeader("key")).isEqualTo("");
+		assertThat(headers.getFirstNativeHeader("key")).isEmpty();
 
-		assertThat(frame.getPayload().length).isEqualTo(0);
+		assertThat(frame.getPayload()).isEmpty();
 	}
 
 	@Test
-	public void decodeFrameWithIncompleteCommand() {
+	void decodeFrameWithIncompleteCommand() {
 		assertIncompleteDecode("MESSAG");
 	}
 
 	@Test
-	public void decodeFrameWithIncompleteHeader() {
+	void decodeFrameWithIncompleteHeader() {
 		assertIncompleteDecode("SEND\ndestination");
 		assertIncompleteDecode("SEND\ndestination:");
 		assertIncompleteDecode("SEND\ndestination:test");
 	}
 
 	@Test
-	public void decodeFrameWithoutNullOctetTerminator() {
+	void decodeFrameWithoutNullOctetTerminator() {
 		assertIncompleteDecode("SEND\ndestination:test\n");
 		assertIncompleteDecode("SEND\ndestination:test\n\n");
 		assertIncompleteDecode("SEND\ndestination:test\n\nThe body");
 	}
 
 	@Test
-	public void decodeFrameWithInsufficientContent() {
+	void decodeFrameWithInsufficientContent() {
 		assertIncompleteDecode("SEND\ncontent-length:23\n\nThe body of the mess");
 	}
 
 	@Test
-	public void decodeFrameWithIncompleteContentType() {
+	void decodeFrameWithIncompleteContentType() {
 		assertIncompleteDecode("SEND\ncontent-type:text/plain;charset=U");
 	}
 
 	@Test
-	public void decodeFrameWithInvalidContentType() {
+	void decodeFrameWithInvalidContentType() {
 		assertThatExceptionOfType(InvalidMimeTypeException.class).isThrownBy(() ->
 				assertIncompleteDecode("SEND\ncontent-type:text/plain;charset=U\n\nThe body\0"));
 	}
 
 	@Test
-	public void decodeFrameWithIncorrectTerminator() {
+	void decodeFrameWithIncorrectTerminator() {
 		assertThatExceptionOfType(StompConversionException.class).isThrownBy(() ->
 				decode("SEND\ncontent-length:23\n\nThe body of the message*"));
 	}
 
 	@Test
-	public void decodeHeartbeat() {
+	void decodeHeartbeat() {
 		String frame = "\n";
 
 		ByteBuffer buffer = ByteBuffer.wrap(frame.getBytes());
 
 		final List<Message<byte[]>> messages = decoder.decode(buffer);
 
-		assertThat(messages.size()).isEqualTo(1);
+		assertThat(messages).hasSize(1);
 		assertThat(StompHeaderAccessor.wrap(messages.get(0)).getMessageType()).isEqualTo(SimpMessageType.HEARTBEAT);
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,9 +30,13 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import org.springframework.lang.Nullable;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
+ * Tests for {@link CollectionUtils}.
+ *
  * @author Rob Harrop
  * @author Juergen Hoeller
  * @author Rick Evans
@@ -42,7 +47,7 @@ class CollectionUtilsTests {
 	void isEmpty() {
 		assertThat(CollectionUtils.isEmpty((Set<Object>) null)).isTrue();
 		assertThat(CollectionUtils.isEmpty((Map<String, String>) null)).isTrue();
-		assertThat(CollectionUtils.isEmpty(new HashMap<String, String>())).isTrue();
+		assertThat(CollectionUtils.isEmpty(new HashMap<>())).isTrue();
 		assertThat(CollectionUtils.isEmpty(new HashSet<>())).isTrue();
 
 		List<Object> list = new ArrayList<>();
@@ -61,21 +66,17 @@ class CollectionUtilsTests {
 		list.add("value3");
 
 		CollectionUtils.mergeArrayIntoCollection(arr, list);
-		assertThat(list.get(0)).isEqualTo("value3");
-		assertThat(list.get(1)).isEqualTo("value1");
-		assertThat(list.get(2)).isEqualTo("value2");
+		assertThat(list).containsExactly("value3", "value1", "value2");
 	}
 
 	@Test
 	void mergePrimitiveArrayIntoCollection() {
 		int[] arr = new int[] {1, 2};
 		List<Comparable<?>> list = new ArrayList<>();
-		list.add(Integer.valueOf(3));
+		list.add(3);
 
 		CollectionUtils.mergeArrayIntoCollection(arr, list);
-		assertThat(list.get(0)).isEqualTo(Integer.valueOf(3));
-		assertThat(list.get(1)).isEqualTo(Integer.valueOf(1));
-		assertThat(list.get(2)).isEqualTo(Integer.valueOf(2));
+		assertThat(list).containsExactly(3, 1, 2);
 	}
 
 	@Test
@@ -84,7 +85,7 @@ class CollectionUtilsTests {
 		defaults.setProperty("prop1", "value1");
 		Properties props = new Properties(defaults);
 		props.setProperty("prop2", "value2");
-		props.put("prop3", Integer.valueOf(3));
+		props.put("prop3", 3);
 
 		Map<String, Object> map = new HashMap<>();
 		map.put("prop4", "value4");
@@ -92,7 +93,7 @@ class CollectionUtilsTests {
 		CollectionUtils.mergePropertiesIntoMap(props, map);
 		assertThat(map.get("prop1")).isEqualTo("value1");
 		assertThat(map.get("prop2")).isEqualTo("value2");
-		assertThat(map.get("prop3")).isEqualTo(Integer.valueOf(3));
+		assertThat(map.get("prop3")).isEqualTo(3);
 		assertThat(map.get("prop4")).isEqualTo("value4");
 	}
 
@@ -113,7 +114,7 @@ class CollectionUtilsTests {
 	}
 
 	@Test
-	void containsAny() throws Exception {
+	void containsAny() {
 		List<String> source = new ArrayList<>();
 		source.add("abc");
 		source.add("def");
@@ -132,19 +133,19 @@ class CollectionUtilsTests {
 	}
 
 	@Test
-	void containsInstanceWithNullCollection() throws Exception {
+	void containsInstanceWithNullCollection() {
 		assertThat(CollectionUtils.containsInstance(null, this)).as("Must return false if supplied Collection argument is null").isFalse();
 	}
 
 	@Test
-	void containsInstanceWithInstancesThatAreEqualButDistinct() throws Exception {
+	void containsInstanceWithInstancesThatAreEqualButDistinct() {
 		List<Instance> list = new ArrayList<>();
 		list.add(new Instance("fiona"));
 		assertThat(CollectionUtils.containsInstance(list, new Instance("fiona"))).as("Must return false if instance is not in the supplied Collection argument").isFalse();
 	}
 
 	@Test
-	void containsInstanceWithSameInstance() throws Exception {
+	void containsInstanceWithSameInstance() {
 		List<Instance> list = new ArrayList<>();
 		list.add(new Instance("apple"));
 		Instance instance = new Instance("fiona");
@@ -153,7 +154,7 @@ class CollectionUtilsTests {
 	}
 
 	@Test
-	void containsInstanceWithNullInstance() throws Exception {
+	void containsInstanceWithNullInstance() {
 		List<Instance> list = new ArrayList<>();
 		list.add(new Instance("apple"));
 		list.add(new Instance("fiona"));
@@ -161,7 +162,7 @@ class CollectionUtilsTests {
 	}
 
 	@Test
-	void findFirstMatch() throws Exception {
+	void findFirstMatch() {
 		List<String> source = new ArrayList<>();
 		source.add("abc");
 		source.add("def");
@@ -209,6 +210,30 @@ class CollectionUtilsTests {
 		assertThat(CollectionUtils.hasUniqueObject(list)).isFalse();
 	}
 
+	@Test
+	void conversionOfEmptyMap() {
+		MultiValueMap<String, String> asMultiValueMap = CollectionUtils.toMultiValueMap(new HashMap<>());
+		assertThat(asMultiValueMap).isEmpty();
+		assertThat(asMultiValueMap).isEmpty();
+	}
+
+	@Test
+	void conversionOfNonEmptyMap() {
+		Map<String, List<String>> wrapped = new HashMap<>();
+		wrapped.put("key", Arrays.asList("first", "second"));
+		MultiValueMap<String, String> asMultiValueMap = CollectionUtils.toMultiValueMap(wrapped);
+		assertThat(asMultiValueMap).containsAllEntriesOf(wrapped);
+	}
+
+	@Test
+	void changesValueByReference() {
+		Map<String, List<String>> wrapped = new HashMap<>();
+		MultiValueMap<String, String> asMultiValueMap = CollectionUtils.toMultiValueMap(wrapped);
+		assertThat(asMultiValueMap).doesNotContainKeys("key");
+		wrapped.put("key", new ArrayList<>());
+		assertThat(asMultiValueMap).containsKey("key");
+	}
+
 
 	private static final class Instance {
 
@@ -219,7 +244,7 @@ class CollectionUtilsTests {
 		}
 
 		@Override
-		public boolean equals(Object rhs) {
+		public boolean equals(@Nullable Object rhs) {
 			if (this == rhs) {
 				return true;
 			}

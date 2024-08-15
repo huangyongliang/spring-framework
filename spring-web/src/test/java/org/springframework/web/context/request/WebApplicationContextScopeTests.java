@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 
 package org.springframework.web.context.request;
 
-import javax.servlet.ServletContextEvent;
-
+import jakarta.servlet.ServletContextEvent;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.support.GenericBeanDefinition;
@@ -33,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * @author Juergen Hoeller
  */
-public class WebApplicationContextScopeTests {
+class WebApplicationContextScopeTests {
 
 	private static final String NAME = "scoped";
 
@@ -50,7 +49,7 @@ public class WebApplicationContextScopeTests {
 	}
 
 	@Test
-	public void testRequestScope() {
+	void testRequestScope() {
 		WebApplicationContext ac = initApplicationContext(WebApplicationContext.SCOPE_REQUEST);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		ServletRequestAttributes requestAttributes = new ServletRequestAttributes(request);
@@ -69,7 +68,7 @@ public class WebApplicationContextScopeTests {
 	}
 
 	@Test
-	public void testSessionScope() {
+	void testSessionScope() {
 		WebApplicationContext ac = initApplicationContext(WebApplicationContext.SCOPE_SESSION);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		ServletRequestAttributes requestAttributes = new ServletRequestAttributes(request);
@@ -88,7 +87,7 @@ public class WebApplicationContextScopeTests {
 	}
 
 	@Test
-	public void testApplicationScope() {
+	void testApplicationScope() {
 		WebApplicationContext ac = initApplicationContext(WebApplicationContext.SCOPE_APPLICATION);
 		assertThat(ac.getServletContext().getAttribute(NAME)).isNull();
 		DerivedTestBean bean = ac.getBean(NAME, DerivedTestBean.class);

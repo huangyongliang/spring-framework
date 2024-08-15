@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,13 @@ package org.springframework.beans.factory.support;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.ObjectUtils;
 
 /**
- * Extension of MethodOverride that represents an arbitrary
+ * Extension of {@link MethodOverride} that represents an arbitrary
  * override of a method by the IoC container.
  *
  * <p>Any non-final method can be overridden, irrespective of its
@@ -45,7 +45,7 @@ public class ReplaceOverride extends MethodOverride {
 	/**
 	 * Construct a new ReplaceOverride.
 	 * @param methodName the name of the method to override
-	 * @param methodReplacerBeanName the bean name of the MethodReplacer
+	 * @param methodReplacerBeanName the bean name of the {@link MethodReplacer}
 	 */
 	public ReplaceOverride(String methodName, String methodReplacerBeanName) {
 		super(methodName);
@@ -97,25 +97,19 @@ public class ReplaceOverride extends MethodOverride {
 
 	@Override
 	public boolean equals(@Nullable Object other) {
-		if (!(other instanceof ReplaceOverride) || !super.equals(other)) {
-			return false;
-		}
-		ReplaceOverride that = (ReplaceOverride) other;
-		return (ObjectUtils.nullSafeEquals(this.methodReplacerBeanName, that.methodReplacerBeanName) &&
-				ObjectUtils.nullSafeEquals(this.typeIdentifiers, that.typeIdentifiers));
+		return (other instanceof ReplaceOverride that && super.equals(that) &&
+				this.methodReplacerBeanName.equals(that.methodReplacerBeanName) &&
+				this.typeIdentifiers.equals(that.typeIdentifiers));
 	}
 
 	@Override
 	public int hashCode() {
-		int hashCode = super.hashCode();
-		hashCode = 29 * hashCode + ObjectUtils.nullSafeHashCode(this.methodReplacerBeanName);
-		hashCode = 29 * hashCode + ObjectUtils.nullSafeHashCode(this.typeIdentifiers);
-		return hashCode;
+		return Objects.hash(this.methodReplacerBeanName, this.typeIdentifiers);
 	}
 
 	@Override
 	public String toString() {
-		return "Replace override for method '" + getMethodName() + "'";
+		return "ReplaceOverride for method '" + getMethodName() + "'";
 	}
 
 }

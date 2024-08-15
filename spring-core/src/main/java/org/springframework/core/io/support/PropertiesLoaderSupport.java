@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.DefaultPropertiesPersister;
 import org.springframework.util.PropertiesPersister;
 
 /**
@@ -56,7 +57,7 @@ public abstract class PropertiesLoaderSupport {
 	@Nullable
 	private String fileEncoding;
 
-	private PropertiesPersister propertiesPersister = ResourcePropertiesPersister.INSTANCE;
+	private PropertiesPersister propertiesPersister = DefaultPropertiesPersister.INSTANCE;
 
 
 	/**
@@ -79,7 +80,7 @@ public abstract class PropertiesLoaderSupport {
 	/**
 	 * Set a location of a properties file to be loaded.
 	 * <p>Can point to a classic properties file or to an XML file
-	 * that follows JDK 1.5's properties XML format.
+	 * that follows Java's properties XML format.
 	 */
 	public void setLocation(Resource location) {
 		this.locations = new Resource[] {location};
@@ -88,7 +89,7 @@ public abstract class PropertiesLoaderSupport {
 	/**
 	 * Set locations of properties files to be loaded.
 	 * <p>Can point to classic properties files or to XML files
-	 * that follow JDK 1.5's properties XML format.
+	 * that follow Java's properties XML format.
 	 * <p>Note: Properties defined in later files will override
 	 * properties defined earlier files, in case of overlapping keys.
 	 * Hence, make sure that the most specific files are the last
@@ -130,12 +131,12 @@ public abstract class PropertiesLoaderSupport {
 
 	/**
 	 * Set the PropertiesPersister to use for parsing properties files.
-	 * The default is ResourcePropertiesPersister.
-	 * @see ResourcePropertiesPersister#INSTANCE
+	 * The default is {@code DefaultPropertiesPersister}.
+	 * @see DefaultPropertiesPersister#INSTANCE
 	 */
 	public void setPropertiesPersister(@Nullable PropertiesPersister propertiesPersister) {
 		this.propertiesPersister =
-				(propertiesPersister != null ? propertiesPersister : ResourcePropertiesPersister.INSTANCE);
+				(propertiesPersister != null ? propertiesPersister : DefaultPropertiesPersister.INSTANCE);
 	}
 
 

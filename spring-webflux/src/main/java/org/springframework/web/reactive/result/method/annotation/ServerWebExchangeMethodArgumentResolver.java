@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,6 +80,7 @@ public class ServerWebExchangeMethodArgumentResolver extends HandlerMethodArgume
 	}
 
 	@Override
+	@Nullable
 	public Object resolveArgumentValue(
 			MethodParameter methodParameter, BindingContext context, ServerWebExchange exchange) {
 
@@ -124,8 +125,8 @@ public class ServerWebExchangeMethodArgumentResolver extends HandlerMethodArgume
 	@Nullable
 	private TimeZone getTimeZone(LocaleContext localeContext) {
 		TimeZone timeZone = null;
-		if (localeContext instanceof TimeZoneAwareLocaleContext) {
-			timeZone = ((TimeZoneAwareLocaleContext) localeContext).getTimeZone();
+		if (localeContext instanceof TimeZoneAwareLocaleContext timeZoneAwareLocaleContext) {
+			timeZone = timeZoneAwareLocaleContext.getTimeZone();
 		}
 		return timeZone;
 	}

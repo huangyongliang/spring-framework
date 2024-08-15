@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package org.springframework.web.context.request.async;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.WebRequest;
@@ -46,8 +46,8 @@ public abstract class WebAsyncUtils {
 	public static WebAsyncManager getAsyncManager(ServletRequest servletRequest) {
 		WebAsyncManager asyncManager = null;
 		Object asyncManagerAttr = servletRequest.getAttribute(WEB_ASYNC_MANAGER_ATTRIBUTE);
-		if (asyncManagerAttr instanceof WebAsyncManager) {
-			asyncManager = (WebAsyncManager) asyncManagerAttr;
+		if (asyncManagerAttr instanceof WebAsyncManager wam) {
+			asyncManager = wam;
 		}
 		if (asyncManager == null) {
 			asyncManager = new WebAsyncManager();
@@ -64,8 +64,8 @@ public abstract class WebAsyncUtils {
 		int scope = RequestAttributes.SCOPE_REQUEST;
 		WebAsyncManager asyncManager = null;
 		Object asyncManagerAttr = webRequest.getAttribute(WEB_ASYNC_MANAGER_ATTRIBUTE, scope);
-		if (asyncManagerAttr instanceof WebAsyncManager) {
-			asyncManager = (WebAsyncManager) asyncManagerAttr;
+		if (asyncManagerAttr instanceof WebAsyncManager wam) {
+			asyncManager = wam;
 		}
 		if (asyncManager == null) {
 			asyncManager = new WebAsyncManager();
@@ -82,7 +82,10 @@ public abstract class WebAsyncUtils {
 	 * @return an AsyncWebRequest instance (never {@code null})
 	 */
 	public static AsyncWebRequest createAsyncWebRequest(HttpServletRequest request, HttpServletResponse response) {
-		return new StandardServletAsyncWebRequest(request, response);
+		AsyncWebRequest prev = getAsyncManager(request).getAsyncWebRequest();
+		return (prev instanceof StandardServletAsyncWebRequest standardRequest ?
+				new StandardServletAsyncWebRequest(request, response, standardRequest) :
+				new StandardServletAsyncWebRequest(request, response));
 	}
 
 }

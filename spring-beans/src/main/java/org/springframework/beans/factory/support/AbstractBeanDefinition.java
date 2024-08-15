@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ import org.springframework.util.StringUtils;
  * @author Juergen Hoeller
  * @author Rob Harrop
  * @author Mark Fisher
+ * @author Sebastien Deleuze
  * @see GenericBeanDefinition
  * @see RootBeanDefinition
  * @see ChildBeanDefinition
@@ -126,6 +127,32 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	public static final int DEPENDENCY_CHECK_ALL = 3;
 
 	/**
+	 * The name of an attribute that can be
+	 * {@link org.springframework.core.AttributeAccessor#setAttribute set} on a
+	 * {@link org.springframework.beans.factory.config.BeanDefinition} so that
+	 * bean definitions can indicate one or more preferred constructors. This is
+	 * analogous to {@code @Autowired} annotated constructors on the bean class.
+	 * <p>The attribute value may be a single {@link java.lang.reflect.Constructor}
+	 * reference or an array thereof.
+	 * @since 6.1
+	 * @see org.springframework.beans.factory.annotation.Autowired
+	 * @see org.springframework.beans.factory.support.RootBeanDefinition#getPreferredConstructors()
+	 */
+	public static final String PREFERRED_CONSTRUCTORS_ATTRIBUTE = "preferredConstructors";
+
+	/**
+	 * The name of an attribute that can be
+	 * {@link org.springframework.core.AttributeAccessor#setAttribute set} on a
+	 * {@link org.springframework.beans.factory.config.BeanDefinition} so that
+	 * bean definitions can indicate the sort order for the targeted bean.
+	 * This is analogous to the {@code @Order} annotation.
+	 * @since 6.1.2
+	 * @see org.springframework.core.annotation.Order
+	 * @see org.springframework.core.Ordered
+	 */
+	public static final String ORDER_ATTRIBUTE = "order";
+
+	/**
 	 * Constant that indicates the container should attempt to infer the
 	 * {@link #setDestroyMethodName destroy method name} for a bean as opposed to
 	 * explicit specification of a method name. The value {@value} is specifically
@@ -146,6 +173,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 	private boolean abstractFlag = false;
 
+	private boolean backgroundInit = false;
+
 	@Nullable
 	private Boolean lazyInit;
 
@@ -158,7 +187,11 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 	private boolean autowireCandidate = true;
 
+	private boolean defaultCandidate = true;
+
 	private boolean primary = false;
+
+	private boolean fallback = false;
 
 	private final Map<String, AutowireCandidateQualifier> qualifiers = new LinkedHashMap<>();
 
@@ -184,10 +217,10 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	private MethodOverrides methodOverrides = new MethodOverrides();
 
 	@Nullable
-	private String initMethodName;
+	private String[] initMethodNames;
 
 	@Nullable
-	private String destroyMethodName;
+	private String[] destroyMethodNames;
 
 	private boolean enforceInitMethod = true;
 
@@ -236,8 +269,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 		setSource(original.getSource());
 		copyAttributesFrom(original);
 
-		if (original instanceof AbstractBeanDefinition) {
-			AbstractBeanDefinition originalAbd = (AbstractBeanDefinition) original;
+		if (original instanceof AbstractBeanDefinition originalAbd) {
 			if (originalAbd.hasBeanClass()) {
 				setBeanClass(originalAbd.getBeanClass());
 			}
@@ -250,6 +282,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 			if (originalAbd.hasMethodOverrides()) {
 				setMethodOverrides(new MethodOverrides(originalAbd.getMethodOverrides()));
 			}
+			setBackgroundInit(originalAbd.isBackgroundInit());
 			Boolean lazyInit = originalAbd.getLazyInit();
 			if (lazyInit != null) {
 				setLazyInit(lazyInit);
@@ -258,14 +291,16 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 			setDependencyCheck(originalAbd.getDependencyCheck());
 			setDependsOn(originalAbd.getDependsOn());
 			setAutowireCandidate(originalAbd.isAutowireCandidate());
+			setDefaultCandidate(originalAbd.isDefaultCandidate());
 			setPrimary(originalAbd.isPrimary());
+			setFallback(originalAbd.isFallback());
 			copyQualifiersFrom(originalAbd);
 			setInstanceSupplier(originalAbd.getInstanceSupplier());
 			setNonPublicAccessAllowed(originalAbd.isNonPublicAccessAllowed());
 			setLenientConstructorResolution(originalAbd.isLenientConstructorResolution());
-			setInitMethodName(originalAbd.getInitMethodName());
+			setInitMethodNames(originalAbd.getInitMethodNames());
 			setEnforceInitMethod(originalAbd.isEnforceInitMethod());
-			setDestroyMethodName(originalAbd.getDestroyMethodName());
+			setDestroyMethodNames(originalAbd.getDestroyMethodNames());
 			setEnforceDestroyMethod(originalAbd.isEnforceDestroyMethod());
 			setSynthetic(originalAbd.isSynthetic());
 			setResource(originalAbd.getResource());
@@ -313,8 +348,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 		setSource(other.getSource());
 		copyAttributesFrom(other);
 
-		if (other instanceof AbstractBeanDefinition) {
-			AbstractBeanDefinition otherAbd = (AbstractBeanDefinition) other;
+		if (other instanceof AbstractBeanDefinition otherAbd) {
 			if (otherAbd.hasBeanClass()) {
 				setBeanClass(otherAbd.getBeanClass());
 			}
@@ -327,6 +361,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 			if (otherAbd.hasMethodOverrides()) {
 				getMethodOverrides().addOverrides(otherAbd.getMethodOverrides());
 			}
+			setBackgroundInit(otherAbd.isBackgroundInit());
 			Boolean lazyInit = otherAbd.getLazyInit();
 			if (lazyInit != null) {
 				setLazyInit(lazyInit);
@@ -335,17 +370,19 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 			setDependencyCheck(otherAbd.getDependencyCheck());
 			setDependsOn(otherAbd.getDependsOn());
 			setAutowireCandidate(otherAbd.isAutowireCandidate());
+			setDefaultCandidate(otherAbd.isDefaultCandidate());
 			setPrimary(otherAbd.isPrimary());
+			setFallback(otherAbd.isFallback());
 			copyQualifiersFrom(otherAbd);
 			setInstanceSupplier(otherAbd.getInstanceSupplier());
 			setNonPublicAccessAllowed(otherAbd.isNonPublicAccessAllowed());
 			setLenientConstructorResolution(otherAbd.isLenientConstructorResolution());
-			if (otherAbd.getInitMethodName() != null) {
-				setInitMethodName(otherAbd.getInitMethodName());
+			if (otherAbd.getInitMethodNames() != null) {
+				setInitMethodNames(otherAbd.getInitMethodNames());
 				setEnforceInitMethod(otherAbd.isEnforceInitMethod());
 			}
-			if (otherAbd.getDestroyMethodName() != null) {
-				setDestroyMethodName(otherAbd.getDestroyMethodName());
+			if (otherAbd.getDestroyMethodNames() != null) {
+				setDestroyMethodNames(otherAbd.getDestroyMethodNames());
 				setEnforceDestroyMethod(otherAbd.isEnforceDestroyMethod());
 			}
 			setSynthetic(otherAbd.isSynthetic());
@@ -379,7 +416,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 
 	/**
-	 * Specify the bean class name of this bean definition.
+	 * {@inheritDoc}
+	 * @see #setBeanClass(Class)
 	 */
 	@Override
 	public void setBeanClassName(@Nullable String beanClassName) {
@@ -387,18 +425,14 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return the current bean class name of this bean definition.
+	 * {@inheritDoc}
+	 * @see #getBeanClass()
 	 */
 	@Override
 	@Nullable
 	public String getBeanClassName() {
-		Object beanClassObject = this.beanClass;
-		if (beanClassObject instanceof Class) {
-			return ((Class<?>) beanClassObject).getName();
-		}
-		else {
-			return (String) beanClassObject;
-		}
+		Object beanClassObject = this.beanClass;  // defensive access to volatile beanClass field
+		return (beanClassObject instanceof Class<?> clazz ? clazz.getName() : (String) beanClassObject);
 	}
 
 	/**
@@ -431,15 +465,15 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * @see #resolveBeanClass(ClassLoader)
 	 */
 	public Class<?> getBeanClass() throws IllegalStateException {
-		Object beanClassObject = this.beanClass;
+		Object beanClassObject = this.beanClass;  // defensive access to volatile beanClass field
 		if (beanClassObject == null) {
 			throw new IllegalStateException("No bean class specified on bean definition");
 		}
-		if (!(beanClassObject instanceof Class)) {
+		if (!(beanClassObject instanceof Class<?> clazz)) {
 			throw new IllegalStateException(
 					"Bean class name [" + beanClassObject + "] has not been resolved into an actual Class");
 		}
-		return (Class<?>) beanClassObject;
+		return clazz;
 	}
 
 	/**
@@ -472,9 +506,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return a resolvable type for this bean definition.
+	 * {@inheritDoc}
 	 * <p>This implementation delegates to {@link #getBeanClass()}.
-	 * @since 5.2
 	 */
 	@Override
 	public ResolvableType getResolvableType() {
@@ -482,7 +515,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set the name of the target scope for the bean.
+	 * {@inheritDoc}
 	 * <p>The default is singleton status, although this is only applied once
 	 * a bean definition becomes active in the containing factory. A bean
 	 * definition may eventually inherit its scope from a parent bean definition.
@@ -497,7 +530,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return the name of the target scope for the bean.
+	 * {@inheritDoc}
+	 * <p>The default is {@link #SCOPE_DEFAULT}.
 	 */
 	@Override
 	@Nullable
@@ -506,9 +540,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return whether this a <b>Singleton</b>, with a single shared instance
-	 * returned from all calls.
-	 * @see #SCOPE_SINGLETON
+	 * {@inheritDoc}
+	 * <p>The default is {@code true}.
 	 */
 	@Override
 	public boolean isSingleton() {
@@ -516,9 +549,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return whether this a <b>Prototype</b>, with an independent instance
-	 * returned for each call.
-	 * @see #SCOPE_PROTOTYPE
+	 * {@inheritDoc}
+	 * <p>The default is {@code false}.
 	 */
 	@Override
 	public boolean isPrototype() {
@@ -528,16 +560,16 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	/**
 	 * Set if this bean is "abstract", i.e. not meant to be instantiated itself but
 	 * rather just serving as parent for concrete child bean definitions.
-	 * <p>Default is "false". Specify true to tell the bean factory to not try to
-	 * instantiate that particular bean in any case.
+	 * <p>The default is "false". Specify {@code true} to tell the bean factory to
+	 * not try to instantiate that particular bean in any case.
 	 */
 	public void setAbstract(boolean abstractFlag) {
 		this.abstractFlag = abstractFlag;
 	}
 
 	/**
-	 * Return whether this bean is "abstract", i.e. not meant to be instantiated
-	 * itself but rather just serving as parent for concrete child bean definitions.
+	 * {@inheritDoc}
+	 * <p>The default is {@code false}.
 	 */
 	@Override
 	public boolean isAbstract() {
@@ -545,9 +577,39 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set whether this bean should be lazily initialized.
-	 * <p>If {@code false}, the bean will get instantiated on startup by bean
-	 * factories that perform eager initialization of singletons.
+	 * Specify the bootstrap mode for this bean: default is {@code false} for using
+	 * the main pre-instantiation thread for non-lazy singleton beans and the caller
+	 * thread for prototype beans.
+	 * <p>Set this flag to {@code true} to allow for instantiating this bean on a
+	 * background thread. For a non-lazy singleton, a background pre-instantiation
+	 * thread can be used then, while still enforcing the completion at the end of
+	 * {@link DefaultListableBeanFactory#preInstantiateSingletons()}.
+	 * For a lazy singleton, a background pre-instantiation thread can be used as well
+	 * - with completion allowed at a later point, enforcing it when actually accessed.
+	 * <p>Note that this flag may be ignored by bean factories not set up for
+	 * background bootstrapping, always applying single-threaded bootstrapping
+	 * for non-lazy singleton beans.
+	 * @since 6.2
+	 * @see #setLazyInit
+	 * @see DefaultListableBeanFactory#setBootstrapExecutor
+	 */
+	public void setBackgroundInit(boolean backgroundInit) {
+		this.backgroundInit = backgroundInit;
+	}
+
+	/**
+	 * Return the bootstrap mode for this bean: default is {@code false} for using
+	 * the main pre-instantiation thread for non-lazy singleton beans and the caller
+	 * thread for prototype beans.
+	 * @since 6.2
+	 */
+	public boolean isBackgroundInit() {
+		return this.backgroundInit;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>The default is {@code false}.
 	 */
 	@Override
 	public void setLazyInit(boolean lazyInit) {
@@ -555,13 +617,12 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return whether this bean should be lazily initialized, i.e. not
-	 * eagerly instantiated on startup. Only applicable to a singleton bean.
-	 * @return whether to apply lazy-init semantics ({@code false} by default)
+	 * {@inheritDoc}
+	 * <p>The default is {@code false}.
 	 */
 	@Override
 	public boolean isLazyInit() {
-		return (this.lazyInit != null && this.lazyInit.booleanValue());
+		return (this.lazyInit != null && this.lazyInit);
 	}
 
 	/**
@@ -577,7 +638,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 	/**
 	 * Set the autowire mode. This determines whether any automagical detection
-	 * and setting of bean references will happen. Default is AUTOWIRE_NO
+	 * and setting of bean references will happen. The default is AUTOWIRE_NO
 	 * which means there won't be convention-based autowiring by name or type
 	 * (however, there may still be explicit annotation-driven autowiring).
 	 * @param autowireMode the autowire mode to set.
@@ -645,11 +706,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set the names of the beans that this bean depends on being initialized.
-	 * The bean factory will guarantee that these beans get initialized first.
-	 * <p>Note that dependencies are normally expressed through bean properties or
-	 * constructor arguments. This property should just be necessary for other kinds
-	 * of dependencies like statics (*ugh*) or database preparation on startup.
+	 * {@inheritDoc}
+	 * <p>The default is no beans to explicitly depend on.
 	 */
 	@Override
 	public void setDependsOn(@Nullable String... dependsOn) {
@@ -657,7 +715,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return the bean names that this bean depends on.
+	 * {@inheritDoc}
+	 * <p>The default is no beans to explicitly depend on.
 	 */
 	@Override
 	@Nullable
@@ -666,11 +725,9 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set whether this bean is a candidate for getting autowired into some other bean.
-	 * <p>Note that this flag is designed to only affect type-based autowiring.
-	 * It does not affect explicit references by name, which will get resolved even
-	 * if the specified bean is not marked as an autowire candidate. As a consequence,
-	 * autowiring by name will nevertheless inject a bean if the name matches.
+	 * {@inheritDoc}
+	 * <p>The default is {@code true}, allowing injection by type at any injection point.
+	 * Switch this to {@code false} in order to disable autowiring by type for this bean.
 	 * @see #AUTOWIRE_BY_TYPE
 	 * @see #AUTOWIRE_BY_NAME
 	 */
@@ -680,7 +737,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return whether this bean is a candidate for getting autowired into some other bean.
+	 * {@inheritDoc}
+	 * <p>The default is {@code true}.
 	 */
 	@Override
 	public boolean isAutowireCandidate() {
@@ -688,9 +746,32 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set whether this bean is a primary autowire candidate.
-	 * <p>If this value is {@code true} for exactly one bean among multiple
-	 * matching candidates, it will serve as a tie-breaker.
+	 * Set whether this bean is a candidate for getting autowired into some other
+	 * bean based on the plain type, without any further indications such as a
+	 * qualifier match.
+	 * <p>The default is {@code true}, allowing injection by type at any injection point.
+	 * Switch this to {@code false} in order to restrict injection by default,
+	 * effectively enforcing an additional indication such as a qualifier match.
+	 * @since 6.2
+	 */
+	public void setDefaultCandidate(boolean defaultCandidate) {
+		this.defaultCandidate = defaultCandidate;
+	}
+
+	/**
+	 * Return whether this bean is a candidate for getting autowired into some other
+	 * bean based on the plain type, without any further indications such as a
+	 * qualifier match?
+	 * <p>The default is {@code true}.
+	 * @since 6.2
+	 */
+	public boolean isDefaultCandidate() {
+		return this.defaultCandidate;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>The default is {@code false}.
 	 */
 	@Override
 	public void setPrimary(boolean primary) {
@@ -698,11 +779,30 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return whether this bean is a primary autowire candidate.
+	 * {@inheritDoc}
+	 * <p>The default is {@code false}.
 	 */
 	@Override
 	public boolean isPrimary() {
 		return this.primary;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>The default is {@code false}.
+	 */
+	@Override
+	public void setFallback(boolean fallback) {
+		this.fallback = fallback;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>The default is {@code false}.
+	 */
+	@Override
+	public boolean isFallback() {
+		return this.fallback;
 	}
 
 	/**
@@ -809,9 +909,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Specify the factory bean to use, if any.
-	 * This the name of the bean to call the specified factory method on.
-	 * @see #setFactoryMethodName
+	 * {@inheritDoc}
+	 * @see #setBeanClass
 	 */
 	@Override
 	public void setFactoryBeanName(@Nullable String factoryBeanName) {
@@ -819,7 +918,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return the factory bean name, if any.
+	 * {@inheritDoc}
+	 * @see #getBeanClass()
 	 */
 	@Override
 	@Nullable
@@ -828,12 +928,10 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Specify a factory method, if any. This method will be invoked with
-	 * constructor arguments, or with no arguments if none are specified.
-	 * The method will be invoked on the specified factory bean, if any,
-	 * or otherwise as a static method on the local bean class.
-	 * @see #setFactoryBeanName
-	 * @see #setBeanClassName
+	 * {@inheritDoc}
+	 * @see RootBeanDefinition#setUniqueFactoryMethodName
+	 * @see RootBeanDefinition#setNonUniqueFactoryMethodName
+	 * @see RootBeanDefinition#setResolvedFactoryMethod
 	 */
 	@Override
 	public void setFactoryMethodName(@Nullable String factoryMethodName) {
@@ -841,7 +939,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return a factory method, if any.
+	 * {@inheritDoc}
+	 * @see RootBeanDefinition#getResolvedFactoryMethod()
 	 */
 	@Override
 	@Nullable
@@ -857,18 +956,22 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return constructor argument values for this bean (never {@code null}).
+	 * {@inheritDoc}
+	 * @see #setConstructorArgumentValues
 	 */
 	@Override
 	public ConstructorArgumentValues getConstructorArgumentValues() {
-		if (this.constructorArgumentValues == null) {
-			this.constructorArgumentValues = new ConstructorArgumentValues();
+		ConstructorArgumentValues cav = this.constructorArgumentValues;
+		if (cav == null) {
+			cav = new ConstructorArgumentValues();
+			this.constructorArgumentValues = cav;
 		}
-		return this.constructorArgumentValues;
+		return cav;
 	}
 
 	/**
-	 * Return if there are constructor argument values defined for this bean.
+	 * {@inheritDoc}
+	 * @see #setConstructorArgumentValues
 	 */
 	@Override
 	public boolean hasConstructorArgumentValues() {
@@ -883,19 +986,22 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return property values for this bean (never {@code null}).
+	 * {@inheritDoc}
+	 * @see #setPropertyValues
 	 */
 	@Override
 	public MutablePropertyValues getPropertyValues() {
-		if (this.propertyValues == null) {
-			this.propertyValues = new MutablePropertyValues();
+		MutablePropertyValues pvs = this.propertyValues;
+		if (pvs == null) {
+			pvs = new MutablePropertyValues();
+			this.propertyValues = pvs;
 		}
-		return this.propertyValues;
+		return pvs;
 	}
 
 	/**
-	 * Return if there are property values defined for this bean.
-	 * @since 5.0.2
+	 * {@inheritDoc}
+	 * @see #setPropertyValues
 	 */
 	@Override
 	public boolean hasPropertyValues() {
@@ -927,25 +1033,46 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set the name of the initializer method.
-	 * <p>The default is {@code null} in which case there is no initializer method.
+	 * Specify the names of multiple initializer methods.
+	 * <p>The default is {@code null} in which case there are no initializer methods.
+	 * @since 6.0
+	 * @see #setInitMethodName
 	 */
-	@Override
-	public void setInitMethodName(@Nullable String initMethodName) {
-		this.initMethodName = initMethodName;
+	public void setInitMethodNames(@Nullable String... initMethodNames) {
+		this.initMethodNames = initMethodNames;
 	}
 
 	/**
-	 * Return the name of the initializer method.
+	 * Return the names of the initializer methods.
+	 * @since 6.0
+	 */
+	@Nullable
+	public String[] getInitMethodNames() {
+		return this.initMethodNames;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>The default is {@code null} in which case there is no initializer method.
+	 * @see #setInitMethodNames
+	 */
+	@Override
+	public void setInitMethodName(@Nullable String initMethodName) {
+		this.initMethodNames = (initMethodName != null ? new String[] {initMethodName} : null);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>Use the first one in case of multiple methods.
 	 */
 	@Override
 	@Nullable
 	public String getInitMethodName() {
-		return this.initMethodName;
+		return (!ObjectUtils.isEmpty(this.initMethodNames) ? this.initMethodNames[0] : null);
 	}
 
 	/**
-	 * Specify whether or not the configured initializer method is the default.
+	 * Specify whether the configured initializer method is the default.
 	 * <p>The default value is {@code true} for a locally specified init method
 	 * but switched to {@code false} for a shared setting in a defaults section
 	 * (e.g. {@code bean init-method} versus {@code beans default-init-method}
@@ -966,25 +1093,46 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set the name of the destroy method.
-	 * <p>The default is {@code null} in which case there is no destroy method.
+	 * Specify the names of multiple destroy methods.
+	 * <p>The default is {@code null} in which case there are no destroy methods.
+	 * @since 6.0
+	 * @see #setDestroyMethodName
 	 */
-	@Override
-	public void setDestroyMethodName(@Nullable String destroyMethodName) {
-		this.destroyMethodName = destroyMethodName;
+	public void setDestroyMethodNames(@Nullable String... destroyMethodNames) {
+		this.destroyMethodNames = destroyMethodNames;
 	}
 
 	/**
-	 * Return the name of the destroy method.
+	 * Return the names of the destroy methods.
+	 * @since 6.0
+	 */
+	@Nullable
+	public String[] getDestroyMethodNames() {
+		return this.destroyMethodNames;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>The default is {@code null} in which case there is no destroy method.
+	 * @see #setDestroyMethodNames
+	 */
+	@Override
+	public void setDestroyMethodName(@Nullable String destroyMethodName) {
+		this.destroyMethodNames = (destroyMethodName != null ? new String[] {destroyMethodName} : null);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>Use the first one in case of multiple methods.
 	 */
 	@Override
 	@Nullable
 	public String getDestroyMethodName() {
-		return this.destroyMethodName;
+		return (!ObjectUtils.isEmpty(this.destroyMethodNames) ? this.destroyMethodNames[0] : null);
 	}
 
 	/**
-	 * Specify whether or not the configured destroy method is the default.
+	 * Specify whether the configured destroy method is the default.
 	 * <p>The default value is {@code true} for a locally specified destroy method
 	 * but switched to {@code false} for a shared setting in a defaults section
 	 * (e.g. {@code bean destroy-method} versus {@code beans default-destroy-method}
@@ -1022,7 +1170,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set the role hint for this {@code BeanDefinition}.
+	 * {@inheritDoc}
+	 * <p>The default is {@link #ROLE_APPLICATION}.
 	 */
 	@Override
 	public void setRole(int role) {
@@ -1030,7 +1179,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return the role hint for this {@code BeanDefinition}.
+	 * {@inheritDoc}
+	 * <p>The default is {@link #ROLE_APPLICATION}.
 	 */
 	@Override
 	public int getRole() {
@@ -1038,7 +1188,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set a human-readable description of this bean definition.
+	 * {@inheritDoc}
+	 * <p>The default is no description.
 	 */
 	@Override
 	public void setDescription(@Nullable String description) {
@@ -1046,7 +1197,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return a human-readable description of this bean definition.
+	 * {@inheritDoc}
+	 * <p>The default is no description.
 	 */
 	@Override
 	@Nullable
@@ -1079,8 +1231,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return a description of the resource that this bean definition
-	 * came from (for the purpose of showing context in case of errors).
+	 * {@inheritDoc}
+	 * @see #setResourceDescription
 	 */
 	@Override
 	@Nullable
@@ -1096,16 +1248,13 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Return the originating BeanDefinition, or {@code null} if none.
-	 * Allows for retrieving the decorated bean definition, if any.
-	 * <p>Note that this method returns the immediate originator. Iterate through the
-	 * originator chain to find the original BeanDefinition as defined by the user.
+	 * {@inheritDoc}
+	 * @see #setOriginatingBeanDefinition
 	 */
 	@Override
 	@Nullable
 	public BeanDefinition getOriginatingBeanDefinition() {
-		return (this.resource instanceof BeanDefinitionResource ?
-				((BeanDefinitionResource) this.resource).getBeanDefinition() : null);
+		return (this.resource instanceof BeanDefinitionResource bdr ? bdr.getBeanDefinition() : null);
 	}
 
 	/**
@@ -1175,14 +1324,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 	@Override
 	public boolean equals(@Nullable Object other) {
-		if (this == other) {
-			return true;
-		}
-		if (!(other instanceof AbstractBeanDefinition)) {
-			return false;
-		}
-		AbstractBeanDefinition that = (AbstractBeanDefinition) other;
-		return (ObjectUtils.nullSafeEquals(getBeanClassName(), that.getBeanClassName()) &&
+		return (this == other || (other instanceof AbstractBeanDefinition that &&
+				ObjectUtils.nullSafeEquals(getBeanClassName(), that.getBeanClassName()) &&
 				ObjectUtils.nullSafeEquals(this.scope, that.scope) &&
 				this.abstractFlag == that.abstractFlag &&
 				this.lazyInit == that.lazyInit &&
@@ -1199,13 +1342,13 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 				ObjectUtils.nullSafeEquals(this.methodOverrides, that.methodOverrides) &&
 				ObjectUtils.nullSafeEquals(this.factoryBeanName, that.factoryBeanName) &&
 				ObjectUtils.nullSafeEquals(this.factoryMethodName, that.factoryMethodName) &&
-				ObjectUtils.nullSafeEquals(this.initMethodName, that.initMethodName) &&
+				ObjectUtils.nullSafeEquals(this.initMethodNames, that.initMethodNames) &&
 				this.enforceInitMethod == that.enforceInitMethod &&
-				ObjectUtils.nullSafeEquals(this.destroyMethodName, that.destroyMethodName) &&
+				ObjectUtils.nullSafeEquals(this.destroyMethodNames, that.destroyMethodNames) &&
 				this.enforceDestroyMethod == that.enforceDestroyMethod &&
 				this.synthetic == that.synthetic &&
 				this.role == that.role &&
-				super.equals(other));
+				super.equals(other)));
 	}
 
 	private boolean equalsConstructorArgumentValues(AbstractBeanDefinition other) {
@@ -1241,7 +1384,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder("class [");
-		sb.append(getBeanClassName()).append("]");
+		sb.append(getBeanClassName()).append(']');
 		sb.append("; scope=").append(this.scope);
 		sb.append("; abstract=").append(this.abstractFlag);
 		sb.append("; lazyInit=").append(this.lazyInit);
@@ -1251,8 +1394,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 		sb.append("; primary=").append(this.primary);
 		sb.append("; factoryBeanName=").append(this.factoryBeanName);
 		sb.append("; factoryMethodName=").append(this.factoryMethodName);
-		sb.append("; initMethodName=").append(this.initMethodName);
-		sb.append("; destroyMethodName=").append(this.destroyMethodName);
+		sb.append("; initMethodNames=").append(Arrays.toString(this.initMethodNames));
+		sb.append("; destroyMethodNames=").append(Arrays.toString(this.destroyMethodNames));
 		if (this.resource != null) {
 			sb.append("; defined in ").append(this.resource.getDescription());
 		}

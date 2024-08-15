@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.testfixture.servlet.MockHttpServletRequest;
 import org.springframework.web.testfixture.servlet.MockServletContext;
+import org.springframework.web.util.UrlPathHelper;
 import org.springframework.web.util.WebUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,11 +43,10 @@ import static org.springframework.web.servlet.HandlerMapping.PATH_WITHIN_HANDLER
  * @author Rod Johnson
  * @author Juergen Hoeller
  */
-public class SimpleUrlHandlerMappingTests {
+class SimpleUrlHandlerMappingTests {
 
 	@Test
-	@SuppressWarnings("resource")
-	public void handlerBeanNotFound() {
+	void handlerBeanNotFound() {
 		MockServletContext sc = new MockServletContext("");
 		XmlWebApplicationContext root = new XmlWebApplicationContext();
 		root.setServletContext(sc);
@@ -68,10 +68,12 @@ public class SimpleUrlHandlerMappingTests {
 	}
 
 	@Test
-	public void testNewlineInRequest() throws Exception {
+	void testNewlineInRequest() throws Exception {
 		Object controller = new Object();
+		UrlPathHelper urlPathHelper = new UrlPathHelper();
+		urlPathHelper.setUrlDecode(false);
 		SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping(Collections.singletonMap("/*/baz", controller));
-		mapping.setUrlDecode(false);
+		mapping.setUrlPathHelper(urlPathHelper);
 		mapping.setApplicationContext(new StaticApplicationContext());
 
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/foo%0a%0dbar/baz");
@@ -102,7 +104,7 @@ public class SimpleUrlHandlerMappingTests {
 		assertThat(request.getAttribute(PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE)).isEqualTo("/welcome.html");
 		assertThat(request.getAttribute(BEST_MATCHING_HANDLER_ATTRIBUTE)).isEqualTo(bean);
 
-		request = PathPatternsTestUtils.initRequest("GET", "/welcome.x", usePathPatterns);
+		request = PathPatternsTestUtils.initRequest("GET", "/welcome.x;jsessionid=123", usePathPatterns);
 		chain = getHandler(hm, request);
 		assertThat(chain.getHandler()).isSameAs(otherBean);
 		assertThat(request.getAttribute(PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE)).isEqualTo("welcome.x");
@@ -113,11 +115,6 @@ public class SimpleUrlHandlerMappingTests {
 		assertThat(chain.getHandler()).isSameAs(otherBean);
 		assertThat(request.getAttribute(PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE)).isEqualTo("welcome.x");
 		assertThat(request.getAttribute(BEST_MATCHING_HANDLER_ATTRIBUTE)).isEqualTo(otherBean);
-
-		request = PathPatternsTestUtils.initRequest("GET", "/welcome/", usePathPatterns);
-		chain = getHandler(hm, request);
-		assertThat(chain.getHandler()).isSameAs(otherBean);
-		assertThat(request.getAttribute(PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE)).isEqualTo("welcome");
 
 		request = PathPatternsTestUtils.initRequest("GET", "/", usePathPatterns);
 		request.setServletPath("/welcome.html");
@@ -159,7 +156,7 @@ public class SimpleUrlHandlerMappingTests {
 
 		request = PathPatternsTestUtils.initRequest("GET", "/somePath", usePathPatterns);
 		chain = getHandler(hm, request);
-		assertThat(chain.getHandler() == defaultBean).as("Handler is correct bean").isTrue();
+		assertThat(chain.getHandler()).as("Handler is correct bean").isSameAs(defaultBean);
 		assertThat(request.getAttribute(PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE)).isEqualTo("/somePath");
 	}
 

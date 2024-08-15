@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ServletWebArgumentR
 import org.springframework.web.util.UrlPathHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.BOOLEAN;
 
 /**
  * Test fixture for the configuration in mvc-config-annotation-driven.xml.
@@ -58,12 +59,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Brian Clozel
  * @author Agim Emruli
  */
-public class AnnotationDrivenBeanDefinitionParserTests {
+class AnnotationDrivenBeanDefinitionParserTests {
 
 	private final GenericWebApplicationContext appContext = new GenericWebApplicationContext();
 
 	@Test
-	public void testMessageCodesResolver() {
+	void testMessageCodesResolver() {
 		loadBeanDefinitions("mvc-config-message-codes-resolver.xml");
 		RequestMappingHandlerAdapter adapter = this.appContext.getBean(RequestMappingHandlerAdapter.class);
 		assertThat(adapter).isNotNull();
@@ -73,7 +74,8 @@ public class AnnotationDrivenBeanDefinitionParserTests {
 				((ConfigurableWebBindingInitializer) initializer).getMessageCodesResolver();
 		assertThat(resolver).isNotNull();
 		assertThat(resolver.getClass()).isEqualTo(TestMessageCodesResolver.class);
-		assertThat(new DirectFieldAccessor(adapter).getPropertyValue("ignoreDefaultModelOnRedirect")).isEqualTo(false);
+		assertThat(new DirectFieldAccessor(adapter).getPropertyValue("ignoreDefaultModelOnRedirect"))
+				.asInstanceOf(BOOLEAN).isTrue();
 	}
 
 	@Test
@@ -92,7 +94,7 @@ public class AnnotationDrivenBeanDefinitionParserTests {
 	}
 
 	@Test
-	public void testMessageConverters() {
+	void testMessageConverters() {
 		loadBeanDefinitions("mvc-config-message-converters.xml");
 		verifyMessageConverters(this.appContext.getBean(RequestMappingHandlerAdapter.class), true);
 		verifyMessageConverters(this.appContext.getBean(ExceptionHandlerExceptionResolver.class), true);
@@ -101,14 +103,14 @@ public class AnnotationDrivenBeanDefinitionParserTests {
 	}
 
 	@Test
-	public void testMessageConvertersWithoutDefaultRegistrations() {
+	void testMessageConvertersWithoutDefaultRegistrations() {
 		loadBeanDefinitions("mvc-config-message-converters-defaults-off.xml");
 		verifyMessageConverters(this.appContext.getBean(RequestMappingHandlerAdapter.class), false);
 		verifyMessageConverters(this.appContext.getBean(ExceptionHandlerExceptionResolver.class), false);
 	}
 
 	@Test
-	public void testArgumentResolvers() {
+	void testArgumentResolvers() {
 		loadBeanDefinitions("mvc-config-argument-resolvers.xml");
 		testArgumentResolvers(this.appContext.getBean(RequestMappingHandlerAdapter.class));
 		testArgumentResolvers(this.appContext.getBean(ExceptionHandlerExceptionResolver.class));
@@ -118,18 +120,18 @@ public class AnnotationDrivenBeanDefinitionParserTests {
 		assertThat(bean).isNotNull();
 		Object value = new DirectFieldAccessor(bean).getPropertyValue("customArgumentResolvers");
 		assertThat(value).isNotNull();
-		assertThat(value instanceof List).isTrue();
+		assertThat(value).isInstanceOf(List.class);
 		@SuppressWarnings("unchecked")
 		List<HandlerMethodArgumentResolver> resolvers = (List<HandlerMethodArgumentResolver>) value;
-		assertThat(resolvers.size()).isEqualTo(3);
-		assertThat(resolvers.get(0) instanceof ServletWebArgumentResolverAdapter).isTrue();
-		assertThat(resolvers.get(1) instanceof TestHandlerMethodArgumentResolver).isTrue();
-		assertThat(resolvers.get(2) instanceof TestHandlerMethodArgumentResolver).isTrue();
-		assertThat(resolvers.get(2)).isNotSameAs(resolvers.get(1));
+		assertThat(resolvers).hasSize(3);
+		assertThat(resolvers).element(0).isInstanceOf(ServletWebArgumentResolverAdapter.class);
+		assertThat(resolvers).element(1).isInstanceOf(TestHandlerMethodArgumentResolver.class);
+		assertThat(resolvers).element(2).isInstanceOf(TestHandlerMethodArgumentResolver.class);
+		assertThat(resolvers).element(2).isNotSameAs(resolvers.get(1));
 	}
 
 	@Test
-	public void testReturnValueHandlers() {
+	void testReturnValueHandlers() {
 		loadBeanDefinitions("mvc-config-return-value-handlers.xml");
 		testReturnValueHandlers(this.appContext.getBean(RequestMappingHandlerAdapter.class));
 		testReturnValueHandlers(this.appContext.getBean(ExceptionHandlerExceptionResolver.class));
@@ -139,17 +141,17 @@ public class AnnotationDrivenBeanDefinitionParserTests {
 		assertThat(bean).isNotNull();
 		Object value = new DirectFieldAccessor(bean).getPropertyValue("customReturnValueHandlers");
 		assertThat(value).isNotNull();
-		assertThat(value instanceof List).isTrue();
+		assertThat(value).isInstanceOf(List.class);
 		@SuppressWarnings("unchecked")
 		List<HandlerMethodReturnValueHandler> handlers = (List<HandlerMethodReturnValueHandler>) value;
-		assertThat(handlers.size()).isEqualTo(2);
+		assertThat(handlers).hasSize(2);
 		assertThat(handlers.get(0).getClass()).isEqualTo(TestHandlerMethodReturnValueHandler.class);
 		assertThat(handlers.get(1).getClass()).isEqualTo(TestHandlerMethodReturnValueHandler.class);
-		assertThat(handlers.get(1)).isNotSameAs(handlers.get(0));
+		assertThat(handlers).element(1).isNotSameAs(handlers.get(0));
 	}
 
 	@Test
-	public void beanNameUrlHandlerMapping() {
+	void beanNameUrlHandlerMapping() {
 		loadBeanDefinitions("mvc-config.xml");
 		BeanNameUrlHandlerMapping mapping = this.appContext.getBean(BeanNameUrlHandlerMapping.class);
 		assertThat(mapping).isNotNull();
@@ -168,16 +170,16 @@ public class AnnotationDrivenBeanDefinitionParserTests {
 		assertThat(bean).isNotNull();
 		Object value = new DirectFieldAccessor(bean).getPropertyValue("messageConverters");
 		assertThat(value).isNotNull();
-		assertThat(value instanceof List).isTrue();
+		assertThat(value).isInstanceOf(List.class);
 		List<HttpMessageConverter<?>> converters = (List<HttpMessageConverter<?>>) value;
 		if (hasDefaultRegistrations) {
-			assertThat(converters.size() > 2).as("Default and custom converter expected").isTrue();
+			assertThat(converters.size()).as("Default and custom converter expected").isGreaterThan(2);
 		}
 		else {
-			assertThat(converters.size() == 2).as("Only custom converters expected").isTrue();
+			assertThat(converters.size()).as("Only custom converters expected").isEqualTo(2);
 		}
-		assertThat(converters.get(0) instanceof StringHttpMessageConverter).isTrue();
-		assertThat(converters.get(1) instanceof ResourceHttpMessageConverter).isTrue();
+		assertThat(converters).element(0).isInstanceOf(StringHttpMessageConverter.class);
+		assertThat(converters).element(1).isInstanceOf(ResourceHttpMessageConverter.class);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -185,9 +187,9 @@ public class AnnotationDrivenBeanDefinitionParserTests {
 		assertThat(bean).isNotNull();
 		Object value = new DirectFieldAccessor(bean).getPropertyValue("responseBodyAdvice");
 		assertThat(value).isNotNull();
-		assertThat(value instanceof List).isTrue();
+		assertThat(value).isInstanceOf(List.class);
 		List<ResponseBodyAdvice<?>> converters = (List<ResponseBodyAdvice<?>>) value;
-		assertThat(converters.get(0) instanceof JsonViewResponseBodyAdvice).isTrue();
+		assertThat(converters).element(0).isInstanceOf(JsonViewResponseBodyAdvice.class);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -195,10 +197,10 @@ public class AnnotationDrivenBeanDefinitionParserTests {
 		assertThat(bean).isNotNull();
 		Object value = new DirectFieldAccessor(bean).getPropertyValue("requestResponseBodyAdvice");
 		assertThat(value).isNotNull();
-		assertThat(value instanceof List).isTrue();
+		assertThat(value).isInstanceOf(List.class);
 		List<ResponseBodyAdvice<?>> converters = (List<ResponseBodyAdvice<?>>) value;
-		assertThat(converters.get(0) instanceof JsonViewRequestBodyAdvice).isTrue();
-		assertThat(converters.get(1) instanceof JsonViewResponseBodyAdvice).isTrue();
+		assertThat(converters).element(0).isInstanceOf(JsonViewRequestBodyAdvice.class);
+		assertThat(converters).element(1).isInstanceOf(JsonViewResponseBodyAdvice.class);
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,6 +73,18 @@ public interface AutowireCandidateResolver {
 	}
 
 	/**
+	 * Determine whether a target bean name is suggested for the given dependency
+	 * (typically - but not necessarily - declared with a single-value qualifier).
+	 * @param descriptor the descriptor for the target method parameter or field
+	 * @return the qualifier value, if any
+	 * @since 6.2
+	 */
+	@Nullable
+	default String getSuggestedName(DependencyDescriptor descriptor) {
+		return null;
+	}
+
+	/**
 	 * Determine whether a default value is suggested for the given dependency.
 	 * <p>The default implementation simply returns {@code null}.
 	 * @param descriptor the descriptor for the target method parameter or field
@@ -97,6 +109,20 @@ public interface AutowireCandidateResolver {
 	 */
 	@Nullable
 	default Object getLazyResolutionProxyIfNecessary(DependencyDescriptor descriptor, @Nullable String beanName) {
+		return null;
+	}
+
+	/**
+	 * Determine the proxy class for lazy resolution of the dependency target,
+	 * if demanded by the injection point.
+	 * <p>The default implementation simply returns {@code null}.
+	 * @param descriptor the descriptor for the target method parameter or field
+	 * @param beanName the name of the bean that contains the injection point
+	 * @return the lazy resolution proxy class for the dependency target, if any
+	 * @since 6.0
+	 */
+	@Nullable
+	default Class<?> getLazyResolutionProxyClass(DependencyDescriptor descriptor, @Nullable String beanName) {
 		return null;
 	}
 

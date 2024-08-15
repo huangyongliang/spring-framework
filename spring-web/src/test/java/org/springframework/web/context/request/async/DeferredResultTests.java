@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package org.springframework.web.context.request.async;
 
-import java.util.function.Consumer;
-
 import org.junit.jupiter.api.Test;
 
 import org.springframework.web.context.request.async.DeferredResult.DeferredResultHandler;
@@ -31,11 +29,11 @@ import static org.mockito.Mockito.verify;
  *
  * @author Rossen Stoyanchev
  */
-public class DeferredResultTests {
+class DeferredResultTests {
 
 	@Test
-	public void setResult() {
-		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+	void setResult() {
+		DeferredResultHandler handler = mock();
 
 		DeferredResult<String> result = new DeferredResult<>();
 		result.setResultHandler(handler);
@@ -45,8 +43,8 @@ public class DeferredResultTests {
 	}
 
 	@Test
-	public void setResultTwice() {
-		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+	void setResultTwice() {
+		DeferredResultHandler handler = mock();
 
 		DeferredResult<String> result = new DeferredResult<>();
 		result.setResultHandler(handler);
@@ -58,8 +56,8 @@ public class DeferredResultTests {
 	}
 
 	@Test
-	public void isSetOrExpired() {
-		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+	void isSetOrExpired() {
+		DeferredResultHandler handler = mock();
 
 		DeferredResult<String> result = new DeferredResult<>();
 		result.setResultHandler(handler);
@@ -74,8 +72,8 @@ public class DeferredResultTests {
 	}
 
 	@Test
-	public void hasResult() {
-		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+	void hasResult() {
+		DeferredResultHandler handler = mock();
 
 		DeferredResult<String> result = new DeferredResult<>();
 		result.setResultHandler(handler);
@@ -89,7 +87,7 @@ public class DeferredResultTests {
 	}
 
 	@Test
-	public void onCompletion() throws Exception {
+	void onCompletion() throws Exception {
 		final StringBuilder sb = new StringBuilder();
 
 		DeferredResult<String> result = new DeferredResult<>();
@@ -102,10 +100,10 @@ public class DeferredResultTests {
 	}
 
 	@Test
-	public void onTimeout() throws Exception {
+	void onTimeout() throws Exception {
 		final StringBuilder sb = new StringBuilder();
 
-		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+		DeferredResultHandler handler = mock();
 
 		DeferredResult<String> result = new DeferredResult<>(null, "timeout result");
 		result.setResultHandler(handler);
@@ -119,20 +117,15 @@ public class DeferredResultTests {
 	}
 
 	@Test
-	public void onError() throws Exception {
+	void onError() throws Exception {
 		final StringBuilder sb = new StringBuilder();
 
-		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+		DeferredResultHandler handler = mock();
 
 		DeferredResult<String> result = new DeferredResult<>(null, "error result");
 		result.setResultHandler(handler);
 		Exception e = new Exception();
-		result.onError(new Consumer<Throwable>() {
-			@Override
-			public void accept(Throwable t) {
-				sb.append("error event");
-			}
-		});
+		result.onError(t -> sb.append("error event"));
 
 		result.getInterceptor().handleError(null, null, e);
 

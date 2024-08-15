@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,24 +83,28 @@ public class WebSocketServerSockJsSession extends AbstractSockJsSession implemen
 	}
 
 	@Override
+	@Nullable
 	public Principal getPrincipal() {
 		Assert.state(this.webSocketSession != null, "WebSocketSession not yet initialized");
 		return this.webSocketSession.getPrincipal();
 	}
 
 	@Override
+	@Nullable
 	public InetSocketAddress getLocalAddress() {
 		Assert.state(this.webSocketSession != null, "WebSocketSession not yet initialized");
 		return this.webSocketSession.getLocalAddress();
 	}
 
 	@Override
+	@Nullable
 	public InetSocketAddress getRemoteAddress() {
 		Assert.state(this.webSocketSession != null, "WebSocketSession not yet initialized");
 		return this.webSocketSession.getRemoteAddress();
 	}
 
 	@Override
+	@Nullable
 	public String getAcceptedProtocol() {
 		Assert.state(this.webSocketSession != null, "WebSocketSession not yet initialized");
 		return this.webSocketSession.getAcceptedProtocol();
@@ -139,15 +143,15 @@ public class WebSocketServerSockJsSession extends AbstractSockJsSession implemen
 	@Override
 	public Object getNativeSession() {
 		Assert.state(this.webSocketSession != null, "WebSocketSession not yet initialized");
-		return (this.webSocketSession instanceof NativeWebSocketSession ?
-				((NativeWebSocketSession) this.webSocketSession).getNativeSession() : this.webSocketSession);
+		return (this.webSocketSession instanceof NativeWebSocketSession nativeWsSession ?
+				nativeWsSession.getNativeSession() : this.webSocketSession);
 	}
 
 	@Override
 	@Nullable
 	public <T> T getNativeSession(@Nullable Class<T> requiredType) {
-		return (this.webSocketSession instanceof NativeWebSocketSession ?
-				((NativeWebSocketSession) this.webSocketSession).getNativeSession(requiredType) : null);
+		return (this.webSocketSession instanceof NativeWebSocketSession nativeWsSession ?
+				nativeWsSession.getNativeSession(requiredType) : null);
 	}
 
 
@@ -159,7 +163,7 @@ public class WebSocketServerSockJsSession extends AbstractSockJsSession implemen
 				delegateConnectionEstablished();
 				this.webSocketSession.sendMessage(new TextMessage(SockJsFrame.openFrame().getContent()));
 
-				// Flush any messages cached in the mean time
+				// Flush any messages cached in the meantime
 				while (!this.initSessionCache.isEmpty()) {
 					writeFrame(SockJsFrame.messageFrame(getMessageCodec(), this.initSessionCache.poll()));
 				}

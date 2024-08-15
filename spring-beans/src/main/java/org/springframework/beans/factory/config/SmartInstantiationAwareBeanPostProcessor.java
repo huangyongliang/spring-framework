@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,12 +28,10 @@ import org.springframework.lang.Nullable;
  * <p><b>NOTE:</b> This interface is a special purpose interface, mainly for
  * internal use within the framework. In general, application-provided
  * post-processors should simply implement the plain {@link BeanPostProcessor}
- * interface or derive from the {@link InstantiationAwareBeanPostProcessorAdapter}
- * class. New methods might be added to this interface even in point releases.
+ * interface.
  *
  * @author Juergen Hoeller
  * @since 2.0.3
- * @see InstantiationAwareBeanPostProcessorAdapter
  */
 public interface SmartInstantiationAwareBeanPostProcessor extends InstantiationAwareBeanPostProcessor {
 
@@ -41,6 +39,8 @@ public interface SmartInstantiationAwareBeanPostProcessor extends InstantiationA
 	 * Predict the type of the bean to be eventually returned from this
 	 * processor's {@link #postProcessBeforeInstantiation} callback.
 	 * <p>The default implementation returns {@code null}.
+	 * Specific implementations should try to predict the bean type as
+	 * far as known/cached already, without extra processing steps.
 	 * @param beanClass the raw class of the bean
 	 * @param beanName the name of the bean
 	 * @return the type of the bean, or {@code null} if not predictable
@@ -49,6 +49,22 @@ public interface SmartInstantiationAwareBeanPostProcessor extends InstantiationA
 	@Nullable
 	default Class<?> predictBeanType(Class<?> beanClass, String beanName) throws BeansException {
 		return null;
+	}
+
+	/**
+	 * Determine the type of the bean to be eventually returned from this
+	 * processor's {@link #postProcessBeforeInstantiation} callback.
+	 * <p>The default implementation returns the given bean class as-is.
+	 * Specific implementations should fully evaluate their processing steps
+	 * in order to create/initialize a potential proxy class upfront.
+	 * @param beanClass the raw class of the bean
+	 * @param beanName the name of the bean
+	 * @return the type of the bean (never {@code null})
+	 * @throws org.springframework.beans.BeansException in case of errors
+	 * @since 6.0
+	 */
+	default Class<?> determineBeanType(Class<?> beanClass, String beanName) throws BeansException {
+		return beanClass;
 	}
 
 	/**
@@ -71,20 +87,20 @@ public interface SmartInstantiationAwareBeanPostProcessor extends InstantiationA
 	 * typically for the purpose of resolving a circular reference.
 	 * <p>This callback gives post-processors a chance to expose a wrapper
 	 * early - that is, before the target bean instance is fully initialized.
-	 * The exposed object should be equivalent to the what
+	 * The exposed object should be equivalent to what
 	 * {@link #postProcessBeforeInitialization} / {@link #postProcessAfterInitialization}
 	 * would expose otherwise. Note that the object returned by this method will
-	 * be used as bean reference unless the post-processor returns a different
-	 * wrapper from said post-process callbacks. In other words: Those post-process
+	 * be used as the bean reference unless the post-processor returns a different
+	 * wrapper from said post-process callbacks. In other words, those post-process
 	 * callbacks may either eventually expose the same reference or alternatively
 	 * return the raw bean instance from those subsequent callbacks (if the wrapper
 	 * for the affected bean has been built for a call to this method already,
-	 * it will be exposes as final bean reference by default).
+	 * it will be exposed as the final bean reference by default).
 	 * <p>The default implementation returns the given {@code bean} as-is.
 	 * @param bean the raw bean instance
 	 * @param beanName the name of the bean
-	 * @return the object to expose as bean reference
-	 * (typically with the passed-in bean instance as default)
+	 * @return the object to expose as the bean reference
+	 * (typically the passed-in bean instance as default)
 	 * @throws org.springframework.beans.BeansException in case of errors
 	 */
 	default Object getEarlyBeanReference(Object bean, String beanName) throws BeansException {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,12 +28,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Unit tests for {@link SimpAttributes}.
+ * Tests for {@link SimpAttributes}.
  *
  * @author Rossen Stoyanchev
  * @since 4.1
  */
-public class SimpAttributesTests {
+class SimpAttributesTests {
 
 	private final Map<String, Object> map = new ConcurrentHashMap<>();
 
@@ -41,7 +41,7 @@ public class SimpAttributesTests {
 
 
 	@Test
-	public void getAttribute() {
+	void getAttribute() {
 		this.simpAttributes.setAttribute("name1", "value1");
 
 		assertThat(this.simpAttributes.getAttribute("name1")).isEqualTo("value1");
@@ -49,7 +49,7 @@ public class SimpAttributesTests {
 	}
 
 	@Test
-	public void getAttributeNames() {
+	void getAttributeNames() {
 		this.simpAttributes.setAttribute("name1", "value1");
 		this.simpAttributes.setAttribute("name2", "value1");
 		this.simpAttributes.setAttribute("name3", "value1");
@@ -59,8 +59,8 @@ public class SimpAttributesTests {
 	}
 
 	@Test
-	public void registerDestructionCallback() {
-		Runnable callback = mock(Runnable.class);
+	void registerDestructionCallback() {
+		Runnable callback = mock();
 		this.simpAttributes.registerDestructionCallback("name1", callback);
 
 		assertThat(this.simpAttributes.getAttribute(
@@ -68,30 +68,30 @@ public class SimpAttributesTests {
 	}
 
 	@Test
-	public void registerDestructionCallbackAfterSessionCompleted() {
+	void registerDestructionCallbackAfterSessionCompleted() {
 		this.simpAttributes.sessionCompleted();
-		assertThatIllegalStateException().isThrownBy(() ->
-				this.simpAttributes.registerDestructionCallback("name1", mock(Runnable.class)))
-			.withMessageContaining("already completed");
+		assertThatIllegalStateException()
+				.isThrownBy(() -> this.simpAttributes.registerDestructionCallback("name1", mock()))
+				.withMessageContaining("already completed");
 	}
 
 	@Test
-	public void removeDestructionCallback() {
-		Runnable callback1 = mock(Runnable.class);
-		Runnable callback2 = mock(Runnable.class);
+	void removeDestructionCallback() {
+		Runnable callback1 = mock();
+		Runnable callback2 = mock();
 		this.simpAttributes.registerDestructionCallback("name1", callback1);
 		this.simpAttributes.registerDestructionCallback("name2", callback2);
 
-		assertThat(this.simpAttributes.getAttributeNames().length).isEqualTo(2);
+		assertThat(this.simpAttributes.getAttributeNames()).hasSize(2);
 	}
 
 	@Test
-	public void getSessionMutex() {
+	void getSessionMutex() {
 		assertThat(this.simpAttributes.getSessionMutex()).isSameAs(this.map);
 	}
 
 	@Test
-	public void getSessionMutexExplicit() {
+	void getSessionMutexExplicit() {
 		Object mutex = new Object();
 		this.simpAttributes.setAttribute(SimpAttributes.SESSION_MUTEX_NAME, mutex);
 
@@ -99,9 +99,9 @@ public class SimpAttributesTests {
 	}
 
 	@Test
-	public void sessionCompleted() {
-		Runnable callback1 = mock(Runnable.class);
-		Runnable callback2 = mock(Runnable.class);
+	void sessionCompleted() {
+		Runnable callback1 = mock();
+		Runnable callback2 = mock();
 		this.simpAttributes.registerDestructionCallback("name1", callback1);
 		this.simpAttributes.registerDestructionCallback("name2", callback2);
 
@@ -112,8 +112,8 @@ public class SimpAttributesTests {
 	}
 
 	@Test
-	public void sessionCompletedIsIdempotent() {
-		Runnable callback1 = mock(Runnable.class);
+	void sessionCompletedIsIdempotent() {
+		Runnable callback1 = mock();
 		this.simpAttributes.registerDestructionCallback("name1", callback1);
 
 		this.simpAttributes.sessionCompleted();

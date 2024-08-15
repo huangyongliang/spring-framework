@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ import static org.springframework.test.context.jdbc.SqlConfig.TransactionMode.IN
 import static org.springframework.test.context.jdbc.SqlConfig.TransactionMode.ISOLATED;
 
 /**
- * Unit tests for {@link MergedSqlConfig}.
+ * Tests for {@link MergedSqlConfig}.
  *
  * @author Sam Brannen
  * @since 4.1
@@ -157,7 +157,7 @@ class MergedSqlConfigTests {
 	}
 
 	@Test
-	void globalConfigWithEmptyCommentPrefix() throws Exception {
+	void globalConfigWithEmptyCommentPrefix() {
 		SqlConfig sqlConfig = GlobalConfigWithWithEmptyCommentPrefixClass.class.getAnnotation(SqlConfig.class);
 
 		assertThatIllegalArgumentException()
@@ -166,7 +166,7 @@ class MergedSqlConfigTests {
 	}
 
 	@Test
-	void globalConfigWithEmptyCommentPrefixes() throws Exception {
+	void globalConfigWithEmptyCommentPrefixes() {
 		SqlConfig sqlConfig = GlobalConfigWithWithEmptyCommentPrefixesClass.class.getAnnotation(SqlConfig.class);
 
 		assertThatIllegalArgumentException()
@@ -175,7 +175,7 @@ class MergedSqlConfigTests {
 	}
 
 	@Test
-	void globalConfigWithDuplicatedCommentPrefixes() throws Exception {
+	void globalConfigWithDuplicatedCommentPrefixes() {
 		SqlConfig sqlConfig = GlobalConfigWithWithDuplicatedCommentPrefixesClass.class.getAnnotation(SqlConfig.class);
 
 		assertThatIllegalArgumentException()
@@ -244,10 +244,10 @@ class MergedSqlConfigTests {
 	private void assertDefaults(MergedSqlConfig cfg) {
 		assertSoftly(softly -> {
 			softly.assertThat(cfg).isNotNull();
-			softly.assertThat(cfg.getDataSource()).as("dataSource").isEqualTo("");
-			softly.assertThat(cfg.getTransactionManager()).as("transactionManager").isEqualTo("");
+			softly.assertThat(cfg.getDataSource()).as("dataSource").isEmpty();
+			softly.assertThat(cfg.getTransactionManager()).as("transactionManager").isEmpty();
 			softly.assertThat(cfg.getTransactionMode()).as("transactionMode").isEqualTo(INFERRED);
-			softly.assertThat(cfg.getEncoding()).as("encoding").isEqualTo("");
+			softly.assertThat(cfg.getEncoding()).as("encoding").isEmpty();
 			softly.assertThat(cfg.getSeparator()).as("separator").isEqualTo(DEFAULT_STATEMENT_SEPARATOR);
 			softly.assertThat(cfg.getCommentPrefixes()).as("commentPrefixes").isEqualTo(DEFAULT_COMMENT_PREFIXES);
 			softly.assertThat(cfg.getBlockCommentStartDelimiter()).as("blockCommentStartDelimiter").isEqualTo(DEFAULT_BLOCK_COMMENT_START_DELIMITER);
@@ -270,8 +270,8 @@ class MergedSqlConfigTests {
 
 		assertSoftly(softly -> {
 			softly.assertThat(cfg).isNotNull();
-			softly.assertThat(cfg.getDataSource()).as("dataSource").isEqualTo("");
-			softly.assertThat(cfg.getTransactionManager()).as("transactionManager").isEqualTo("");
+			softly.assertThat(cfg.getDataSource()).as("dataSource").isEmpty();
+			softly.assertThat(cfg.getTransactionManager()).as("transactionManager").isEmpty();
 			softly.assertThat(cfg.getTransactionMode()).as("transactionMode").isEqualTo(INFERRED);
 			softly.assertThat(cfg.getEncoding()).as("encoding").isEqualTo("global");
 			softly.assertThat(cfg.getSeparator()).as("separator").isEqualTo("\n");
@@ -289,8 +289,8 @@ class MergedSqlConfigTests {
 
 		assertSoftly(softly -> {
 			softly.assertThat(cfg).isNotNull();
-			softly.assertThat(cfg.getDataSource()).as("dataSource").isEqualTo("");
-			softly.assertThat(cfg.getTransactionManager()).as("transactionManager").isEqualTo("");
+			softly.assertThat(cfg.getDataSource()).as("dataSource").isEmpty();
+			softly.assertThat(cfg.getTransactionManager()).as("transactionManager").isEmpty();
 			softly.assertThat(cfg.getTransactionMode()).as("transactionMode").isEqualTo(INFERRED);
 			softly.assertThat(cfg.getEncoding()).as("encoding").isEqualTo("local");
 			softly.assertThat(cfg.getSeparator()).as("separator").isEqualTo("@@");

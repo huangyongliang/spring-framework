@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,19 +67,25 @@ import static org.springframework.web.testfixture.method.ResolvableMethod.on;
  *
  * @author Rossen Stoyanchev
  */
-public class ViewResolutionResultHandlerTests {
+class ViewResolutionResultHandlerTests {
 
 	private final BindingContext bindingContext = new BindingContext();
 
 
 	@Test
-	public void supports() {
+	void supports() {
 		testSupports(on(Handler.class).annotPresent(ModelAttribute.class).resolveReturnType(String.class));
 		testSupports(on(Handler.class).annotNotPresent(ModelAttribute.class).resolveReturnType(String.class));
 		testSupports(on(Handler.class).resolveReturnType(Mono.class, String.class));
 
 		testSupports(on(Handler.class).resolveReturnType(Rendering.class));
 		testSupports(on(Handler.class).resolveReturnType(Mono.class, Rendering.class));
+
+		testSupports(on(Handler.class).resolveReturnType(FragmentsRendering.class));
+		testSupports(on(Handler.class).resolveReturnType(Flux.class, Fragment.class));
+		testSupports(on(Handler.class).resolveReturnType(List.class, Fragment.class));
+		testSupports(on(Handler.class).resolveReturnType(
+				Mono.class, ResolvableType.forClassWithGenerics(List.class, Fragment.class)));
 
 		testSupports(on(Handler.class).resolveReturnType(View.class));
 		testSupports(on(Handler.class).resolveReturnType(Mono.class, View.class));
@@ -122,7 +128,7 @@ public class ViewResolutionResultHandlerTests {
 	}
 
 	@Test
-	public void viewResolverOrder() {
+	void viewResolverOrder() {
 		TestViewResolver resolver1 = new TestViewResolver("account");
 		TestViewResolver resolver2 = new TestViewResolver("profile");
 		resolver1.setOrder(2);
@@ -133,7 +139,7 @@ public class ViewResolutionResultHandlerTests {
 	}
 
 	@Test
-	public void handleReturnValueTypes() {
+	void handleReturnValueTypes() {
 		Object returnValue;
 		MethodParameter returnType;
 		ViewResolver resolver = new TestViewResolver("account");
@@ -197,7 +203,7 @@ public class ViewResolutionResultHandlerTests {
 	}
 
 	@Test
-	public void handleWithMultipleResolvers() {
+	void handleWithMultipleResolvers() {
 		testHandle("/account",
 				on(Handler.class).annotNotPresent(ModelAttribute.class).resolveReturnType(String.class),
 				"profile", "profile: {id=123}",
@@ -205,7 +211,7 @@ public class ViewResolutionResultHandlerTests {
 	}
 
 	@Test
-	public void defaultViewName() {
+	void defaultViewName() {
 		testDefaultViewName(null, on(Handler.class).annotPresent(ModelAttribute.class).resolveReturnType(String.class));
 		testDefaultViewName(Mono.empty(), on(Handler.class).resolveReturnType(Mono.class, String.class));
 		testDefaultViewName(Mono.empty(), on(Handler.class).resolveReturnType(Mono.class, Void.class));
@@ -231,7 +237,7 @@ public class ViewResolutionResultHandlerTests {
 	}
 
 	@Test
-	public void unresolvedViewName() {
+	void unresolvedViewName() {
 		String returnValue = "account";
 		MethodParameter returnType = on(Handler.class).annotPresent(ModelAttribute.class).resolveReturnType(String.class);
 		HandlerResult result = new HandlerResult(new Object(), returnValue, returnType, this.bindingContext);
@@ -246,7 +252,7 @@ public class ViewResolutionResultHandlerTests {
 	}
 
 	@Test
-	public void contentNegotiation() {
+	void contentNegotiation() {
 		TestBean value = new TestBean("Joe");
 		MethodParameter returnType = on(Handler.class).resolveReturnType(TestBean.class);
 		HandlerResult handlerResult = new HandlerResult(new Object(), value, returnType, this.bindingContext);
@@ -268,7 +274,7 @@ public class ViewResolutionResultHandlerTests {
 	}
 
 	@Test
-	public void contentNegotiationWith406() {
+	void contentNegotiationWith406() {
 		TestBean value = new TestBean("Joe");
 		MethodParameter returnType = on(Handler.class).resolveReturnType(TestBean.class);
 		HandlerResult handlerResult = new HandlerResult(new Object(), value, returnType, this.bindingContext);
@@ -284,7 +290,7 @@ public class ViewResolutionResultHandlerTests {
 	}
 
 	@Test  // SPR-15291
-	public void contentNegotiationWithRedirect() {
+	void contentNegotiationWithRedirect() {
 		HandlerResult handlerResult = new HandlerResult(new Object(), "redirect:/",
 				on(Handler.class).annotNotPresent(ModelAttribute.class).resolveReturnType(String.class),
 				this.bindingContext);
@@ -396,7 +402,7 @@ public class ViewResolutionResultHandlerTests {
 				response.getHeaders().setContentType(mediaType);
 			}
 			model = new TreeMap<>(model);
-			String value = this.name + ": " + model.toString();
+			String value = this.name + ": " + model;
 			ByteBuffer byteBuffer = ByteBuffer.wrap(value.getBytes(UTF_8));
 			DataBuffer dataBuffer = DefaultDataBufferFactory.sharedInstance.wrap(byteBuffer);
 			return response.writeWith(Flux.just(dataBuffer));
@@ -433,6 +439,11 @@ public class ViewResolutionResultHandlerTests {
 
 		Rendering rendering() { return null; }
 		Mono<Rendering> monoRendering() { return null; }
+
+		FragmentsRendering fragmentsRendering() { return null; }
+		Flux<Fragment> fragmentFlux() { return null; }
+		Mono<List<Fragment>> monoFragmentList() { return null; }
+		List<Fragment> fragmentList() { return null; }
 
 		View view() { return null; }
 		Mono<View> monoView() { return null; }

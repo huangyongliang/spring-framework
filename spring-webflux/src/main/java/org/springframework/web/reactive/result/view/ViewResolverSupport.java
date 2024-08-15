@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,12 +35,12 @@ import org.springframework.util.Assert;
 public abstract class ViewResolverSupport implements Ordered {
 
 	/**
-	 * The default {@link MediaType content-type} for views.
+	 * The default {@link MediaType content-type} for views: {@code "text/html;charset=UTF-8"}.
 	 */
 	public static final MediaType DEFAULT_CONTENT_TYPE = MediaType.parseMediaType("text/html;charset=UTF-8");
 
 
-	private List<MediaType> mediaTypes = new ArrayList<>(4);
+	private final List<MediaType> mediaTypes = new ArrayList<>(4);
 
 	private Charset defaultCharset = StandardCharsets.UTF_8;
 
@@ -54,7 +54,7 @@ public abstract class ViewResolverSupport implements Ordered {
 
 	/**
 	 * Set the supported media types for this view.
-	 * Default is "text/html;charset=UTF-8".
+	 * <p>Default is {@code "text/html;charset=UTF-8"}.
 	 */
 	public void setSupportedMediaTypes(List<MediaType> supportedMediaTypes) {
 		Assert.notEmpty(supportedMediaTypes, "MediaType List must not be empty");
@@ -72,7 +72,7 @@ public abstract class ViewResolverSupport implements Ordered {
 	/**
 	 * Set the default charset for this view, used when the
 	 * {@linkplain #setSupportedMediaTypes(List) content type} does not contain one.
-	 * Default is {@linkplain StandardCharsets#UTF_8 UTF 8}.
+	 * <p>Default is {@linkplain StandardCharsets#UTF_8 UTF-8}.
 	 */
 	public void setDefaultCharset(Charset defaultCharset) {
 		Assert.notNull(defaultCharset, "Default Charset must not be null");

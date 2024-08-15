@@ -18,7 +18,7 @@ package org.springframework.web.accept;
 
 import java.util.Map;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -99,6 +99,7 @@ public class ServletPathExtensionContentNegotiationStrategy extends PathExtensio
 	 * @since 4.3
 	 */
 	@Override
+	@Nullable
 	public MediaType getMediaTypeForResource(Resource resource) {
 		MediaType mediaType = null;
 		String mimeType = this.servletContext.getMimeType(resource.getFilename());

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 
 package org.springframework.web.servlet.mvc.condition;
 
-import javax.servlet.http.HttpServletRequest;
-
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -31,10 +30,10 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  *
  * @author Rossen Stoyanchev
  */
-public class RequestConditionHolderTests {
+class RequestConditionHolderTests {
 
 	@Test
-	public void combine() {
+	void combine() {
 		RequestConditionHolder params1 = new RequestConditionHolder(new ParamsRequestCondition("name1"));
 		RequestConditionHolder params2 = new RequestConditionHolder(new ParamsRequestCondition("name2"));
 		RequestConditionHolder expected = new RequestConditionHolder(new ParamsRequestCondition("name1", "name2"));
@@ -43,7 +42,7 @@ public class RequestConditionHolderTests {
 	}
 
 	@Test
-	public void combineEmpty() {
+	void combineEmpty() {
 		RequestConditionHolder empty = new RequestConditionHolder(null);
 		RequestConditionHolder notEmpty = new RequestConditionHolder(new ParamsRequestCondition("name"));
 
@@ -53,7 +52,7 @@ public class RequestConditionHolderTests {
 	}
 
 	@Test
-	public void combineIncompatible() {
+	void combineIncompatible() {
 		RequestConditionHolder params = new RequestConditionHolder(new ParamsRequestCondition("name"));
 		RequestConditionHolder headers = new RequestConditionHolder(new HeadersRequestCondition("name"));
 		assertThatExceptionOfType(ClassCastException.class).isThrownBy(() ->
@@ -61,7 +60,7 @@ public class RequestConditionHolderTests {
 	}
 
 	@Test
-	public void match() {
+	void match() {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/");
 		request.setParameter("name1", "value1");
 
@@ -73,7 +72,7 @@ public class RequestConditionHolderTests {
 	}
 
 	@Test
-	public void noMatch() {
+	void noMatch() {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/");
 
 		RequestMethodsRequestCondition rm = new RequestMethodsRequestCondition(RequestMethod.POST);
@@ -83,13 +82,13 @@ public class RequestConditionHolderTests {
 	}
 
 	@Test
-	public void matchEmpty() {
+	void matchEmpty() {
 		RequestConditionHolder empty = new RequestConditionHolder(null);
 		assertThat(empty.getMatchingCondition(new MockHttpServletRequest())).isSameAs(empty);
 	}
 
 	@Test
-	public void compare() {
+	void compare() {
 		HttpServletRequest request = new MockHttpServletRequest();
 
 		RequestConditionHolder params11 = new RequestConditionHolder(new ParamsRequestCondition("1"));
@@ -100,7 +99,7 @@ public class RequestConditionHolderTests {
 	}
 
 	@Test
-	public void compareEmpty() {
+	void compareEmpty() {
 		HttpServletRequest request = new MockHttpServletRequest();
 
 		RequestConditionHolder empty = new RequestConditionHolder(null);
@@ -113,7 +112,7 @@ public class RequestConditionHolderTests {
 	}
 
 	@Test
-	public void compareIncompatible() {
+	void compareIncompatible() {
 		RequestConditionHolder params = new RequestConditionHolder(new ParamsRequestCondition("name"));
 		RequestConditionHolder headers = new RequestConditionHolder(new HeadersRequestCondition("name"));
 		assertThatExceptionOfType(ClassCastException.class).isThrownBy(() ->

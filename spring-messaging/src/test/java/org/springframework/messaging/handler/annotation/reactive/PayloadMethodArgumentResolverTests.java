@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.messaging.handler.annotation.reactive;
 
 import java.nio.charset.StandardCharsets;
@@ -51,11 +52,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 /**
- * Unit tests for {@link PayloadMethodArgumentResolver}.
+ * Tests for {@link PayloadMethodArgumentResolver}.
  *
  * @author Rossen Stoyanchev
  */
-public class PayloadMethodArgumentResolverTests {
+class PayloadMethodArgumentResolverTests {
 
 	private final List<Decoder<?>> decoders = new ArrayList<>();
 
@@ -63,7 +64,7 @@ public class PayloadMethodArgumentResolverTests {
 
 
 	@Test
-	public void supportsParameter() {
+	void supportsParameter() {
 
 		boolean useDefaultResolution = true;
 		PayloadMethodArgumentResolver resolver = createResolver(null, useDefaultResolution);
@@ -79,26 +80,26 @@ public class PayloadMethodArgumentResolverTests {
 	}
 
 	@Test
-	public void emptyBodyWhenRequired() {
+	void emptyBodyWhenRequired() {
 		MethodParameter param = this.testMethod.arg(ResolvableType.forClassWithGenerics(Mono.class, String.class));
 		Mono<Object> mono = resolveValue(param, Mono.empty(), null);
 
 		StepVerifier.create(mono)
 				.consumeErrorWith(ex -> {
 					assertThat(ex.getClass()).isEqualTo(MethodArgumentResolutionException.class);
-					assertThat(ex.getMessage().contains("Payload content is missing")).as(ex.getMessage()).isTrue();
+					assertThat(ex.getMessage()).as(ex.getMessage()).contains("Payload content is missing");
 				})
 				.verify();
 	}
 
 	@Test
-	public void emptyBodyWhenNotRequired() {
+	void emptyBodyWhenNotRequired() {
 		MethodParameter param = this.testMethod.annotPresent(Payload.class).arg();
 		assertThat(this.<Object>resolveValue(param, Mono.empty(), null)).isNull();
 	}
 
 	@Test
-	public void stringMono() {
+	void stringMono() {
 		String body = "foo";
 		MethodParameter param = this.testMethod.arg(ResolvableType.forClassWithGenerics(Mono.class, String.class));
 		Mono<Object> mono = resolveValue(param,
@@ -108,7 +109,7 @@ public class PayloadMethodArgumentResolverTests {
 	}
 
 	@Test
-	public void stringFlux() {
+	void stringFlux() {
 		List<String> body = Arrays.asList("foo", "bar");
 		ResolvableType type = ResolvableType.forClassWithGenerics(Flux.class, String.class);
 		MethodParameter param = this.testMethod.arg(type);
@@ -119,7 +120,7 @@ public class PayloadMethodArgumentResolverTests {
 	}
 
 	@Test
-	public void string() {
+	void string() {
 		String body = "foo";
 		MethodParameter param = this.testMethod.annotNotPresent(Payload.class).arg(String.class);
 		Object value = resolveValue(param, Mono.just(toDataBuffer(body)), null);
@@ -128,7 +129,7 @@ public class PayloadMethodArgumentResolverTests {
 	}
 
 	@Test
-	public void validateStringMono() {
+	void validateStringMono() {
 		TestValidator validator = new TestValidator();
 		ResolvableType type = ResolvableType.forClassWithGenerics(Mono.class, String.class);
 		MethodParameter param = this.testMethod.arg(type);
@@ -139,7 +140,7 @@ public class PayloadMethodArgumentResolverTests {
 	}
 
 	@Test
-	public void validateStringFlux() {
+	void validateStringFlux() {
 		TestValidator validator = new TestValidator();
 		ResolvableType type = ResolvableType.forClassWithGenerics(Flux.class, String.class);
 		MethodParameter param = this.testMethod.arg(type);

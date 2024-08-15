@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,10 @@ package org.springframework.util.xml;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.Transformer;
@@ -41,6 +44,7 @@ import org.xml.sax.helpers.AttributesImpl;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.lang.Nullable;
 import org.springframework.tests.MockitoUtils;
 import org.springframework.tests.MockitoUtils.InvocationArgumentsAdapter;
 
@@ -64,10 +68,12 @@ abstract class AbstractStaxXMLReaderTests {
 
 
 	@BeforeEach
-	@SuppressWarnings("deprecation")  // on JDK 9
 	void setUp() throws Exception {
 		inputFactory = XMLInputFactory.newInstance();
-		standardReader = org.xml.sax.helpers.XMLReaderFactory.createXMLReader();
+		SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
+		saxParserFactory.setNamespaceAware(true);
+		SAXParser saxParser = saxParserFactory.newSAXParser();
+		standardReader = saxParser.getXMLReader();
 		standardContentHandler = mockContentHandler();
 		standardReader.setContentHandler(standardContentHandler);
 	}
@@ -128,7 +134,7 @@ abstract class AbstractStaxXMLReaderTests {
 		Transformer transformer = TransformerFactory.newInstance().newTransformer();
 
 		AbstractStaxXMLReader staxXmlReader = createStaxXmlReader(
-				new ByteArrayInputStream(xml.getBytes("UTF-8")));
+				new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
 		SAXSource source = new SAXSource(staxXmlReader, new InputSource());
 		DOMResult result = new DOMResult();
@@ -166,7 +172,7 @@ abstract class AbstractStaxXMLReaderTests {
 
 
 	private LexicalHandler mockLexicalHandler() throws Exception {
-		LexicalHandler lexicalHandler = mock(LexicalHandler.class);
+		LexicalHandler lexicalHandler = mock();
 		willAnswer(new CopyCharsAnswer()).given(lexicalHandler).comment(any(char[].class), anyInt(), anyInt());
 		return lexicalHandler;
 	}
@@ -176,15 +182,12 @@ abstract class AbstractStaxXMLReaderTests {
 	}
 
 	protected final ContentHandler mockContentHandler() throws Exception {
-		ContentHandler contentHandler = mock(ContentHandler.class);
+		ContentHandler contentHandler = mock();
 		willAnswer(new CopyCharsAnswer()).given(contentHandler).characters(any(char[].class), anyInt(), anyInt());
 		willAnswer(new CopyCharsAnswer()).given(contentHandler).ignorableWhitespace(any(char[].class), anyInt(), anyInt());
-		willAnswer(new Answer<Object>() {
-			@Override
-			public Object answer(InvocationOnMock invocation) throws Throwable {
-				invocation.getArguments()[3] = new AttributesImpl((Attributes) invocation.getArguments()[3]);
-				return null;
-			}
+		willAnswer(invocation -> {
+			invocation.getArguments()[3] = new AttributesImpl((Attributes) invocation.getArguments()[3]);
+			return null;
 		}).given(contentHandler).startElement(anyString(), anyString(), anyString(), any(Attributes.class));
 		return contentHandler;
 	}
@@ -241,7 +244,7 @@ abstract class AbstractStaxXMLReaderTests {
 	private static class CopyCharsAnswer implements Answer<Object> {
 
 		@Override
-		public Object answer(InvocationOnMock invocation) throws Throwable {
+		public Object answer(InvocationOnMock invocation) {
 			char[] chars = (char[]) invocation.getArguments()[0];
 			char[] copy = new char[chars.length];
 			System.arraycopy(chars, 0, copy, 0, chars.length);
@@ -260,7 +263,7 @@ abstract class AbstractStaxXMLReaderTests {
 		}
 
 		@Override
-		public boolean equals(Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			Attributes other = ((PartialAttributes) obj).attributes;
 			if (this.attributes.getLength() != other.getLength()) {
 				return false;

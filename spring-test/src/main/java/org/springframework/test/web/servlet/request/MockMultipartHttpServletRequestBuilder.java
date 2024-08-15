@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,15 +19,14 @@ package org.springframework.test.web.servlet.request;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.Part;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.Part;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -45,6 +44,7 @@ import org.springframework.util.MultiValueMap;
  *
  * @author Rossen Stoyanchev
  * @author Arjen Poutsma
+ * @author Stephane Nicoll
  * @since 3.2
  */
 public class MockMultipartHttpServletRequestBuilder extends MockHttpServletRequestBuilder {
@@ -60,31 +60,24 @@ public class MockMultipartHttpServletRequestBuilder extends MockHttpServletReque
 	 * <p>For other ways to initialize a {@code MockMultipartHttpServletRequest},
 	 * see {@link #with(RequestPostProcessor)} and the
 	 * {@link RequestPostProcessor} extension point.
-	 * @param urlTemplate a URL template; the resulting URL will be encoded
-	 * @param uriVariables zero or more URI variables
+	 * @param httpMethod the HTTP method (GET, POST, etc.)
 	 */
-	MockMultipartHttpServletRequestBuilder(String urlTemplate, Object... uriVariables) {
-		super(HttpMethod.POST, urlTemplate, uriVariables);
+	MockMultipartHttpServletRequestBuilder(HttpMethod httpMethod) {
+		super(httpMethod);
 		super.contentType(MediaType.MULTIPART_FORM_DATA);
 	}
 
 	/**
-	 * Package-private constructor. Use static factory methods in
-	 * {@link MockMvcRequestBuilders}.
-	 * <p>For other ways to initialize a {@code MockMultipartHttpServletRequest},
-	 * see {@link #with(RequestPostProcessor)} and the
-	 * {@link RequestPostProcessor} extension point.
-	 * @param uri the URL
-	 * @since 4.0.3
+	 * Variant of {@link #MockMultipartHttpServletRequestBuilder(HttpMethod)}
+	 * that defaults to {@link HttpMethod#POST}.
 	 */
-	MockMultipartHttpServletRequestBuilder(URI uri) {
-		super(HttpMethod.POST, uri);
-		super.contentType(MediaType.MULTIPART_FORM_DATA);
+	MockMultipartHttpServletRequestBuilder() {
+		this(HttpMethod.POST);
 	}
 
 
 	/**
-	 * Create a new MockMultipartFile with the given content.
+	 * Add a new {@link MockMultipartFile} with the given content.
 	 * @param name the name of the file
 	 * @param content the content of the file
 	 */
@@ -94,7 +87,7 @@ public class MockMultipartHttpServletRequestBuilder extends MockHttpServletReque
 	}
 
 	/**
-	 * Add the given MockMultipartFile.
+	 * Add the given {@link MockMultipartFile}.
 	 * @param file the multipart file
 	 */
 	public MockMultipartHttpServletRequestBuilder file(MockMultipartFile file) {
@@ -122,13 +115,11 @@ public class MockMultipartHttpServletRequestBuilder extends MockHttpServletReque
 		}
 		if (parent instanceof MockHttpServletRequestBuilder) {
 			super.merge(parent);
-			if (parent instanceof MockMultipartHttpServletRequestBuilder) {
-				MockMultipartHttpServletRequestBuilder parentBuilder = (MockMultipartHttpServletRequestBuilder) parent;
+			if (parent instanceof MockMultipartHttpServletRequestBuilder parentBuilder) {
 				this.files.addAll(parentBuilder.files);
 				parentBuilder.parts.keySet().forEach(name ->
 						this.parts.putIfAbsent(name, parentBuilder.parts.get(name)));
 			}
-
 		}
 		else {
 			throw new IllegalArgumentException("Cannot merge with [" + parent.getClass().getName() + "]");
@@ -180,4 +171,5 @@ public class MockMultipartHttpServletRequestBuilder extends MockHttpServletReque
 		}
 		return defaultCharset;
 	}
+
 }

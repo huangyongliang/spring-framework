@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElementWrapper;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -156,13 +155,9 @@ public class XpathAssertionTests {
 			.andExpect(xpath("/ns:people/performers/performer", musicNamespace).nodeCount(equalTo(2)));
 	}
 
-	// SPR-10704
 
-	@Test
+	@Test  // SPR-10704
 	public void testFeedWithLinefeedChars() throws Exception {
-
-//		Map<String, String> namespace = Collections.singletonMap("ns", "");
-
 		standaloneSetup(new BlogFeedController()).build()
 			.perform(get("/blog.atom").accept(MediaType.APPLICATION_ATOM_XML))
 				.andExpect(status().isOk())
@@ -176,7 +171,8 @@ public class XpathAssertionTests {
 	private static class MusicController {
 
 		@RequestMapping(value="/music/people")
-		public @ResponseBody PeopleWrapper getPeople() {
+		@ResponseBody
+		public PeopleWrapper getPeople() {
 
 			List<Person> composers = Arrays.asList(
 					new Person("Johann Sebastian Bach").setSomeDouble(21),
@@ -224,16 +220,17 @@ public class XpathAssertionTests {
 
 
 	@Controller
-	public class BlogFeedController {
+	public static class BlogFeedController {
 
 		@RequestMapping(value="/blog.atom", method = { GET, HEAD })
 		@ResponseBody
 		public String listPublishedPosts() {
-			return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
-					+ "<feed xmlns=\"http://www.w3.org/2005/Atom\">\r\n"
-					+ "  <title>Test Feed</title>\r\n"
-					+ "  <icon>https://www.example.com/favicon.ico</icon>\r\n"
-					+ "</feed>\r\n\r\n";
+			return """
+					<?xml version="1.0" encoding="UTF-8"?>
+					<feed xmlns="http://www.w3.org/2005/Atom">
+						<title>Test Feed</title>
+						<icon>https://www.example.com/favicon.ico</icon>
+					</feed>""".replaceAll("\n", "\r\n");
 		}
 	}
 

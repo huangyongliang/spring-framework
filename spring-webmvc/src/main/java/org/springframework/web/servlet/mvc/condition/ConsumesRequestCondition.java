@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2020 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.InvalidMediaTypeException;
@@ -76,14 +76,14 @@ public final class ConsumesRequestCondition extends AbstractRequestCondition<Con
 	 * @param consumes as described in {@link RequestMapping#consumes()}
 	 * @param headers as described in {@link RequestMapping#headers()}
 	 */
-	public ConsumesRequestCondition(String[] consumes, @Nullable String[] headers) {
+	public ConsumesRequestCondition(@Nullable String[] consumes, @Nullable String[] headers) {
 		this.expressions = parseExpressions(consumes, headers);
 		if (this.expressions.size() > 1) {
 			Collections.sort(this.expressions);
 		}
 	}
 
-	private static List<ConsumeMediaTypeExpression> parseExpressions(String[] consumes, @Nullable String[] headers) {
+	private static List<ConsumeMediaTypeExpression> parseExpressions(@Nullable String[] consumes, @Nullable String[] headers) {
 		Set<ConsumeMediaTypeExpression> result = null;
 		if (!ObjectUtils.isEmpty(headers)) {
 			for (String header : headers) {
@@ -285,7 +285,7 @@ public final class ConsumesRequestCondition extends AbstractRequestCondition<Con
 		}
 
 		public final boolean match(MediaType contentType) {
-			boolean match = getMediaType().includes(contentType);
+			boolean match = (getMediaType().includes(contentType) && matchParameters(contentType));
 			return !isNegated() == match;
 		}
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 
 package org.springframework.jms.connection;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.QueueConnection;
-import javax.jms.QueueConnectionFactory;
-import javax.jms.TopicConnection;
-import javax.jms.TopicConnectionFactory;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSException;
+import jakarta.jms.QueueConnection;
+import jakarta.jms.QueueConnectionFactory;
+import jakarta.jms.TopicConnection;
+import jakarta.jms.TopicConnectionFactory;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.NamedThreadLocal;
@@ -32,15 +32,17 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
- * An adapter for a target JMS {@link javax.jms.ConnectionFactory}, applying the
- * given user credentials to every standard {@code createConnection()} call,
- * that is, implicitly invoking {@code createConnection(username, password)}
- * on the target. All other methods simply delegate to the corresponding methods
- * of the target ConnectionFactory.
+ * An adapter for a target JMS {@link jakarta.jms.ConnectionFactory}, applying the
+ * given user credentials to every standard methods that can also be used with
+ * authentication, this  {@code createConnection()} and {@code createContext()}. In
+ * other words, it is implicitly invoking {@code createConnection(username, password)} or
+ * {@code createContext(username, password)}} on the target. All other methods simply
+ * delegate to the corresponding methods of the target ConnectionFactory.
  *
  * <p>Can be used to proxy a target JNDI ConnectionFactory that does not have user
  * credentials configured. Client code can work with the ConnectionFactory without
- * passing in username and password on every {@code createConnection()} call.
+ * passing in username and password on every {@code createConnection()} and
+ * {@code createContext()} call.
  *
  * <p>In the following example, client code can simply transparently work
  * with the preconfigured "myConnectionFactory", implicitly accessing
@@ -55,12 +57,12 @@ import org.springframework.util.StringUtils;
  *   &lt;property name="targetConnectionFactory" ref="myTargetConnectionFactory"/&gt;
  *   &lt;property name="username" value="myusername"/&gt;
  *   &lt;property name="password" value="mypassword"/&gt;
- * &lt;/bean></pre>
+ * &lt;/bean&gt;</pre>
  *
  * <p>If the "username" is empty, this proxy will simply delegate to the standard
- * {@code createConnection()} method of the target ConnectionFactory.
- * This can be used to keep a UserCredentialsConnectionFactoryAdapter bean
- * definition just for the <i>option</i> of implicitly passing in user credentials
+ * {@code createConnection()} or {@code createContext()} method of the target
+ * ConnectionFactory. This can be used to keep a UserCredentialsConnectionFactoryAdapter
+ * bean definition just for the <i>option</i> of implicitly passing in user credentials
  * if the particular target ConnectionFactory requires it.
  *
  * <p>As of Spring Framework 5, this class delegates JMS 2.0 {@code JMSContext}
@@ -69,8 +71,10 @@ import org.springframework.util.StringUtils;
  * as long as no actual JMS 2.0 calls are triggered by the application's setup.
  *
  * @author Juergen Hoeller
+ * @author Stephane Nicoll
  * @since 1.2
  * @see #createConnection
+ * @see #createContext
  * @see #createQueueConnection
  * @see #createTopicConnection
  */
@@ -123,7 +127,7 @@ public class UserCredentialsConnectionFactoryAdapter
 
 
 	/**
-	 * Set user credententials for this proxy and the current thread.
+	 * Set user credentials for this proxy and the current thread.
 	 * The given username and password will be applied to all subsequent
 	 * {@code createConnection()} calls on this ConnectionFactory proxy.
 	 * <p>This will override any statically specified user credentials,
@@ -179,8 +183,8 @@ public class UserCredentialsConnectionFactoryAdapter
 	 * @param username the username to use
 	 * @param password the password to use
 	 * @return the Connection
-	 * @see javax.jms.ConnectionFactory#createConnection(String, String)
-	 * @see javax.jms.ConnectionFactory#createConnection()
+	 * @see jakarta.jms.ConnectionFactory#createConnection(String, String)
+	 * @see jakarta.jms.ConnectionFactory#createConnection()
 	 */
 	protected Connection doCreateConnection(@Nullable String username, @Nullable String password) throws JMSException {
 		ConnectionFactory target = obtainTargetConnectionFactory();
@@ -225,17 +229,16 @@ public class UserCredentialsConnectionFactoryAdapter
 	 * @param username the username to use
 	 * @param password the password to use
 	 * @return the Connection
-	 * @see javax.jms.QueueConnectionFactory#createQueueConnection(String, String)
-	 * @see javax.jms.QueueConnectionFactory#createQueueConnection()
+	 * @see jakarta.jms.QueueConnectionFactory#createQueueConnection(String, String)
+	 * @see jakarta.jms.QueueConnectionFactory#createQueueConnection()
 	 */
 	protected QueueConnection doCreateQueueConnection(
 			@Nullable String username, @Nullable String password) throws JMSException {
 
 		ConnectionFactory target = obtainTargetConnectionFactory();
-		if (!(target instanceof QueueConnectionFactory)) {
-			throw new javax.jms.IllegalStateException("'targetConnectionFactory' is not a QueueConnectionFactory");
+		if (!(target instanceof QueueConnectionFactory queueFactory)) {
+			throw new jakarta.jms.IllegalStateException("'targetConnectionFactory' is not a QueueConnectionFactory");
 		}
-		QueueConnectionFactory queueFactory = (QueueConnectionFactory) target;
 		if (StringUtils.hasLength(username)) {
 			return queueFactory.createQueueConnection(username, password);
 		}
@@ -277,28 +280,42 @@ public class UserCredentialsConnectionFactoryAdapter
 	 * @param username the username to use
 	 * @param password the password to use
 	 * @return the Connection
-	 * @see javax.jms.TopicConnectionFactory#createTopicConnection(String, String)
-	 * @see javax.jms.TopicConnectionFactory#createTopicConnection()
+	 * @see jakarta.jms.TopicConnectionFactory#createTopicConnection(String, String)
+	 * @see jakarta.jms.TopicConnectionFactory#createTopicConnection()
 	 */
 	protected TopicConnection doCreateTopicConnection(
 			@Nullable String username, @Nullable String password) throws JMSException {
 
 		ConnectionFactory target = obtainTargetConnectionFactory();
-		if (!(target instanceof TopicConnectionFactory)) {
-			throw new javax.jms.IllegalStateException("'targetConnectionFactory' is not a TopicConnectionFactory");
+		if (!(target instanceof TopicConnectionFactory topicFactory)) {
+			throw new jakarta.jms.IllegalStateException("'targetConnectionFactory' is not a TopicConnectionFactory");
 		}
-		TopicConnectionFactory queueFactory = (TopicConnectionFactory) target;
 		if (StringUtils.hasLength(username)) {
-			return queueFactory.createTopicConnection(username, password);
+			return topicFactory.createTopicConnection(username, password);
 		}
 		else {
-			return queueFactory.createTopicConnection();
+			return topicFactory.createTopicConnection();
 		}
 	}
 
 	@Override
 	public JMSContext createContext() {
-		return obtainTargetConnectionFactory().createContext();
+		JmsUserCredentials threadCredentials = this.threadBoundCredentials.get();
+		if (threadCredentials != null) {
+			return doCreateContext(threadCredentials.username, threadCredentials.password);
+		}
+		else {
+			return doCreateContext(this.username, this.password);
+		}
+	}
+
+	protected JMSContext doCreateContext(@Nullable String username, @Nullable String password) {
+		if (StringUtils.hasLength(username)) {
+			return obtainTargetConnectionFactory().createContext(username, password);
+		}
+		else {
+			return obtainTargetConnectionFactory().createContext();
+		}
 	}
 
 	@Override
@@ -313,7 +330,22 @@ public class UserCredentialsConnectionFactoryAdapter
 
 	@Override
 	public JMSContext createContext(int sessionMode) {
-		return obtainTargetConnectionFactory().createContext(sessionMode);
+		JmsUserCredentials threadCredentials = this.threadBoundCredentials.get();
+		if (threadCredentials != null) {
+			return doCreateContext(threadCredentials.username, threadCredentials.password, sessionMode);
+		}
+		else {
+			return doCreateContext(this.username, this.password, sessionMode);
+		}
+	}
+
+	protected JMSContext doCreateContext(@Nullable String username, @Nullable String password, int sessionMode) {
+		if (StringUtils.hasLength(username)) {
+			return obtainTargetConnectionFactory().createContext(username, password, sessionMode);
+		}
+		else {
+			return obtainTargetConnectionFactory().createContext(sessionMode);
+		}
 	}
 
 	private ConnectionFactory obtainTargetConnectionFactory() {

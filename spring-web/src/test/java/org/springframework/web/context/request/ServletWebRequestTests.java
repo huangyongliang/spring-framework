@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,12 @@ package org.springframework.web.context.request;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
-
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * @author Juergen Hoeller
  */
-public class ServletWebRequestTests {
+class ServletWebRequestTests {
 
 	private MockHttpServletRequest servletRequest;
 
@@ -48,7 +47,7 @@ public class ServletWebRequestTests {
 
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		servletRequest = new MockHttpServletRequest();
 		servletResponse = new MockHttpServletResponse();
 		request = new ServletWebRequest(servletRequest, servletResponse);
@@ -56,37 +55,34 @@ public class ServletWebRequestTests {
 
 
 	@Test
-	public void parameters() {
+	void parameters() {
 		servletRequest.addParameter("param1", "value1");
 		servletRequest.addParameter("param2", "value2");
 		servletRequest.addParameter("param2", "value2a");
 
 		assertThat(request.getParameter("param1")).isEqualTo("value1");
-		assertThat(request.getParameterValues("param1").length).isEqualTo(1);
-		assertThat(request.getParameterValues("param1")[0]).isEqualTo("value1");
+		assertThat(request.getParameterValues("param1")).containsExactly("value1");
 		assertThat(request.getParameter("param2")).isEqualTo("value2");
-		assertThat(request.getParameterValues("param2").length).isEqualTo(2);
-		assertThat(request.getParameterValues("param2")[0]).isEqualTo("value2");
-		assertThat(request.getParameterValues("param2")[1]).isEqualTo("value2a");
+		assertThat(request.getParameterValues("param2")).containsExactly("value2", "value2a");
 
 		Map<String, String[]> paramMap = request.getParameterMap();
-		assertThat(paramMap.size()).isEqualTo(2);
-		assertThat(paramMap.get("param1").length).isEqualTo(1);
+		assertThat(paramMap).hasSize(2);
+		assertThat(paramMap.get("param1")).hasSize(1);
 		assertThat(paramMap.get("param1")[0]).isEqualTo("value1");
-		assertThat(paramMap.get("param2").length).isEqualTo(2);
+		assertThat(paramMap.get("param2")).hasSize(2);
 		assertThat(paramMap.get("param2")[0]).isEqualTo("value2");
 		assertThat(paramMap.get("param2")[1]).isEqualTo("value2a");
 	}
 
 	@Test
-	public void locale() {
+	void locale() {
 		servletRequest.addPreferredLocale(Locale.UK);
 
 		assertThat(request.getLocale()).isEqualTo(Locale.UK);
 	}
 
 	@Test
-	public void nativeRequest() {
+	void nativeRequest() {
 		assertThat(request.getNativeRequest()).isSameAs(servletRequest);
 		assertThat(request.getNativeRequest(ServletRequest.class)).isSameAs(servletRequest);
 		assertThat(request.getNativeRequest(HttpServletRequest.class)).isSameAs(servletRequest);
@@ -100,7 +96,7 @@ public class ServletWebRequestTests {
 	}
 
 	@Test
-	public void decoratedNativeRequest() {
+	void decoratedNativeRequest() {
 		HttpServletRequest decoratedRequest = new HttpServletRequestWrapper(servletRequest);
 		HttpServletResponse decoratedResponse = new HttpServletResponseWrapper(servletResponse);
 		ServletWebRequest request = new ServletWebRequest(decoratedRequest, decoratedResponse);

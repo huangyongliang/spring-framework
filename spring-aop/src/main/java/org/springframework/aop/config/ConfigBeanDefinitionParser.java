@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ class ConfigBeanDefinitionParser implements BeanDefinitionParser {
 	private static final int POINTCUT_INDEX = 1;
 	private static final int ASPECT_INSTANCE_FACTORY_INDEX = 2;
 
-	private ParseState parseState = new ParseState();
+	private final ParseState parseState = new ParseState();
 
 
 	@Override
@@ -108,14 +108,10 @@ class ConfigBeanDefinitionParser implements BeanDefinitionParser {
 		List<Element> childElts = DomUtils.getChildElements(element);
 		for (Element elt: childElts) {
 			String localName = parserContext.getDelegate().getLocalName(elt);
-			if (POINTCUT.equals(localName)) {
-				parsePointcut(elt, parserContext);
-			}
-			else if (ADVISOR.equals(localName)) {
-				parseAdvisor(elt, parserContext);
-			}
-			else if (ASPECT.equals(localName)) {
-				parseAspect(elt, parserContext);
+			switch (localName) {
+				case POINTCUT -> parsePointcut(elt, parserContext);
+				case ADVISOR -> parseAdvisor(elt, parserContext);
+				case ASPECT -> parseAspect(elt, parserContext);
 			}
 		}
 
@@ -153,13 +149,13 @@ class ConfigBeanDefinitionParser implements BeanDefinitionParser {
 			}
 
 			Object pointcut = parsePointcutProperty(advisorElement, parserContext);
-			if (pointcut instanceof BeanDefinition) {
+			if (pointcut instanceof BeanDefinition beanDefinition) {
 				advisorDef.getPropertyValues().add(POINTCUT, pointcut);
 				parserContext.registerComponent(
-						new AdvisorComponentDefinition(advisorBeanName, advisorDef, (BeanDefinition) pointcut));
+						new AdvisorComponentDefinition(advisorBeanName, advisorDef, beanDefinition));
 			}
-			else if (pointcut instanceof String) {
-				advisorDef.getPropertyValues().add(POINTCUT, new RuntimeBeanReference((String) pointcut));
+			else if (pointcut instanceof String beanName) {
+				advisorDef.getPropertyValues().add(POINTCUT, new RuntimeBeanReference(beanName));
 				parserContext.registerComponent(
 						new AdvisorComponentDefinition(advisorBeanName, advisorDef));
 			}
@@ -205,9 +201,8 @@ class ConfigBeanDefinitionParser implements BeanDefinitionParser {
 			List<BeanReference> beanReferences = new ArrayList<>();
 
 			List<Element> declareParents = DomUtils.getChildElementsByTagName(aspectElement, DECLARE_PARENTS);
-			for (int i = METHOD_INDEX; i < declareParents.size(); i++) {
-				Element declareParentsElement = declareParents.get(i);
-				beanDefinitions.add(parseDeclareParents(declareParentsElement, parserContext));
+			for (Element declareParent : declareParents) {
+				beanDefinitions.add(parseDeclareParents(declareParent, parserContext));
 			}
 
 			// We have to parse "advice" and all the advice kinds in one loop, to get the
@@ -389,12 +384,12 @@ class ConfigBeanDefinitionParser implements BeanDefinitionParser {
 		cav.addIndexedArgumentValue(METHOD_INDEX, methodDef);
 
 		Object pointcut = parsePointcutProperty(adviceElement, parserContext);
-		if (pointcut instanceof BeanDefinition) {
+		if (pointcut instanceof BeanDefinition beanDefinition) {
 			cav.addIndexedArgumentValue(POINTCUT_INDEX, pointcut);
-			beanDefinitions.add((BeanDefinition) pointcut);
+			beanDefinitions.add(beanDefinition);
 		}
-		else if (pointcut instanceof String) {
-			RuntimeBeanReference pointcutRef = new RuntimeBeanReference((String) pointcut);
+		else if (pointcut instanceof String beanName) {
+			RuntimeBeanReference pointcutRef = new RuntimeBeanReference(beanName);
 			cav.addIndexedArgumentValue(POINTCUT_INDEX, pointcutRef);
 			beanReferences.add(pointcutRef);
 		}
@@ -409,24 +404,14 @@ class ConfigBeanDefinitionParser implements BeanDefinitionParser {
 	 */
 	private Class<?> getAdviceClass(Element adviceElement, ParserContext parserContext) {
 		String elementName = parserContext.getDelegate().getLocalName(adviceElement);
-		if (BEFORE.equals(elementName)) {
-			return AspectJMethodBeforeAdvice.class;
-		}
-		else if (AFTER.equals(elementName)) {
-			return AspectJAfterAdvice.class;
-		}
-		else if (AFTER_RETURNING_ELEMENT.equals(elementName)) {
-			return AspectJAfterReturningAdvice.class;
-		}
-		else if (AFTER_THROWING_ELEMENT.equals(elementName)) {
-			return AspectJAfterThrowingAdvice.class;
-		}
-		else if (AROUND.equals(elementName)) {
-			return AspectJAroundAdvice.class;
-		}
-		else {
-			throw new IllegalArgumentException("Unknown advice kind [" + elementName + "].");
-		}
+		return switch (elementName) {
+			case BEFORE -> AspectJMethodBeforeAdvice.class;
+			case AFTER -> AspectJAfterAdvice.class;
+			case AFTER_RETURNING_ELEMENT -> AspectJAfterReturningAdvice.class;
+			case AFTER_THROWING_ELEMENT -> AspectJAfterThrowingAdvice.class;
+			case AROUND -> AspectJAroundAdvice.class;
+			default -> throw new IllegalArgumentException("Unknown advice kind [" + elementName + "].");
+		};
 	}
 
 	/**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,7 @@ package org.springframework.web.servlet.tags.form;
 
 import java.util.stream.IntStream;
 
-import javax.servlet.jsp.PageContext;
-
+import jakarta.servlet.jsp.PageContext;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.web.testfixture.servlet.MockPageContext;
@@ -31,10 +30,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Sam Brannen
  * @since 2.0
  */
-public class TagIdGeneratorTests {
+class TagIdGeneratorTests {
 
 	@Test
-	public void nextId() {
+	void nextId() {
 		// Repeat a few times just to be sure...
 		IntStream.rangeClosed(1, 5).forEach(i -> assertNextId());
 	}

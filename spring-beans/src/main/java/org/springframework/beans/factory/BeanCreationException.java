@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ public class BeanCreationException extends FatalBeanException {
 	 * @param beanName the name of the bean requested
 	 * @param msg the detail message
 	 */
-	public BeanCreationException(@Nullable String resourceDescription, @Nullable String beanName, String msg) {
+	public BeanCreationException(@Nullable String resourceDescription, @Nullable String beanName, @Nullable String msg) {
 		super("Error creating bean with name '" + beanName + "'" +
 				(resourceDescription != null ? " defined in " + resourceDescription : "") + ": " + msg);
 		this.resourceDescription = resourceDescription;
@@ -110,7 +110,7 @@ public class BeanCreationException extends FatalBeanException {
 	 * @param msg the detail message
 	 * @param cause the root cause
 	 */
-	public BeanCreationException(@Nullable String resourceDescription, String beanName, String msg, Throwable cause) {
+	public BeanCreationException(@Nullable String resourceDescription, String beanName, @Nullable String msg, Throwable cause) {
 		this(resourceDescription, beanName, msg);
 		initCause(cause);
 	}
@@ -204,8 +204,7 @@ public class BeanCreationException extends FatalBeanException {
 		}
 		if (this.relatedCauses != null) {
 			for (Throwable relatedCause : this.relatedCauses) {
-				if (relatedCause instanceof NestedRuntimeException &&
-						((NestedRuntimeException) relatedCause).contains(exClass)) {
+				if (relatedCause instanceof NestedRuntimeException nested && nested.contains(exClass)) {
 					return true;
 				}
 			}

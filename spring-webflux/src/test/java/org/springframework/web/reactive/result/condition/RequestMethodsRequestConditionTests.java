@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,8 @@
 
 package org.springframework.web.reactive.result.condition;
 
-import java.net.URISyntaxException;
 import java.util.Collections;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpHeaders;
@@ -38,30 +36,28 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 /**
- * Unit tests for {@link RequestMethodsRequestCondition}.
+ * Tests for {@link RequestMethodsRequestCondition}.
  *
  * @author Rossen Stoyanchev
  */
-public class RequestMethodsRequestConditionTests {
-
-	// TODO: custom method, CORS pre-flight (see @Disabledd)
+class RequestMethodsRequestConditionTests {
 
 	@Test
-	public void getMatchingCondition() throws Exception {
+	void getMatchingCondition() {
 		testMatch(new RequestMethodsRequestCondition(GET), GET);
 		testMatch(new RequestMethodsRequestCondition(GET, POST), GET);
 		testNoMatch(new RequestMethodsRequestCondition(GET), POST);
 	}
 
 	@Test
-	public void getMatchingConditionWithHttpHead() throws Exception {
+	void getMatchingConditionWithHttpHead() {
 		testMatch(new RequestMethodsRequestCondition(HEAD), HEAD);
 		testMatch(new RequestMethodsRequestCondition(GET), GET);
 		testNoMatch(new RequestMethodsRequestCondition(POST), HEAD);
 	}
 
 	@Test
-	public void getMatchingConditionWithEmptyConditions() throws Exception {
+	void getMatchingConditionWithEmptyConditions() {
 		RequestMethodsRequestCondition condition = new RequestMethodsRequestCondition();
 		for (RequestMethod method : RequestMethod.values()) {
 			if (method != OPTIONS) {
@@ -73,19 +69,19 @@ public class RequestMethodsRequestConditionTests {
 	}
 
 	@Test
-	@Disabled
-	public void getMatchingConditionWithCustomMethod() throws Exception {
+	void getMatchingConditionWithCustomMethod() {
 		ServerWebExchange exchange = getExchange("PROPFIND");
 		assertThat(new RequestMethodsRequestCondition().getMatchingCondition(exchange)).isNotNull();
 		assertThat(new RequestMethodsRequestCondition(GET, POST).getMatchingCondition(exchange)).isNull();
 	}
 
 	@Test
-	@Disabled
-	public void getMatchingConditionWithCorsPreFlight() throws Exception {
-		ServerWebExchange exchange = getExchange("OPTIONS");
-		exchange.getRequest().getHeaders().add("Origin", "https://example.com");
-		exchange.getRequest().getHeaders().add(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PUT");
+	void getMatchingConditionWithCorsPreFlight() {
+		MockServerHttpRequest request = MockServerHttpRequest.method(HttpMethod.valueOf("OPTIONS"), "/")
+				.header("Origin", "https://example.com")
+				.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PUT")
+				.build();
+		ServerWebExchange exchange = MockServerWebExchange.from(request);
 
 		assertThat(new RequestMethodsRequestCondition().getMatchingCondition(exchange)).isNotNull();
 		assertThat(new RequestMethodsRequestCondition(PUT).getMatchingCondition(exchange)).isNotNull();
@@ -93,7 +89,7 @@ public class RequestMethodsRequestConditionTests {
 	}
 
 	@Test
-	public void compareTo() throws Exception {
+	void compareTo() {
 		RequestMethodsRequestCondition c1 = new RequestMethodsRequestCondition(GET, HEAD);
 		RequestMethodsRequestCondition c2 = new RequestMethodsRequestCondition(POST);
 		RequestMethodsRequestCondition c3 = new RequestMethodsRequestCondition();
@@ -101,41 +97,41 @@ public class RequestMethodsRequestConditionTests {
 		ServerWebExchange exchange = getExchange("GET");
 
 		int result = c1.compareTo(c2, exchange);
-		assertThat(result < 0).as("Invalid comparison result: " + result).isTrue();
+		assertThat(result).as("Invalid comparison result: " + result).isLessThan(0);
 
 		result = c2.compareTo(c1, exchange);
-		assertThat(result > 0).as("Invalid comparison result: " + result).isTrue();
+		assertThat(result).as("Invalid comparison result: " + result).isGreaterThan(0);
 
 		result = c2.compareTo(c3, exchange);
-		assertThat(result < 0).as("Invalid comparison result: " + result).isTrue();
+		assertThat(result).as("Invalid comparison result: " + result).isLessThan(0);
 
 		result = c1.compareTo(c1, exchange);
 		assertThat(result).as("Invalid comparison result ").isEqualTo(0);
 	}
 
 	@Test
-	public void combine() {
+	void combine() {
 		RequestMethodsRequestCondition condition1 = new RequestMethodsRequestCondition(GET);
 		RequestMethodsRequestCondition condition2 = new RequestMethodsRequestCondition(POST);
 
 		RequestMethodsRequestCondition result = condition1.combine(condition2);
-		assertThat(result.getContent().size()).isEqualTo(2);
+		assertThat(result.getContent()).hasSize(2);
 	}
 
 
-	private void testMatch(RequestMethodsRequestCondition condition, RequestMethod method) throws Exception {
+	private void testMatch(RequestMethodsRequestCondition condition, RequestMethod method) {
 		ServerWebExchange exchange = getExchange(method.name());
 		RequestMethodsRequestCondition actual = condition.getMatchingCondition(exchange);
 		assertThat(actual).isNotNull();
 		assertThat(actual.getContent()).isEqualTo(Collections.singleton(method));
 	}
 
-	private void testNoMatch(RequestMethodsRequestCondition condition, RequestMethod method) throws Exception {
+	private void testNoMatch(RequestMethodsRequestCondition condition, RequestMethod method) {
 		ServerWebExchange exchange = getExchange(method.name());
 		assertThat(condition.getMatchingCondition(exchange)).isNull();
 	}
 
-	private ServerWebExchange getExchange(String method) throws URISyntaxException {
+	private ServerWebExchange getExchange(String method) {
 		return MockServerWebExchange.from(MockServerHttpRequest.method(HttpMethod.valueOf(method), "/"));
 	}
 

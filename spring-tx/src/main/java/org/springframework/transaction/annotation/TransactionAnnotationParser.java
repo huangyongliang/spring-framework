@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ import org.springframework.transaction.interceptor.TransactionAttribute;
  * Strategy interface for parsing known transaction annotation types.
  * {@link AnnotationTransactionAttributeSource} delegates to such
  * parsers for supporting specific annotation types such as Spring's own
- * {@link Transactional}, JTA 1.2's {@link javax.transaction.Transactional}
- * or EJB3's {@link javax.ejb.TransactionAttribute}.
+ * {@link Transactional}, JTA 1.2's {@link jakarta.transaction.Transactional}
+ * or EJB3's {@link jakarta.ejb.TransactionAttribute}.
  *
  * @author Juergen Hoeller
  * @since 2.5
@@ -60,6 +60,8 @@ public interface TransactionAnnotationParser {
 	 * based on an annotation type understood by this parser.
 	 * <p>This essentially parses a known transaction annotation into Spring's metadata
 	 * attribute class. Returns {@code null} if the method/class is not transactional.
+	 * <p>The returned attribute will typically (but not necessarily) be of type
+	 * {@link org.springframework.transaction.interceptor.RuleBasedTransactionAttribute}.
 	 * @param element the annotated method or class
 	 * @return the configured transaction attribute, or {@code null} if none found
 	 * @see AnnotationTransactionAttributeSource#determineTransactionAttribute

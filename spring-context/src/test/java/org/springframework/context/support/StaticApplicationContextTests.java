@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.MutablePropertyValues;
-import org.springframework.beans.factory.support.PropertiesBeanDefinitionReader;
 import org.springframework.beans.testfixture.beans.TestBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.testfixture.AbstractApplicationContextTests;
@@ -36,12 +35,13 @@ import org.springframework.core.io.ClassPathResource;
  *
  * @author Rod Johnson
  */
-public class StaticApplicationContextTests extends AbstractApplicationContextTests {
+class StaticApplicationContextTests extends AbstractApplicationContextTests {
 
 	protected StaticApplicationContext sac;
 
+	@SuppressWarnings("deprecation")
 	@Override
-	protected ConfigurableApplicationContext createContext() throws Exception {
+	protected ConfigurableApplicationContext createContext() {
 		StaticApplicationContext parent = new StaticApplicationContext();
 		Map<String, String> m = new HashMap<>();
 		m.put("name", "Roderick");
@@ -57,7 +57,8 @@ public class StaticApplicationContextTests extends AbstractApplicationContextTes
 		sac.registerSingleton("beanThatListens", BeanThatListens.class, new MutablePropertyValues());
 		sac.registerSingleton("aca", ACATester.class, new MutablePropertyValues());
 		sac.registerPrototype("aca-prototype", ACATester.class, new MutablePropertyValues());
-		PropertiesBeanDefinitionReader reader = new PropertiesBeanDefinitionReader(sac.getDefaultListableBeanFactory());
+		org.springframework.beans.factory.support.PropertiesBeanDefinitionReader reader =
+				new org.springframework.beans.factory.support.PropertiesBeanDefinitionReader(sac.getDefaultListableBeanFactory());
 		reader.loadBeanDefinitions(new ClassPathResource("testBeans.properties", getClass()));
 		sac.refresh();
 		sac.addApplicationListener(listener);

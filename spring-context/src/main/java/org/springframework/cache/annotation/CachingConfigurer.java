@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,20 +24,18 @@ import org.springframework.lang.Nullable;
 
 /**
  * Interface to be implemented by @{@link org.springframework.context.annotation.Configuration
- * Configuration} classes annotated with @{@link EnableCaching} that wish or need to
- * specify explicitly how caches are resolved and how keys are generated for annotation-driven
- * cache management. Consider extending {@link CachingConfigurerSupport}, which provides a
- * stub implementation of all interface methods.
+ * Configuration} classes annotated with @{@link EnableCaching} that wish or need to specify
+ * explicitly how caches are resolved and how keys are generated for annotation-driven
+ * cache management.
  *
  * <p>See @{@link EnableCaching} for general examples and context; see
- * {@link #cacheManager()}, {@link #cacheResolver()} and {@link #keyGenerator()}
- * for detailed instructions.
+ * {@link #cacheManager()}, {@link #cacheResolver()}, {@link #keyGenerator()}, and
+ * {@link #errorHandler()} for detailed instructions.
  *
  * @author Chris Beams
  * @author Stephane Nicoll
  * @since 3.1
  * @see EnableCaching
- * @see CachingConfigurerSupport
  */
 public interface CachingConfigurer {
 
@@ -48,14 +46,15 @@ public interface CachingConfigurer {
 	 * management of the cache resolution, consider setting the
 	 * {@link CacheResolver} directly.
 	 * <p>Implementations must explicitly declare
-	 * {@link org.springframework.context.annotation.Bean @Bean}, e.g.
+	 * {@link org.springframework.context.annotation.Bean @Bean} so that
+	 * the cache manager participates in the lifecycle of the context, e.g.
 	 * <pre class="code">
 	 * &#064;Configuration
 	 * &#064;EnableCaching
-	 * public class AppConfig extends CachingConfigurerSupport {
+	 * class AppConfig implements CachingConfigurer {
 	 *     &#064;Bean // important!
 	 *     &#064;Override
-	 *     public CacheManager cacheManager() {
+	 *     CacheManager cacheManager() {
 	 *         // configure and return CacheManager instance
 	 *     }
 	 *     // ...
@@ -64,23 +63,26 @@ public interface CachingConfigurer {
 	 * See @{@link EnableCaching} for more complete examples.
 	 */
 	@Nullable
-	CacheManager cacheManager();
+	default CacheManager cacheManager() {
+		return null;
+	}
 
 	/**
 	 * Return the {@link CacheResolver} bean to use to resolve regular caches for
 	 * annotation-driven cache management. This is an alternative and more powerful
 	 * option of specifying the {@link CacheManager} to use.
-	 * <p>If both a {@link #cacheManager()} and {@code #cacheResolver()} are set,
+	 * <p>If both a {@link #cacheManager()} and {@code cacheResolver()} are set,
 	 * the cache manager is ignored.
 	 * <p>Implementations must explicitly declare
-	 * {@link org.springframework.context.annotation.Bean @Bean}, e.g.
+	 * {@link org.springframework.context.annotation.Bean @Bean} so that
+	 * the cache resolver participates in the lifecycle of the context, e.g.
 	 * <pre class="code">
 	 * &#064;Configuration
 	 * &#064;EnableCaching
-	 * public class AppConfig extends CachingConfigurerSupport {
+	 * class AppConfig implements CachingConfigurer {
 	 *     &#064;Bean // important!
 	 *     &#064;Override
-	 *     public CacheResolver cacheResolver() {
+	 *     CacheResolver cacheResolver() {
 	 *         // configure and return CacheResolver instance
 	 *     }
 	 *     // ...
@@ -89,50 +91,30 @@ public interface CachingConfigurer {
 	 * See {@link EnableCaching} for more complete examples.
 	 */
 	@Nullable
-	CacheResolver cacheResolver();
+	default CacheResolver cacheResolver() {
+		return null;
+	}
 
 	/**
 	 * Return the key generator bean to use for annotation-driven cache management.
-	 * Implementations must explicitly declare
-	 * {@link org.springframework.context.annotation.Bean @Bean}, e.g.
-	 * <pre class="code">
-	 * &#064;Configuration
-	 * &#064;EnableCaching
-	 * public class AppConfig extends CachingConfigurerSupport {
-	 *     &#064;Bean // important!
-	 *     &#064;Override
-	 *     public KeyGenerator keyGenerator() {
-	 *         // configure and return KeyGenerator instance
-	 *     }
-	 *     // ...
-	 * }
-	 * </pre>
+	 * <p>By default, {@link org.springframework.cache.interceptor.SimpleKeyGenerator}
+	 * is used.
 	 * See @{@link EnableCaching} for more complete examples.
 	 */
 	@Nullable
-	KeyGenerator keyGenerator();
+	default KeyGenerator keyGenerator() {
+		return null;
+	}
 
 	/**
 	 * Return the {@link CacheErrorHandler} to use to handle cache-related errors.
-	 * <p>By default,{@link org.springframework.cache.interceptor.SimpleCacheErrorHandler}
-	 * is used and simply throws the exception back at the client.
-	 * <p>Implementations must explicitly declare
-	 * {@link org.springframework.context.annotation.Bean @Bean}, e.g.
-	 * <pre class="code">
-	 * &#064;Configuration
-	 * &#064;EnableCaching
-	 * public class AppConfig extends CachingConfigurerSupport {
-	 *     &#064;Bean // important!
-	 *     &#064;Override
-	 *     public CacheErrorHandler errorHandler() {
-	 *         // configure and return CacheErrorHandler instance
-	 *     }
-	 *     // ...
-	 * }
-	 * </pre>
+	 * <p>By default, {@link org.springframework.cache.interceptor.SimpleCacheErrorHandler}
+	 * is used, which throws the exception back at the client.
 	 * See @{@link EnableCaching} for more complete examples.
 	 */
 	@Nullable
-	CacheErrorHandler errorHandler();
+	default CacheErrorHandler errorHandler() {
+		return null;
+	}
 
 }

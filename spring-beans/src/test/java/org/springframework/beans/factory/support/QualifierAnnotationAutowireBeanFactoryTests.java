@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
 import org.springframework.beans.factory.config.DependencyDescriptor;
-import org.springframework.core.LocalVariableTableParameterNameDiscoverer;
+import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.ClassUtils;
 
@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Mark Fisher
  * @author Juergen Hoeller
  */
-public class QualifierAnnotationAutowireBeanFactoryTests {
+class QualifierAnnotationAutowireBeanFactoryTests {
 
 	private static final String JUERGEN = "juergen";
 
@@ -45,7 +45,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 
 
 	@Test
-	public void testAutowireCandidateDefaultWithIrrelevantDescriptor() throws Exception {
+	void testAutowireCandidateDefaultWithIrrelevantDescriptor() throws Exception {
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
 		ConstructorArgumentValues cavs = new ConstructorArgumentValues();
 		cavs.addGenericArgumentValue(JUERGEN);
@@ -59,7 +59,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 	}
 
 	@Test
-	public void testAutowireCandidateExplicitlyFalseWithIrrelevantDescriptor() throws Exception {
+	void testAutowireCandidateExplicitlyFalseWithIrrelevantDescriptor() throws Exception {
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
 		ConstructorArgumentValues cavs = new ConstructorArgumentValues();
 		cavs.addGenericArgumentValue(JUERGEN);
@@ -75,7 +75,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 
 	@Disabled
 	@Test
-	public void testAutowireCandidateWithFieldDescriptor() throws Exception {
+	void testAutowireCandidateWithFieldDescriptor() throws Exception {
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
 		ConstructorArgumentValues cavs1 = new ConstructorArgumentValues();
 		cavs1.addGenericArgumentValue(JUERGEN);
@@ -99,7 +99,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 	}
 
 	@Test
-	public void testAutowireCandidateExplicitlyFalseWithFieldDescriptor() throws Exception {
+	void testAutowireCandidateExplicitlyFalseWithFieldDescriptor() throws Exception {
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
 		ConstructorArgumentValues cavs = new ConstructorArgumentValues();
 		cavs.addGenericArgumentValue(JUERGEN);
@@ -117,7 +117,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 	}
 
 	@Test
-	public void testAutowireCandidateWithShortClassName() throws Exception {
+	void testAutowireCandidateWithShortClassName() throws Exception {
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
 		ConstructorArgumentValues cavs = new ConstructorArgumentValues();
 		cavs.addGenericArgumentValue(JUERGEN);
@@ -135,7 +135,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 
 	@Disabled
 	@Test
-	public void testAutowireCandidateWithConstructorDescriptor() throws Exception {
+	void testAutowireCandidateWithConstructorDescriptor() throws Exception {
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
 		ConstructorArgumentValues cavs1 = new ConstructorArgumentValues();
 		cavs1.addGenericArgumentValue(JUERGEN);
@@ -148,7 +148,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 		lbf.registerBeanDefinition(MARK, person2);
 		MethodParameter param = new MethodParameter(QualifiedTestBean.class.getDeclaredConstructor(Person.class), 0);
 		DependencyDescriptor qualifiedDescriptor = new DependencyDescriptor(param, false);
-		param.initParameterNameDiscovery(new LocalVariableTableParameterNameDiscoverer());
+		param.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
 		assertThat(param.getParameterName()).isEqualTo("tpb");
 		assertThat(lbf.isAutowireCandidate(JUERGEN, null)).isTrue();
 		assertThat(lbf.isAutowireCandidate(JUERGEN, qualifiedDescriptor)).isTrue();
@@ -157,7 +157,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 
 	@Disabled
 	@Test
-	public void testAutowireCandidateWithMethodDescriptor() throws Exception {
+	void testAutowireCandidateWithMethodDescriptor() throws Exception {
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
 		ConstructorArgumentValues cavs1 = new ConstructorArgumentValues();
 		cavs1.addGenericArgumentValue(JUERGEN);
@@ -174,9 +174,9 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 				new MethodParameter(QualifiedTestBean.class.getDeclaredMethod("autowireNonqualified", Person.class), 0);
 		DependencyDescriptor qualifiedDescriptor = new DependencyDescriptor(qualifiedParam, false);
 		DependencyDescriptor nonqualifiedDescriptor = new DependencyDescriptor(nonqualifiedParam, false);
-		qualifiedParam.initParameterNameDiscovery(new LocalVariableTableParameterNameDiscoverer());
+		qualifiedParam.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
 		assertThat(qualifiedParam.getParameterName()).isEqualTo("tpb");
-		nonqualifiedParam.initParameterNameDiscovery(new LocalVariableTableParameterNameDiscoverer());
+		nonqualifiedParam.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
 		assertThat(nonqualifiedParam.getParameterName()).isEqualTo("tpb");
 		assertThat(lbf.isAutowireCandidate(JUERGEN, null)).isTrue();
 		assertThat(lbf.isAutowireCandidate(JUERGEN, nonqualifiedDescriptor)).isTrue();
@@ -187,7 +187,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 	}
 
 	@Test
-	public void testAutowireCandidateWithMultipleCandidatesDescriptor() throws Exception {
+	void testAutowireCandidateWithMultipleCandidatesDescriptor() throws Exception {
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
 		ConstructorArgumentValues cavs1 = new ConstructorArgumentValues();
 		cavs1.addGenericArgumentValue(JUERGEN);
@@ -244,7 +244,7 @@ public class QualifierAnnotationAutowireBeanFactoryTests {
 	@Target({ElementType.FIELD, ElementType.PARAMETER})
 	@Retention(RetentionPolicy.RUNTIME)
 	@Qualifier
-	private static @interface TestQualifier {
+	private @interface TestQualifier {
 	}
 
 }
