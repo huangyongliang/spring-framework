@@ -32,6 +32,10 @@ import org.springframework.lang.Nullable;
  * {@link #cacheManager()}, {@link #cacheResolver()}, {@link #keyGenerator()}, and
  * {@link #errorHandler()} for detailed instructions.
  *
+ * <p><b>NOTE: A {@code CachingConfigurer} will get initialized early.</b>
+ * Do not inject common dependencies into autowired fields directly; instead, consider
+ * declaring a lazy {@link org.springframework.beans.factory.ObjectProvider} for those.
+ *
  * @author Chris Beams
  * @author Stephane Nicoll
  * @since 3.1
@@ -47,7 +51,7 @@ public interface CachingConfigurer {
 	 * {@link CacheResolver} directly.
 	 * <p>Implementations must explicitly declare
 	 * {@link org.springframework.context.annotation.Bean @Bean} so that
-	 * the cache manager participates in the lifecycle of the context, e.g.
+	 * the cache manager participates in the lifecycle of the context, for example,
 	 * <pre class="code">
 	 * &#064;Configuration
 	 * &#064;EnableCaching
@@ -75,7 +79,7 @@ public interface CachingConfigurer {
 	 * the cache manager is ignored.
 	 * <p>Implementations must explicitly declare
 	 * {@link org.springframework.context.annotation.Bean @Bean} so that
-	 * the cache resolver participates in the lifecycle of the context, e.g.
+	 * the cache resolver participates in the lifecycle of the context, for example,
 	 * <pre class="code">
 	 * &#064;Configuration
 	 * &#064;EnableCaching

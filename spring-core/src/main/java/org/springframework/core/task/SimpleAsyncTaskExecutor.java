@@ -45,6 +45,11 @@ import org.springframework.util.concurrent.ListenableFutureTask;
  * executing a large number of short-lived tasks. Alternatively, on JDK 21,
  * consider setting {@link #setVirtualThreads} to {@code true}.
  *
+ * <p><b>NOTE: This executor does not participate in context-level lifecycle
+ * management.</b> Tasks on handed-off execution threads cannot be centrally
+ * stopped and restarted; if such tight lifecycle management is necessary,
+ * consider a common {@code ThreadPoolTaskExecutor} setup instead.
+ *
  * @author Juergen Hoeller
  * @since 2.0
  * @see #setVirtualThreads
@@ -53,7 +58,7 @@ import org.springframework.util.concurrent.ListenableFutureTask;
  * @see org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler
  * @see org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
  */
-@SuppressWarnings({"serial", "deprecation"})
+@SuppressWarnings({"serial", "removal"})
 public class SimpleAsyncTaskExecutor extends CustomizableThreadCreator
 		implements AsyncListenableTaskExecutor, Serializable, AutoCloseable {
 
@@ -190,6 +195,11 @@ public class SimpleAsyncTaskExecutor extends CustomizableThreadCreator
 	 * The default of -1 indicates no concurrency limit at all.
 	 * <p>This is the equivalent of a maximum pool size in a thread pool,
 	 * preventing temporary overload of the thread management system.
+	 * However, in contrast to a thread pool with a managed task queue,
+	 * this executor will block the submitter until the task can be
+	 * accepted when the configured concurrency limit has been reached.
+	 * If you prefer queue-based task hand-offs without such blocking,
+	 * consider using a {@code ThreadPoolTaskExecutor} instead.
 	 * @see #UNBOUNDED_CONCURRENCY
 	 * @see org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor#setMaxPoolSize
 	 */

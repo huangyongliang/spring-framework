@@ -39,6 +39,10 @@ import org.springframework.util.StringUtils;
  * A subclass of {@link MimeType} that adds support for quality parameters
  * as defined in the HTTP specification.
  *
+ * <p>This class is meant to reference media types supported by Spring Framework.
+ * If your application or library relies on other media types defined in RFCs,
+ * please use {@link #parseMediaType(String)} or a custom utility class.
+ *
  * @author Arjen Poutsma
  * @author Juergen Hoeller
  * @author Rossen Stoyanchev
@@ -286,7 +290,7 @@ public class MediaType extends MimeType implements Serializable {
 	 * @deprecated as of 5.3 since it originates from the W3C Activity Streams
 	 * specification which has a more specific purpose and has been since
 	 * replaced with a different mime type. Use {@link #APPLICATION_NDJSON} as
-	 * a replacement or any other line-delimited JSON format (e.g. JSON Lines,
+	 * a replacement or any other line-delimited JSON format (for example, JSON Lines,
 	 * JSON Text Sequences).
 	 */
 	@Deprecated

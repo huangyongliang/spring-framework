@@ -148,10 +148,10 @@ public class DependencyDescriptor extends InjectionPoint implements Serializable
 		this.parameterTypes = original.parameterTypes;
 		this.parameterIndex = original.parameterIndex;
 		this.fieldName = original.fieldName;
-		this.containingClass = original.containingClass;
 		this.required = original.required;
 		this.eager = original.eager;
 		this.nestingLevel = original.nestingLevel;
+		this.containingClass = original.containingClass;
 	}
 
 
@@ -180,7 +180,7 @@ public class DependencyDescriptor extends InjectionPoint implements Serializable
 
 	/**
 	 * Check whether the underlying field is annotated with any variant of a
-	 * {@code Nullable} annotation, e.g. {@code jakarta.annotation.Nullable} or
+	 * {@code Nullable} annotation, for example, {@code jakarta.annotation.Nullable} or
 	 * {@code edu.umd.cs.findbugs.annotations.Nullable}.
 	 */
 	private boolean hasNullableAnnotation() {
@@ -381,7 +381,7 @@ public class DependencyDescriptor extends InjectionPoint implements Serializable
 
 	/**
 	 * Determine whether this dependency supports lazy resolution,
-	 * e.g. through extra proxying. The default is {@code true}.
+	 * for example, through extra proxying. The default is {@code true}.
 	 * @since 6.1.2
 	 * @see org.springframework.beans.factory.support.AutowireCandidateResolver#getLazyResolutionProxyIfNecessary
 	 */

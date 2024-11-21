@@ -17,6 +17,7 @@
 package org.springframework.web.reactive.function.client;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import io.micrometer.common.KeyValue;
@@ -42,7 +43,7 @@ public class DefaultClientRequestObservationConvention implements ClientRequestO
 
 	private static final String ROOT_PATH = "/";
 
-	private static final Pattern PATTERN_BEFORE_PATH = Pattern.compile("^https?://[^/]+/");
+	private static final Pattern PATTERN_BEFORE_PATH = Pattern.compile("^https?://[^/]+");
 
 	private static final KeyValue URI_NONE = KeyValue.of(LowCardinalityKeyNames.URI, KeyValue.NONE_VALUE);
 
@@ -92,7 +93,7 @@ public class DefaultClientRequestObservationConvention implements ClientRequestO
 	@Nullable
 	public String getContextualName(ClientRequestObservationContext context) {
 		ClientRequest request = context.getRequest();
-		return (request != null ? "http " + request.method().name().toLowerCase() : null);
+		return (request != null ? "http " + request.method().name().toLowerCase(Locale.ROOT) : null);
 	}
 
 	@Override

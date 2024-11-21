@@ -425,25 +425,37 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 	 * @see SmartInstantiationAwareBeanPostProcessor#determineBeanType
 	 */
 	private void preDetermineBeanTypes(RuntimeHints runtimeHints) {
+		List<String> singletons = new ArrayList<>();
+		List<String> lazyBeans = new ArrayList<>();
+
+		// First round: pre-registered singleton instances, if any.
+		for (String beanName : this.beanFactory.getSingletonNames()) {
+			Class<?> beanType = this.beanFactory.getType(beanName);
+			if (beanType != null) {
+				ClassHintUtils.registerProxyIfNecessary(beanType, runtimeHints);
+			}
+			singletons.add(beanName);
+		}
+
 		List<SmartInstantiationAwareBeanPostProcessor> bpps =
 				PostProcessorRegistrationDelegate.loadBeanPostProcessors(
 						this.beanFactory, SmartInstantiationAwareBeanPostProcessor.class);
 
-		List<String> lazyBeans = new ArrayList<>();
-
-		// First round: non-lazy singleton beans in definition order,
+		// Second round: non-lazy singleton beans in definition order,
 		// matching preInstantiateSingletons.
 		for (String beanName : this.beanFactory.getBeanDefinitionNames()) {
-			BeanDefinition bd = getBeanDefinition(beanName);
-			if (bd.isSingleton() && !bd.isLazyInit()) {
-				preDetermineBeanType(beanName, bpps, runtimeHints);
-			}
-			else {
-				lazyBeans.add(beanName);
+			if (!singletons.contains(beanName)) {
+				BeanDefinition bd = getBeanDefinition(beanName);
+				if (bd.isSingleton() && !bd.isLazyInit()) {
+					preDetermineBeanType(beanName, bpps, runtimeHints);
+				}
+				else {
+					lazyBeans.add(beanName);
+				}
 			}
 		}
 
-		// Second round: lazy singleton beans and scoped beans.
+		// Third round: lazy singleton beans and scoped beans.
 		for (String beanName : lazyBeans) {
 			preDetermineBeanType(beanName, bpps, runtimeHints);
 		}
@@ -510,7 +522,7 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 	 * @param beanClass the class of the bean (resolving a public constructor
 	 * to be autowired, possibly simply the default constructor)
 	 * @param customizers one or more callbacks for customizing the factory's
-	 * {@link BeanDefinition}, e.g. setting a lazy-init or primary flag
+	 * {@link BeanDefinition}, for example, setting a lazy-init or primary flag
 	 * @since 5.0
 	 * @see #registerBean(String, Class, Supplier, BeanDefinitionCustomizer...)
 	 */
@@ -525,7 +537,7 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 	 * @param beanClass the class of the bean (resolving a public constructor
 	 * to be autowired, possibly simply the default constructor)
 	 * @param customizers one or more callbacks for customizing the factory's
-	 * {@link BeanDefinition}, e.g. setting a lazy-init or primary flag
+	 * {@link BeanDefinition}, for example, setting a lazy-init or primary flag
 	 * @since 5.0
 	 * @see #registerBean(String, Class, Supplier, BeanDefinitionCustomizer...)
 	 */
@@ -543,7 +555,7 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 	 * @param beanClass the class of the bean
 	 * @param supplier a callback for creating an instance of the bean
 	 * @param customizers one or more callbacks for customizing the factory's
-	 * {@link BeanDefinition}, e.g. setting a lazy-init or primary flag
+	 * {@link BeanDefinition}, for example, setting a lazy-init or primary flag
 	 * @since 5.0
 	 * @see #registerBean(String, Class, Supplier, BeanDefinitionCustomizer...)
 	 */
@@ -565,7 +577,7 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 	 * @param supplier a callback for creating an instance of the bean (in case
 	 * of {@code null}, resolving a public constructor to be autowired instead)
 	 * @param customizers one or more callbacks for customizing the factory's
-	 * {@link BeanDefinition}, e.g. setting a lazy-init or primary flag
+	 * {@link BeanDefinition}, for example, setting a lazy-init or primary flag
 	 * @since 5.0
 	 */
 	public <T> void registerBean(@Nullable String beanName, Class<T> beanClass,

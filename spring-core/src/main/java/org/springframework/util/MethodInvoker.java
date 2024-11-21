@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ public class MethodInvoker {
 
 	/**
 	 * Set a fully qualified static method name to invoke,
-	 * e.g. "example.MyExampleClass.myExampleMethod". This is a
+	 * for example, "example.MyExampleClass.myExampleMethod". This is a
 	 * convenient alternative to specifying targetClass and targetMethod.
 	 * @see #setTargetClass
 	 * @see #setTargetMethod
@@ -160,7 +160,7 @@ public class MethodInvoker {
 			if (lastDotIndex == -1 || lastDotIndex == this.staticMethod.length() - 1) {
 				throw new IllegalArgumentException(
 						"staticMethod must be a fully qualified class plus method name: " +
-						"e.g. 'example.MyExampleClass.myExampleMethod'");
+						"for example, 'example.MyExampleClass.myExampleMethod'");
 			}
 			String className = this.staticMethod.substring(0, lastDotIndex);
 			String methodName = this.staticMethod.substring(lastDotIndex + 1);
@@ -226,14 +226,12 @@ public class MethodInvoker {
 		Method matchingMethod = null;
 
 		for (Method candidate : candidates) {
-			if (candidate.getName().equals(targetMethod)) {
-				if (candidate.getParameterCount() == argCount) {
-					Class<?>[] paramTypes = candidate.getParameterTypes();
-					int typeDiffWeight = getTypeDifferenceWeight(paramTypes, arguments);
-					if (typeDiffWeight < minTypeDiffWeight) {
-						minTypeDiffWeight = typeDiffWeight;
-						matchingMethod = candidate;
-					}
+			if (candidate.getName().equals(targetMethod) && candidate.getParameterCount() == argCount) {
+				Class<?>[] paramTypes = candidate.getParameterTypes();
+				int typeDiffWeight = getTypeDifferenceWeight(paramTypes, arguments);
+				if (typeDiffWeight < minTypeDiffWeight) {
+					minTypeDiffWeight = typeDiffWeight;
+					matchingMethod = candidate;
 				}
 			}
 		}

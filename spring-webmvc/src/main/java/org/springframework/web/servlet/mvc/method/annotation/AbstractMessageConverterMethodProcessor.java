@@ -373,7 +373,7 @@ public abstract class AbstractMessageConverterMethodProcessor extends AbstractMe
 	 * Return the type of the value to be written to the response. Typically this is
 	 * a simple check via getClass on the value but if the value is null, then the
 	 * return type needs to be examined possibly including generic type determination
-	 * (e.g. {@code ResponseEntity<T>}).
+	 * (for example, {@code ResponseEntity<T>}).
 	 */
 	protected Class<?> getReturnValueType(@Nullable Object value, MethodParameter returnType) {
 		return (value != null ? value.getClass() : returnType.getParameterType());
@@ -532,7 +532,7 @@ public abstract class AbstractMessageConverterMethodProcessor extends AbstractMe
 		if (!StringUtils.hasText(extension)) {
 			return true;
 		}
-		extension = extension.toLowerCase(Locale.ENGLISH);
+		extension = extension.toLowerCase(Locale.ROOT);
 		if (this.safeExtensions.contains(extension)) {
 			return true;
 		}

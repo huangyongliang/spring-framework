@@ -319,17 +319,18 @@ public class ResolvableType implements Serializable {
 			}
 		}
 
+		if (upUntilUnresolvable && (other.isUnresolvableTypeVariable() || other.isWildcardWithoutBounds())) {
+			return true;
+		}
+
 		// Deal with array by delegating to the component type
 		if (isArray()) {
 			return (other.isArray() && getComponentType().isAssignableFrom(
 					other.getComponentType(), true, matchedBefore, upUntilUnresolvable));
 		}
 
-		if (upUntilUnresolvable && (other.isUnresolvableTypeVariable() || other.isWildcardWithoutBounds())) {
-			return true;
-		}
-
-		boolean exactMatch = (strict && matchedBefore != null);  // We're checking nested generic variables now...
+		// We're checking nested generic variables now...
+		boolean exactMatch = (strict && matchedBefore != null);
 
 		// Deal with wildcard bounds
 		WildcardBounds ourBounds = WildcardBounds.get(this);
@@ -549,9 +550,14 @@ public class ResolvableType implements Serializable {
 		ResolvableType[] interfaces = this.interfaces;
 		if (interfaces == null) {
 			Type[] genericIfcs = resolved.getGenericInterfaces();
-			interfaces = new ResolvableType[genericIfcs.length];
-			for (int i = 0; i < genericIfcs.length; i++) {
-				interfaces[i] = forType(genericIfcs[i], this);
+			if (genericIfcs.length > 0) {
+				interfaces = new ResolvableType[genericIfcs.length];
+				for (int i = 0; i < genericIfcs.length; i++) {
+					interfaces[i] = forType(genericIfcs[i], this);
+				}
+			}
+			else {
+				interfaces = EMPTY_TYPES_ARRAY;
 			}
 			this.interfaces = interfaces;
 		}
@@ -705,7 +711,7 @@ public class ResolvableType implements Serializable {
 	 * <p>The {@code typeIndexesPerLevel} map can be used to reference a specific generic
 	 * for the given level. For example, an index of 0 would refer to a {@code Map} key;
 	 * whereas, 1 would refer to the value. If the map does not contain a value for a
-	 * specific level the last generic will be used (e.g. a {@code Map} value).
+	 * specific level the last generic will be used (for example, a {@code Map} value).
 	 * <p>Nesting levels may also apply to array types; for example given
 	 * {@code String[]}, a nesting level of 2 refers to {@code String}.
 	 * <p>If a type does not {@link #hasGenerics() contain} generics the
@@ -789,16 +795,26 @@ public class ResolvableType implements Serializable {
 		if (generics == null) {
 			if (this.type instanceof Class<?> clazz) {
 				Type[] typeParams = clazz.getTypeParameters();
-				generics = new ResolvableType[typeParams.length];
-				for (int i = 0; i < generics.length; i++) {
-					generics[i] = ResolvableType.forType(typeParams[i], this);
+				if (typeParams.length > 0) {
+					generics = new ResolvableType[typeParams.length];
+					for (int i = 0; i < generics.length; i++) {
+						generics[i] = ResolvableType.forType(typeParams[i], this);
+					}
+				}
+				else {
+					generics = EMPTY_TYPES_ARRAY;
 				}
 			}
 			else if (this.type instanceof ParameterizedType parameterizedType) {
 				Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
-				generics = new ResolvableType[actualTypeArguments.length];
-				for (int i = 0; i < actualTypeArguments.length; i++) {
-					generics[i] = forType(actualTypeArguments[i], this.variableResolver);
+				if (actualTypeArguments.length > 0) {
+					generics = new ResolvableType[actualTypeArguments.length];
+					for (int i = 0; i < actualTypeArguments.length; i++) {
+						generics[i] = forType(actualTypeArguments[i], this.variableResolver);
+					}
+				}
+				else {
+					generics = EMPTY_TYPES_ARRAY;
 				}
 			}
 			else {
@@ -1013,7 +1029,7 @@ public class ResolvableType implements Serializable {
 	/**
 	 * Check for type-level equality with another {@code ResolvableType}.
 	 * <p>In contrast to {@link #equals(Object)} or {@link #isAssignableFrom(ResolvableType)},
-	 * this works between different sources as well, e.g. method parameters and return types.
+	 * this works between different sources as well, for example, method parameters and return types.
 	 * @param otherType the {@code ResolvableType} to match against
 	 * @return whether the declared type and type variables match
 	 * @since 6.1

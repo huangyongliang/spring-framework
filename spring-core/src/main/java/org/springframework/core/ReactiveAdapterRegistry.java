@@ -42,7 +42,7 @@ import org.springframework.util.ReflectionUtils;
  * A registry of adapters to adapt Reactive Streams {@link Publisher} to/from various
  * async/reactive types such as {@code CompletableFuture}, RxJava {@code Flowable}, etc.
  * This is designed to complement Spring's Reactor {@code Mono}/{@code Flux} support while
- * also being usable without Reactor, e.g. just for {@code org.reactivestreams} bridging.
+ * also being usable without Reactor, for example, just for {@code org.reactivestreams} bridging.
  *
  * <p>By default, depending on classpath availability, adapters are registered for Reactor
  * (including {@code CompletableFuture} and {@code Flow.Publisher} adapters), RxJava 3,
@@ -441,10 +441,13 @@ public class ReactiveAdapterRegistry {
 		public void applyTo(BlockHound.Builder builder) {
 			// Avoid hard references potentially anywhere in spring-core (no need for structural dependency)
 
-			String className = "org.springframework.util.ConcurrentReferenceHashMap$Segment";
-			builder.allowBlockingCallsInside(className, "doTask");
-			builder.allowBlockingCallsInside(className, "clear");
-			builder.allowBlockingCallsInside(className, "restructure");
+			String segmentClassName = "org.springframework.util.ConcurrentReferenceHashMap$Segment";
+			builder.allowBlockingCallsInside(segmentClassName, "doTask");
+			builder.allowBlockingCallsInside(segmentClassName, "clear");
+			builder.allowBlockingCallsInside(segmentClassName, "restructure");
+
+			String referenceManagerClassName = "org.springframework.util.ConcurrentReferenceHashMap$ReferenceManager";
+			builder.allowBlockingCallsInside(referenceManagerClassName, "pollForPurge");
 		}
 	}
 

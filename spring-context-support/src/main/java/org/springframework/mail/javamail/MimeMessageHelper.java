@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.MimeTypeUtils;
 
 /**
  * Helper class for populating a {@link jakarta.mail.internet.MimeMessage}.
@@ -896,7 +897,7 @@ public class MimeMessageHelper {
 	 * <p><b>NOTE:</b> Invoke {@code addInline} <i>after</i> {@link #setText};
 	 * else, mail readers might not be able to resolve inline references correctly.
 	 * @param contentId the content ID to use. Will end up as "Content-ID" header
-	 * in the body part, surrounded by angle brackets: e.g. "myId" &rarr; "&lt;myId&gt;".
+	 * in the body part, surrounded by angle brackets: for example, "myId" &rarr; "&lt;myId&gt;".
 	 * Can be referenced in HTML source via src="cid:myId" expressions.
 	 * @param dataSource the {@code jakarta.activation.DataSource} to take
 	 * the content from, determining the InputStream and the content type
@@ -918,7 +919,7 @@ public class MimeMessageHelper {
 	 * <p><b>NOTE:</b> Invoke {@code addInline} <i>after</i> {@link #setText};
 	 * else, mail readers might not be able to resolve inline references correctly.
 	 * @param contentId the content ID to use. Will end up as "Content-ID" header
-	 * in the body part, surrounded by angle brackets: e.g. "myId" &rarr; "&lt;myId&gt;".
+	 * in the body part, surrounded by angle brackets: for example, "myId" &rarr; "&lt;myId&gt;".
 	 * Can be referenced in HTML source via src="cid:myId" expressions.
 	 * @param inlineFilename the fileName to use for the inline element's part
 	 * @param dataSource the {@code jakarta.activation.DataSource} to take
@@ -958,7 +959,7 @@ public class MimeMessageHelper {
 	 * <p><b>NOTE:</b> Invoke {@code addInline} <i>after</i> {@link #setText};
 	 * else, mail readers might not be able to resolve inline references correctly.
 	 * @param contentId the content ID to use. Will end up as "Content-ID" header
-	 * in the body part, surrounded by angle brackets: e.g. "myId" &rarr; "&lt;myId&gt;".
+	 * in the body part, surrounded by angle brackets: for example, "myId" &rarr; "&lt;myId&gt;".
 	 * Can be referenced in HTML source via src="cid:myId" expressions.
 	 * @param file the File resource to take the content from
 	 * @throws MessagingException in case of errors
@@ -985,7 +986,7 @@ public class MimeMessageHelper {
 	 * <p><b>NOTE:</b> Invoke {@code addInline} <i>after</i> {@link #setText};
 	 * else, mail readers might not be able to resolve inline references correctly.
 	 * @param contentId the content ID to use. Will end up as "Content-ID" header
-	 * in the body part, surrounded by angle brackets: e.g. "myId" &rarr; "&lt;myId&gt;".
+	 * in the body part, surrounded by angle brackets: for example, "myId" &rarr; "&lt;myId&gt;".
 	 * Can be referenced in HTML source via src="cid:myId" expressions.
 	 * @param resource the resource to take the content from
 	 * @throws MessagingException in case of errors
@@ -995,7 +996,8 @@ public class MimeMessageHelper {
 	 */
 	public void addInline(String contentId, Resource resource) throws MessagingException {
 		Assert.notNull(resource, "Resource must not be null");
-		String contentType = getFileTypeMap().getContentType(resource.getFilename());
+		String contentType = (resource.getFilename() != null ?
+				getFileTypeMap().getContentType(resource.getFilename()) : MimeTypeUtils.APPLICATION_OCTET_STREAM_VALUE);
 		addInline(contentId, resource, contentType);
 	}
 
@@ -1011,7 +1013,7 @@ public class MimeMessageHelper {
 	 * <p><b>NOTE:</b> Invoke {@code addInline} <i>after</i> {@code setText};
 	 * else, mail readers might not be able to resolve inline references correctly.
 	 * @param contentId the content ID to use. Will end up as "Content-ID" header
-	 * in the body part, surrounded by angle brackets: e.g. "myId" &rarr; "&lt;myId&gt;".
+	 * in the body part, surrounded by angle brackets: for example, "myId" &rarr; "&lt;myId&gt;".
 	 * Can be referenced in HTML source via src="cid:myId" expressions.
 	 * @param inputStreamSource the resource to take the content from
 	 * @param contentType the content type to use for the element
@@ -1040,7 +1042,7 @@ public class MimeMessageHelper {
 	 * <p><b>NOTE:</b> Invoke {@code addInline} <i>after</i> {@code setText};
 	 * else, mail readers might not be able to resolve inline references correctly.
 	 * @param contentId the content ID to use. Will end up as "Content-ID" header
-	 * in the body part, surrounded by angle brackets: e.g. "myId" &rarr; "&lt;myId&gt;".
+	 * in the body part, surrounded by angle brackets: for example, "myId" &rarr; "&lt;myId&gt;".
 	 * Can be referenced in HTML source via src="cid:myId" expressions.
 	 * @param inlineFilename the file name to use for the inline element
 	 * @param inputStreamSource the resource to take the content from
@@ -1070,7 +1072,7 @@ public class MimeMessageHelper {
 	 * <p><b>NOTE:</b> Invoke {@code addInline} <i>after</i> {@code setText};
 	 * else, mail readers might not be able to resolve inline references correctly.
 	 * @param contentId the content ID to use. Will end up as "Content-ID" header
-	 * in the body part, surrounded by angle brackets: e.g. "myId" &rarr; "&lt;myId&gt;".
+	 * in the body part, surrounded by angle brackets: for example, "myId" &rarr; "&lt;myId&gt;".
 	 * Can be referenced in HTML source via src="cid:myId" expressions.
 	 * @param inlineFilename the fileName to use for the inline element's part
 	 * @param inputStreamSource the resource to take the content from

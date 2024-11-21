@@ -70,9 +70,9 @@ public interface ServerResponse {
 	 * Return the status code of this response as integer.
 	 * @return the status as an integer
 	 * @since 5.2
-	 * @deprecated as of 6.0, in favor of {@link #statusCode()}
+	 * @deprecated in favor of {@link #statusCode()}, for removal in 7.0
 	 */
-	@Deprecated(since = "6.0")
+	@Deprecated(since = "6.0", forRemoval = true)
 	int rawStatusCode();
 
 	/**
@@ -339,7 +339,7 @@ public interface ServerResponse {
 		B cacheControl(CacheControl cacheControl);
 
 		/**
-		 * Configure one or more request header names (e.g. "Accept-Language") to
+		 * Configure one or more request header names (for example, "Accept-Language") to
 		 * add to the "Vary" response header to inform clients that the response is
 		 * subject to content negotiation and variances based on the value of the
 		 * given request headers. The configured request header names are added only

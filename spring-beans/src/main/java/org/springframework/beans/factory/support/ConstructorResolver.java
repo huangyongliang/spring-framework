@@ -918,7 +918,7 @@ class ConstructorResolver {
 		catch (NoSuchBeanDefinitionException ex) {
 			if (fallback) {
 				// Single constructor or factory method -> let's return an empty array/collection
-				// for e.g. a vararg or a non-null List/Set/Map parameter.
+				// for example, a vararg or a non-null List/Set/Map parameter.
 				if (paramType.isArray()) {
 					return Array.newInstance(paramType.componentType(), 0);
 				}
@@ -1241,8 +1241,8 @@ class ConstructorResolver {
 	/**
 	 * Return a {@link Predicate} for a parameter type that checks if its target
 	 * value is a {@link Class} and the value type is a {@link String}. This is
-	 * a regular use cases where a {@link Class} is defined in the bean
-	 * definition as an FQN.
+	 * a regular use case where a {@link Class} is defined in the bean definition
+	 * as a fully-qualified class name.
 	 * @param valueType the type of the value
 	 * @return a predicate to indicate a fallback match for a String to Class
 	 * parameter
@@ -1323,7 +1323,7 @@ class ConstructorResolver {
 			// No public constructors -> check non-public
 			ctors = clazz.getDeclaredConstructors();
 			if (ctors.length == 1) {
-				// A single non-public constructor, e.g. from a non-public record type
+				// A single non-public constructor, for example, from a non-public record type
 				return ctors;
 			}
 		}

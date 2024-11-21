@@ -13,7 +13,7 @@ You can apply the `@Autowired` annotation to constructors, as the following exam
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class MovieRecommender {
 
@@ -30,7 +30,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class MovieRecommender @Autowired constructor(
 		private val customerPreferenceDao: CustomerPreferenceDao)
@@ -54,7 +54,7 @@ as the following example shows:
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class SimpleMovieLister {
 
@@ -71,7 +71,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class SimpleMovieLister {
 
@@ -91,7 +91,7 @@ arguments, as the following example shows:
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class MovieRecommender {
 
@@ -112,7 +112,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class MovieRecommender {
 
@@ -139,7 +139,7 @@ following example shows:
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class MovieRecommender {
 
@@ -159,7 +159,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class MovieRecommender @Autowired constructor(
 		private val customerPreferenceDao: CustomerPreferenceDao) {
@@ -186,14 +186,37 @@ implementation type, consider declaring the most specific return type on your fa
 method (at least as specific as required by the injection points referring to your bean).
 ====
 
+.[[beans-autowired-annotation-self-injection]]Self Injection
+****
+`@Autowired` also considers self references for injection (that is, references back to
+the bean that is currently injected).
+
+Note, however, that self injection is a fallback mechanism. Regular dependencies on other
+components always have precedence. In that sense, self references do not participate in
+regular autowiring candidate selection and are therefore in particular never primary. On
+the contrary, they always end up as lowest precedence.
+
+In practice, you should use self references as a last resort only – for example, for
+calling other methods on the same instance through the bean's transactional proxy. As an
+alternative, consider factoring out the affected methods to a separate delegate bean in
+such a scenario.
+
+Another alternative is to use `@Resource`, which may obtain a proxy back to the current
+bean by its unique name.
+
+======
 [NOTE]
 ====
-As of 4.3, `@Autowired` also considers self references for injection (that is, references
-back to the bean that is currently injected). Note that self injection is a fallback.
-In practice, you should use self references as a last resort only (for example, for
-calling other methods on the same instance through the bean's transactional proxy).
-Consider factoring out the affected methods to a separate delegate bean in such a scenario.
+Trying to inject the results from `@Bean` methods in the same `@Configuration` class is
+effectively a self-reference scenario as well. Either lazily resolve such references
+in the method signature where it is actually needed (as opposed to an autowired field
+in the configuration class) or declare the affected `@Bean` methods as `static`,
+decoupling them from the containing configuration class instance and its lifecycle.
+Otherwise, such beans are only considered in the fallback phase, with matching beans
+on other configuration classes selected as primary candidates instead (if available).
 ====
+======
+****
 
 You can also instruct Spring to provide all beans of a particular type from the
 `ApplicationContext` by adding the `@Autowired` annotation to a field or method that
@@ -203,7 +226,7 @@ expects an array of that type, as the following example shows:
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class MovieRecommender {
 
@@ -216,7 +239,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class MovieRecommender {
 
@@ -234,7 +257,7 @@ The same applies for typed collections, as the following example shows:
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class MovieRecommender {
 
@@ -251,7 +274,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class MovieRecommender {
 
@@ -296,7 +319,7 @@ corresponding bean names, as the following example shows:
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class MovieRecommender {
 
@@ -313,7 +336,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class MovieRecommender {
 
@@ -338,7 +361,7 @@ non-required (i.e., by setting the `required` attribute in `@Autowired` to `fals
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class SimpleMovieLister {
 
@@ -355,7 +378,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class SimpleMovieLister {
 
@@ -429,7 +452,7 @@ support:
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class SimpleMovieLister {
 
@@ -442,7 +465,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	class SimpleMovieLister {
 
@@ -465,7 +488,7 @@ an `ApplicationContext` object:
 ======
 Java::
 +
-[source,java,indent=0,subs="verbatim,quotes",role="primary"]
+[source,java,indent=0,subs="verbatim,quotes"]
 ----
 	public class MovieRecommender {
 
@@ -481,7 +504,7 @@ Java::
 
 Kotlin::
 +
-[source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
+[source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 class MovieRecommender {
 

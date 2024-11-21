@@ -45,7 +45,7 @@ import org.springframework.util.Assert;
  *
  * <p>This listener container variant is built for repeated polling attempts,
  * each invoking the {@link #receiveAndExecute} method. The MessageConsumer used
- * may be reobtained fo reach attempt or cached in between attempts; this is up
+ * may be reobtained for each attempt or cached in between attempts; this is up
  * to the concrete implementation. The receive timeout for each attempt can be
  * configured through the {@link #setReceiveTimeout "receiveTimeout"} property.
  *
@@ -56,7 +56,7 @@ import org.springframework.util.Assert;
  * full control over the listening process, allowing for custom scaling and throttling
  * and of concurrent message processing (which is up to concrete subclasses).
  *
- * <p>Message reception and listener execution can automatically be wrapped
+ * <p>Message receipt and listener execution can automatically be wrapped
  * in transactions through passing a Spring
  * {@link org.springframework.transaction.PlatformTransactionManager} into the
  * {@link #setTransactionManager "transactionManager"} property. This will usually
@@ -105,7 +105,7 @@ public abstract class AbstractPollingMessageListenerContainer extends AbstractMe
 
 	/**
 	 * Specify the Spring {@link org.springframework.transaction.PlatformTransactionManager}
-	 * to use for transactional wrapping of message reception plus listener execution.
+	 * to use for transactional wrapping of message receipt plus listener execution.
 	 * <p>Default is none, not performing any transactional wrapping.
 	 * If specified, this will usually be a Spring
 	 * {@link org.springframework.transaction.jta.JtaTransactionManager} or one
@@ -115,7 +115,7 @@ public abstract class AbstractPollingMessageListenerContainer extends AbstractMe
 	 * Simply switch the {@link #setSessionTransacted "sessionTransacted"} flag
 	 * to "true" in order to use a locally transacted JMS Session for the entire
 	 * receive processing, including any Session operations performed by a
-	 * {@link SessionAwareMessageListener} (e.g. sending a response message). This
+	 * {@link SessionAwareMessageListener} (for example, sending a response message). This
 	 * allows for fully synchronized Spring transactions based on local JMS
 	 * transactions, similar to what
 	 * {@link org.springframework.jms.connection.JmsTransactionManager} provides. Check
@@ -131,7 +131,7 @@ public abstract class AbstractPollingMessageListenerContainer extends AbstractMe
 
 	/**
 	 * Return the Spring PlatformTransactionManager to use for transactional
-	 * wrapping of message reception plus listener execution.
+	 * wrapping of message receipt plus listener execution.
 	 */
 	@Nullable
 	protected final PlatformTransactionManager getTransactionManager() {
@@ -259,7 +259,7 @@ public abstract class AbstractPollingMessageListenerContainer extends AbstractMe
 			catch (RuntimeException ex) {
 				// Typically a late persistence exception from a listener-used resource
 				// -> handle it as listener exception, not as an infrastructure problem.
-				// E.g. a database locking failure should not lead to listener shutdown.
+				// For example, a database locking failure should not lead to listener shutdown.
 				handleListenerException(ex);
 			}
 			return messageReceived;

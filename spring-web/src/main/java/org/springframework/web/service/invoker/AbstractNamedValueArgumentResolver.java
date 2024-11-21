@@ -32,6 +32,7 @@ import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ValueConstants;
 
 /**
@@ -47,7 +48,6 @@ public abstract class AbstractNamedValueArgumentResolver implements HttpServiceA
 	private static final TypeDescriptor STRING_TARGET_TYPE = TypeDescriptor.valueOf(String.class);
 
 	protected final Log logger = LogFactory.getLog(getClass());
-
 
 	@Nullable
 	private final ConversionService conversionService;
@@ -192,11 +192,15 @@ public abstract class AbstractNamedValueArgumentResolver implements HttpServiceA
 		}
 
 		if (this.conversionService != null && !(value instanceof String)) {
+			Object beforeValue = value;
 			parameter = parameter.nestedIfOptional();
 			Class<?> type = parameter.getNestedParameterType();
 			value = (type != Object.class && !type.isArray() ?
 					this.conversionService.convert(value, new TypeDescriptor(parameter), STRING_TARGET_TYPE) :
 					this.conversionService.convert(value, String.class));
+			if (!StringUtils.hasText((String) value) && !required && beforeValue == null) {
+				value = null;
+			}
 		}
 
 		if (value == null) {
@@ -246,7 +250,7 @@ public abstract class AbstractNamedValueArgumentResolver implements HttpServiceA
 		 * @param name the name to use, possibly empty if not specified
 		 * @param required whether it is marked as required
 		 * @param defaultValue fallback value, possibly {@link ValueConstants#DEFAULT_NONE}
-		 * @param label how it should appear in error messages, e.g. "path variable", "request header"
+		 * @param label how it should appear in error messages, for example, "path variable", "request header"
 		 * @param multiValued whether this argument resolver supports sending multiple values;
 		 * if not, then multiple values are formatted as a String value
 		 */
@@ -263,7 +267,6 @@ public abstract class AbstractNamedValueArgumentResolver implements HttpServiceA
 		public NamedValueInfo update(String name, boolean required, @Nullable String defaultValue) {
 			return new NamedValueInfo(name, required, defaultValue, this.label, this.multiValued);
 		}
-
 	}
 
 }

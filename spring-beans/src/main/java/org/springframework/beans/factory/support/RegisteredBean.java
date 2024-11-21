@@ -266,11 +266,11 @@ public final class RegisteredBean {
 	 * Descriptor for how a bean should be instantiated. While the {@code targetClass}
 	 * is usually the declaring class of the {@code executable} (in case of a constructor
 	 * or a locally declared factory method), there are cases where retaining the actual
-	 * concrete class is necessary (e.g. for an inherited factory method).
+	 * concrete class is necessary (for example, for an inherited factory method).
+	 * @since 6.1.7
 	 * @param executable the {@link Executable} ({@link java.lang.reflect.Constructor}
 	 * or {@link java.lang.reflect.Method}) to invoke
 	 * @param targetClass the target {@link Class} of the executable
-	 * @since 6.1.7
 	 */
 	public record InstantiationDescriptor(Executable executable, Class<?> targetClass) {
 

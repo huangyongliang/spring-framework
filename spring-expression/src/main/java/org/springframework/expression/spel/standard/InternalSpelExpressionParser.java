@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
@@ -755,7 +756,7 @@ class InternalSpelExpressionParser extends TemplateAwareExpressionParser {
 				throw internalException( this.expressionString.length(), SpelMessage.OOD);
 			}
 			throw internalException(node.startPos, SpelMessage.NOT_EXPECTED_TOKEN,
-					"qualified ID", node.getKind().toString().toLowerCase());
+					"qualified ID", node.getKind().toString().toLowerCase(Locale.ROOT));
 		}
 		return new QualifiedIdentifier(qualifiedIdPieces.getFirst().getStartPosition(),
 				qualifiedIdPieces.getLast().getEndPosition(), qualifiedIdPieces.toArray(new SpelNodeImpl[0]));
@@ -948,7 +949,7 @@ class InternalSpelExpressionParser extends TemplateAwareExpressionParser {
 		}
 		if (t.kind != expectedKind) {
 			throw internalException(t.startPos, SpelMessage.NOT_EXPECTED_TOKEN,
-					expectedKind.toString().toLowerCase(), t.getKind().toString().toLowerCase());
+					expectedKind.toString().toLowerCase(Locale.ROOT), t.getKind().toString().toLowerCase(Locale.ROOT));
 		}
 		return t;
 	}
@@ -970,7 +971,7 @@ class InternalSpelExpressionParser extends TemplateAwareExpressionParser {
 		}
 
 		if (desiredTokenKind == TokenKind.IDENTIFIER) {
-			// Might be one of the textual forms of the operators (e.g. NE for != ) -
+			// Might be one of the textual forms of the operators (for example, NE for != ) -
 			// in which case we can treat it as an identifier. The list is represented here:
 			// Tokenizer.ALTERNATIVE_OPERATOR_NAMES and those ones are in order in the TokenKind enum.
 			if (t.kind.ordinal() >= TokenKind.DIV.ordinal() && t.kind.ordinal() <= TokenKind.NOT.ordinal() &&
@@ -1044,7 +1045,7 @@ class InternalSpelExpressionParser extends TemplateAwareExpressionParser {
 		if (t.getKind().hasPayload()) {
 			return t.stringValue();
 		}
-		return t.kind.toString().toLowerCase();
+		return t.kind.toString().toLowerCase(Locale.ROOT);
 	}
 
 	@Contract("_, null, _ -> fail; _, _, null -> fail")

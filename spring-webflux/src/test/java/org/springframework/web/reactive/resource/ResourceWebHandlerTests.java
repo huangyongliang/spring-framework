@@ -203,7 +203,7 @@ class ResourceWebHandlerTests {
 		}
 
 		@ParameterizedTest
-		@MethodSource("httpMethods")
+		@MethodSource("org.springframework.http.HttpMethod#values()")
 		void resourceNotFound(HttpMethod method) {
 			MockServerHttpRequest request = MockServerHttpRequest.method(method, "").build();
 			MockServerWebExchange exchange = MockServerWebExchange.from(request);
@@ -221,10 +221,6 @@ class ResourceWebHandlerTests {
 			AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 			StepVerifier.create(mono).consumeErrorWith(exceptionRef::set).verify();
 			StepVerifier.create(mono).consumeErrorWith(ex -> assertThat(ex).isNotSameAs(exceptionRef.get())).verify();
-		}
-
-		static Stream<HttpMethod> httpMethods() {
-			return Arrays.stream(HttpMethod.values());
 		}
 
 	}
@@ -669,7 +665,6 @@ class ResourceWebHandlerTests {
 			testInvalidPath("/../.." + secretPath, handler);
 			testInvalidPath("/%2E%2E/testsecret/secret.txt", handler);
 			testInvalidPath("/%2E%2E/testsecret/secret.txt", handler);
-			testInvalidPath("%2F%2F%2E%2E%2F%2F%2E%2E" + secretPath, handler);
 		}
 
 		private void testInvalidPath(String requestPath, ResourceWebHandler handler) {
@@ -684,13 +679,14 @@ class ResourceWebHandlerTests {
 		}
 
 		@ParameterizedTest
-		@MethodSource("httpMethods")
+		@MethodSource("org.springframework.http.HttpMethod#values()")
 		void resolvePathWithTraversal(HttpMethod method) throws Exception {
 			Resource location = new ClassPathResource("test/", getClass());
 			this.handler.setLocations(List.of(location));
 
 			testResolvePathWithTraversal(method, "../testsecret/secret.txt");
 			testResolvePathWithTraversal(method, "test/../../testsecret/secret.txt");
+			testResolvePathWithTraversal(method, "/testsecret/test/../secret.txt");
 			testResolvePathWithTraversal(method, ":/../../testsecret/secret.txt");
 
 			location = new UrlResource(getClass().getResource("./test/"));
@@ -704,7 +700,6 @@ class ResourceWebHandlerTests {
 			testResolvePathWithTraversal(method, "/url:" + secretPath);
 			testResolvePathWithTraversal(method, "////../.." + secretPath);
 			testResolvePathWithTraversal(method, "/%2E%2E/testsecret/secret.txt");
-			testResolvePathWithTraversal(method, "%2F%2F%2E%2E%2F%2Ftestsecret/secret.txt");
 			testResolvePathWithTraversal(method, "url:" + secretPath);
 
 			// The following tests fail with a MalformedURLException on Windows

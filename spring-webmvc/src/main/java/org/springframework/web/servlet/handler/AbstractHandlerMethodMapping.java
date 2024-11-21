@@ -126,7 +126,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 * Configure the naming strategy to use for assigning a default name to every
 	 * mapped handler method.
 	 * <p>The default naming strategy is based on the capital letters of the
-	 * class name followed by "#" and then the method name, e.g. "TC#getFoo"
+	 * class name followed by "#" and then the method name, for example, "TC#getFoo"
 	 * for a class named TestController with method getFoo.
 	 */
 	public void setHandlerMethodMappingNamingStrategy(HandlerMethodMappingNamingStrategy<T> namingStrategy) {
@@ -479,8 +479,8 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	@Override
 	protected boolean hasCorsConfigurationSource(Object handler) {
 		return super.hasCorsConfigurationSource(handler) ||
-				(handler instanceof HandlerMethod handerMethod &&
-						this.mappingRegistry.getCorsConfiguration(handerMethod) != null);
+				(handler instanceof HandlerMethod handlerMethod &&
+						this.mappingRegistry.getCorsConfiguration(handlerMethod) != null);
 	}
 
 	@Override

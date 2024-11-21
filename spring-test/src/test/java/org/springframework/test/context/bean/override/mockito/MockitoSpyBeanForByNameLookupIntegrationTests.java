@@ -40,16 +40,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringJUnitConfig(Config.class)
 public class MockitoSpyBeanForByNameLookupIntegrationTests {
 
-	@MockitoSpyBean(name = "field")
+	@MockitoSpyBean("field")
 	ExampleService field;
 
-	@MockitoSpyBean(name = "nestedField")
+	@MockitoSpyBean("nestedField")
 	ExampleService nestedField;
 
-	@MockitoSpyBean(name = "field")
+	@MockitoSpyBean("field")
 	ExampleService renamed1;
 
-	@MockitoSpyBean(name = "nestedField")
+	@MockitoSpyBean("nestedField")
 	ExampleService renamed2;
 
 
@@ -98,7 +98,7 @@ public class MockitoSpyBeanForByNameLookupIntegrationTests {
 		}
 	}
 
-	@Configuration
+	@Configuration(proxyBeanMethods = false)
 	static class Config {
 
 		@Bean("field")

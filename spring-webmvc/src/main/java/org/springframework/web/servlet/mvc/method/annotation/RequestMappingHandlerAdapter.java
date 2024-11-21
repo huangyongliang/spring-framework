@@ -408,7 +408,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 
 	/**
 	 * Configure a list of {@link ErrorResponse.Interceptor}'s to apply when
-	 * rendering an RFC 7807 {@link org.springframework.http.ProblemDetail}
+	 * rendering an RFC 9457 {@link org.springframework.http.ProblemDetail}
 	 * error response.
 	 * @param interceptors the interceptors to use
 	 * @since 6.2
@@ -559,7 +559,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 
 	/**
 	 * Set the ParameterNameDiscoverer to use for resolving method parameter names if needed
-	 * (e.g. for default attribute names).
+	 * (for example, for default attribute names).
 	 * <p>Default is a {@link org.springframework.core.DefaultParameterNameDiscoverer}.
 	 */
 	public void setParameterNameDiscoverer(ParameterNameDiscoverer parameterNameDiscoverer) {

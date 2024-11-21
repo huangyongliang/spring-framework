@@ -154,31 +154,43 @@ public class QualifierAnnotationAutowireCandidateResolver extends GenericTypeAwa
 	 */
 	@Override
 	public boolean isAutowireCandidate(BeanDefinitionHolder bdHolder, DependencyDescriptor descriptor) {
-		boolean match = super.isAutowireCandidate(bdHolder, descriptor);
-		if (match) {
-			match = checkQualifiers(bdHolder, descriptor.getAnnotations());
-			if (match) {
-				MethodParameter methodParam = descriptor.getMethodParameter();
-				if (methodParam != null) {
-					Method method = methodParam.getMethod();
-					if (method == null || void.class == method.getReturnType()) {
-						match = checkQualifiers(bdHolder, methodParam.getMethodAnnotations());
+		if (!super.isAutowireCandidate(bdHolder, descriptor)) {
+			return false;
+		}
+		Boolean checked = checkQualifiers(bdHolder, descriptor.getAnnotations());
+		if (checked != Boolean.FALSE) {
+			MethodParameter methodParam = descriptor.getMethodParameter();
+			if (methodParam != null) {
+				Method method = methodParam.getMethod();
+				if (method == null || void.class == method.getReturnType()) {
+					Boolean methodChecked = checkQualifiers(bdHolder, methodParam.getMethodAnnotations());
+					if (methodChecked != null && checked == null) {
+						checked = methodChecked;
 					}
 				}
 			}
 		}
-		return match;
+		return (checked == Boolean.TRUE ||
+				(checked == null && ((RootBeanDefinition) bdHolder.getBeanDefinition()).isDefaultCandidate()));
 	}
 
 	/**
 	 * Match the given qualifier annotations against the candidate bean definition.
+	 * @return {@code false} if a qualifier has been found but not matched,
+	 * {@code true} if a qualifier has been found and matched,
+	 * {@code null} if no qualifier has been found at all
 	 */
-	protected boolean checkQualifiers(BeanDefinitionHolder bdHolder, Annotation[] annotationsToSearch) {
+
+	@Nullable
+	protected Boolean checkQualifiers(BeanDefinitionHolder bdHolder, Annotation[] annotationsToSearch) {
 		boolean qualifierFound = false;
 		if (!ObjectUtils.isEmpty(annotationsToSearch)) {
 			SimpleTypeConverter typeConverter = new SimpleTypeConverter();
 			for (Annotation annotation : annotationsToSearch) {
 				Class<? extends Annotation> type = annotation.annotationType();
+				if (isPlainJavaAnnotation(type)) {
+					continue;
+				}
 				boolean checkMeta = true;
 				boolean fallbackToMeta = false;
 				if (isQualifier(type)) {
@@ -194,6 +206,9 @@ public class QualifierAnnotationAutowireCandidateResolver extends GenericTypeAwa
 					boolean foundMeta = false;
 					for (Annotation metaAnn : type.getAnnotations()) {
 						Class<? extends Annotation> metaType = metaAnn.annotationType();
+						if (isPlainJavaAnnotation(metaType)) {
+							continue;
+						}
 						if (isQualifier(metaType)) {
 							qualifierFound = true;
 							foundMeta = true;
@@ -211,11 +226,21 @@ public class QualifierAnnotationAutowireCandidateResolver extends GenericTypeAwa
 				}
 			}
 		}
-		return (qualifierFound || ((RootBeanDefinition) bdHolder.getBeanDefinition()).isDefaultCandidate());
+		return (qualifierFound ? true : null);
 	}
 
 	/**
-	 * Checks whether the given annotation type is a recognized qualifier type.
+	 * Check whether the given annotation type is a plain "java." annotation,
+	 * typically from {@code java.lang.annotation}.
+	 * <p>Aligned with
+	 * {@code org.springframework.core.annotation.AnnotationsScanner#hasPlainJavaAnnotationsOnly}.
+	 */
+	private boolean isPlainJavaAnnotation(Class<? extends Annotation> annotationType) {
+		return annotationType.getName().startsWith("java.");
+	}
+
+	/**
+	 * Check whether the given annotation type is a recognized qualifier type.
 	 */
 	protected boolean isQualifier(Class<? extends Annotation> annotationType) {
 		for (Class<? extends Annotation> qualifierType : this.qualifierTypes) {

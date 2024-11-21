@@ -64,8 +64,8 @@ class DefaultBeanRegistrationCodeFragments implements BeanRegistrationCodeFragme
 	private final Supplier<InstantiationDescriptor> instantiationDescriptor;
 
 
-	DefaultBeanRegistrationCodeFragments(BeanRegistrationsCode beanRegistrationsCode,
-			RegisteredBean registeredBean,
+	DefaultBeanRegistrationCodeFragments(
+			BeanRegistrationsCode beanRegistrationsCode, RegisteredBean registeredBean,
 			BeanDefinitionMethodGeneratorFactory beanDefinitionMethodGeneratorFactory) {
 
 		this.beanRegistrationsCode = beanRegistrationsCode;
@@ -123,7 +123,7 @@ class DefaultBeanRegistrationCodeFragments implements BeanRegistrationCodeFragme
 
 		CodeBlock.Builder code = CodeBlock.builder();
 		RootBeanDefinition mbd = this.registeredBean.getMergedBeanDefinition();
-		Class<?> beanClass = (mbd.hasBeanClass() ? ClassUtils.getUserClass(mbd.getBeanClass()) : null);
+		Class<?> beanClass = (mbd.hasBeanClass() ? mbd.getBeanClass() : null);
 		CodeBlock beanClassCode = generateBeanClassCode(
 				beanRegistrationCode.getClassName().packageName(),
 				(beanClass != null ? beanClass : beanType.toClass()));
@@ -158,7 +158,7 @@ class DefaultBeanRegistrationCodeFragments implements BeanRegistrationCodeFragme
 		if (beanClass != null && this.registeredBean.getMergedBeanDefinition().getFactoryMethodName() != null) {
 			return true;
 		}
-		return (beanClass != null && !beanType.toClass().equals(beanClass));
+		return (beanClass != null && !beanType.toClass().equals(ClassUtils.getUserClass(beanClass)));
 	}
 
 	@Override

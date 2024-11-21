@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,7 +41,7 @@ import org.springframework.util.Assert;
 
 /**
  * Resolver that delegates to the chain, and if a resource is found, it then
- * attempts to find an encoded (e.g. gzip, brotli) variant that is acceptable
+ * attempts to find an encoded (for example, gzip, brotli) variant that is acceptable
  * based on the "Accept-Encoding" request header.
  *
  * <p>The list of supported {@link #setContentCodings(List) contentCodings} can
@@ -166,7 +167,7 @@ public class EncodedResourceResolver extends AbstractResourceResolver {
 	@Nullable
 	private String getAcceptEncoding(HttpServletRequest request) {
 		String header = request.getHeader(HttpHeaders.ACCEPT_ENCODING);
-		return (header != null ? header.toLowerCase() : null);
+		return (header != null ? header.toLowerCase(Locale.ROOT) : null);
 	}
 
 	private String getExtension(String coding) {

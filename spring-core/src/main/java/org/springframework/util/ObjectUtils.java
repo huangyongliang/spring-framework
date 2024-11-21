@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -173,10 +173,7 @@ public abstract class ObjectUtils {
 	@Nullable
 	public static Object unwrapOptional(@Nullable Object obj) {
 		if (obj instanceof Optional<?> optional) {
-			if (optional.isEmpty()) {
-				return null;
-			}
-			Object result = optional.get();
+			Object result = optional.orElse(null);
 			Assert.isTrue(!(result instanceof Optional), "Multi-level Optional usage not supported");
 			return result;
 		}
@@ -705,8 +702,7 @@ public abstract class ObjectUtils {
 		if (array == null) {
 			return NULL_STRING;
 		}
-		int length = array.length;
-		if (length == 0) {
+		if (array.length == 0) {
 			return EMPTY_ARRAY;
 		}
 		StringJoiner stringJoiner = new StringJoiner(ARRAY_ELEMENT_SEPARATOR, ARRAY_START, ARRAY_END);
@@ -729,8 +725,7 @@ public abstract class ObjectUtils {
 		if (array == null) {
 			return NULL_STRING;
 		}
-		int length = array.length;
-		if (length == 0) {
+		if (array.length == 0) {
 			return EMPTY_ARRAY;
 		}
 		StringJoiner stringJoiner = new StringJoiner(ARRAY_ELEMENT_SEPARATOR, ARRAY_START, ARRAY_END);
@@ -753,8 +748,7 @@ public abstract class ObjectUtils {
 		if (array == null) {
 			return NULL_STRING;
 		}
-		int length = array.length;
-		if (length == 0) {
+		if (array.length == 0) {
 			return EMPTY_ARRAY;
 		}
 		StringJoiner stringJoiner = new StringJoiner(ARRAY_ELEMENT_SEPARATOR, ARRAY_START, ARRAY_END);
@@ -777,8 +771,7 @@ public abstract class ObjectUtils {
 		if (array == null) {
 			return NULL_STRING;
 		}
-		int length = array.length;
-		if (length == 0) {
+		if (array.length == 0) {
 			return EMPTY_ARRAY;
 		}
 		StringJoiner stringJoiner = new StringJoiner(ARRAY_ELEMENT_SEPARATOR, ARRAY_START, ARRAY_END);
@@ -801,8 +794,7 @@ public abstract class ObjectUtils {
 		if (array == null) {
 			return NULL_STRING;
 		}
-		int length = array.length;
-		if (length == 0) {
+		if (array.length == 0) {
 			return EMPTY_ARRAY;
 		}
 		StringJoiner stringJoiner = new StringJoiner(ARRAY_ELEMENT_SEPARATOR, ARRAY_START, ARRAY_END);
@@ -849,8 +841,7 @@ public abstract class ObjectUtils {
 		if (array == null) {
 			return NULL_STRING;
 		}
-		int length = array.length;
-		if (length == 0) {
+		if (array.length == 0) {
 			return EMPTY_ARRAY;
 		}
 		StringJoiner stringJoiner = new StringJoiner(ARRAY_ELEMENT_SEPARATOR, ARRAY_START, ARRAY_END);
@@ -904,7 +895,7 @@ public abstract class ObjectUtils {
 	 */
 	public static String nullSafeConciseToString(@Nullable Object obj) {
 		if (obj == null) {
-			return "null";
+			return NULL_STRING;
 		}
 		if (obj instanceof Optional<?> optional) {
 			return (optional.isEmpty() ? "Optional.empty" :

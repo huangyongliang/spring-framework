@@ -17,6 +17,7 @@
 package org.springframework.http.client.observation;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import io.micrometer.common.KeyValue;
@@ -42,7 +43,7 @@ public class DefaultClientRequestObservationConvention implements ClientRequestO
 
 	private static final String DEFAULT_NAME = "http.client.requests";
 
-	private static final Pattern PATTERN_BEFORE_PATH = Pattern.compile("^https?://[^/]+/");
+	private static final Pattern PATTERN_BEFORE_PATH = Pattern.compile("^https?://[^/]+");
 
 	private static final KeyValue URI_NONE = KeyValue.of(LowCardinalityKeyNames.URI, KeyValue.NONE_VALUE);
 
@@ -89,7 +90,7 @@ public class DefaultClientRequestObservationConvention implements ClientRequestO
 	@Nullable
 	public String getContextualName(ClientRequestObservationContext context) {
 		ClientHttpRequest request = context.getCarrier();
-		return (request != null ? "http " + request.getMethod().name().toLowerCase() : null);
+		return (request != null ? "http " + request.getMethod().name().toLowerCase(Locale.ROOT) : null);
 	}
 
 	@Override

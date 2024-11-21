@@ -33,31 +33,43 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 public class TestBeanTests {
 
 	@Test
-	void contextCustomizerCannotBeCreatedWithNoSuchBeanName() {
+	void cannotOverrideBeanByNameWithNoSuchBeanName() {
 		GenericApplicationContext context = new GenericApplicationContext();
 		context.registerBean("anotherBean", String.class, () -> "example");
 		BeanOverrideContextCustomizerTestUtils.customizeApplicationContext(FailureByNameLookup.class, context);
 		assertThatIllegalStateException()
 				.isThrownBy(context::refresh)
 				.withMessage("""
-						Unable to override bean 'beanToOverride': there is no bean definition \
-						to replace with that name of type java.lang.String""");
+						Unable to override bean: there is no bean \
+						to replace with name [beanToOverride] and type [java.lang.String].""");
 	}
 
 	@Test
-	void contextCustomizerCannotBeCreatedWithNoSuchBeanType() {
+	void cannotOverrideBeanByNameWithBeanOfWrongType() {
+		GenericApplicationContext context = new GenericApplicationContext();
+		context.registerBean("beanToOverride", Integer.class, () -> 42);
+		BeanOverrideContextCustomizerTestUtils.customizeApplicationContext(FailureByNameLookup.class, context);
+		assertThatIllegalStateException()
+				.isThrownBy(context::refresh)
+				.withMessage("""
+						Unable to override bean: there is no bean \
+						to replace with name [beanToOverride] and type [java.lang.String].""");
+	}
+
+	@Test
+	void cannotOverrideBeanByTypeWithNoSuchBeanType() {
 		GenericApplicationContext context = new GenericApplicationContext();
 		BeanOverrideContextCustomizerTestUtils.customizeApplicationContext(FailureByTypeLookup.class, context);
 		assertThatIllegalStateException()
 				.isThrownBy(context::refresh)
 				.withMessage("""
-						Unable to override bean: no bean definitions of \
+						Unable to override bean: no beans of \
 						type %s (as required by annotated field '%s.example')""".formatted(
 						String.class.getName(), FailureByTypeLookup.class.getSimpleName()));
 	}
 
 	@Test
-	void contextCustomizerCannotBeCreatedWithTooManyBeansOfThatType() {
+	void cannotOverrideBeanByTypeWithTooManyBeansOfThatType() {
 		GenericApplicationContext context = new GenericApplicationContext();
 		context.registerBean("bean1", String.class, () -> "example1");
 		context.registerBean("bean2", String.class, () -> "example2");
@@ -65,22 +77,9 @@ public class TestBeanTests {
 		assertThatIllegalStateException()
 				.isThrownBy(context::refresh)
 				.withMessage("""
-						Unable to select a bean definition to override: found 2 bean definitions \
+						Unable to select a bean to override: found 2 beans \
 						of type %s (as required by annotated field '%s.example'): %s""".formatted(
 						String.class.getName(), FailureByTypeLookup.class.getSimpleName(), List.of("bean1", "bean2")));
-	}
-
-	@Test
-	void contextCustomizerCannotBeCreatedWithBeanOfWrongType() {
-		GenericApplicationContext context = new GenericApplicationContext();
-		context.registerBean("beanToOverride", Integer.class, () -> 42);
-		BeanOverrideContextCustomizerTestUtils.customizeApplicationContext(FailureByNameLookup.class, context);
-		assertThatIllegalStateException()
-				.isThrownBy(context::refresh)
-				.withMessage("""
-						Unable to override bean 'beanToOverride': there is no bean definition \
-						to replace with that name of type %s""".formatted(
-						String.class.getName()));
 	}
 
 	@Test
@@ -125,22 +124,23 @@ public class TestBeanTests {
 						.formatted(FailureCompetingOverrideMethods.class.getName(), String.class.getName()));
 	}
 
-	static class FailureByTypeLookup {
 
-		@TestBean
+	static class FailureByNameLookup {
+
+		@TestBean(name = "beanToOverride", enforceOverride = true)
 		private String example;
 
-		private static String example() {
+		static String example() {
 			throw new IllegalStateException("Should not be called");
 		}
 	}
 
-	static class FailureByNameLookup {
+	static class FailureByTypeLookup {
 
-		@TestBean(name = "beanToOverride")
+		@TestBean(enforceOverride = true)
 		private String example;
 
-		private static String example() {
+		static String example() {
 			throw new IllegalStateException("Should not be called");
 		}
 	}

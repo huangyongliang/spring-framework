@@ -123,13 +123,13 @@ public class MockitoBeanForByTypeLookupIntegrationTests {
 	}
 
 
-	interface AnotherService {
+	public interface AnotherService {
 
 		String hello();
 
 	}
 
-	@Configuration
+	@Configuration(proxyBeanMethods = false)
 	static class Config {
 
 		@Bean("example")
